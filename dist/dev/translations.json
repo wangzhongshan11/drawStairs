@@ -1,0 +1,22 @@
+{
+    "pluginName": {
+        "default": "drawStairs",
+        "zh_CN": "drawStairs",
+        "en_US": "drawStairs",
+        "zh_TW": "drawStairs",
+        "en_CN": "drawStairs",
+        "es_ES": "drawStairs",
+        "ar_EG": "drawStairs",
+        "fr_FR": "drawStairs",
+        "de_DE": "drawStairs",
+        "ru_RU": "drawStairs",
+        "ja_JP": "drawStairs",
+        "ko_KR": "drawStairs",
+        "it_IT": "drawStairs",
+        "th_TH": "drawStairs",
+        "pt_PT": "drawStairs",
+        "id_ID": "drawStairs",
+        "ro_RO": "drawStairs",
+        "pl_PL": "drawStairs"
+    }
+}
