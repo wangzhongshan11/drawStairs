@@ -23,8 +23,9 @@ export enum StepType {
 }
 
 export enum CornerType {
-    Rectangle = 0,
-    Arc = 1,
+    None = 0,
+    Rectangle = 1,
+    Arc = 2,
 }
 
 export interface HandrailParam {

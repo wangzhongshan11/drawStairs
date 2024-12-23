@@ -1,4 +1,4 @@
-import { StairParam, StairSegment, StairType, StepType } from "./types";
+import { CornerType, StairParam, StairSegment, StairType, StepType } from "./types";
 
 export function isKArchFace(entity: KEntity | KArchFace | undefined | null): entity is KArchFace {
     return !!entity && (entity.getType() === KArchFaceType.NonPlanar || entity.getType() === KArchFaceType.Planar);
@@ -49,10 +49,13 @@ export function computeStairSegment(stairSegment: StairSegment, stairParam: Stai
 const HeightTolerance: number = 5;
 const LengthTolerance: number = 1;
 const DirectionZ = GeomLib.createVector3d(0, 0, 1);
+const DefaultBoardThickness = 50;
 function computeStairShape(stairSegment: StairSegment, stairParam: StairParam) {
     const { start, end, stairShape: { stair, corner } } = stairSegment;
     const { width, type, step, stepType, cornerType } = stairParam;
     const horizontalEnd = GeomLib.createPoint3d(end.x - start.x, end.y - start.y, start.z);
+    stair.shape.main.vertices = [];
+    stair.shape.main.tempLines = [];
     if (type === StairType.Straight) {
         const horizontalFrontDir = horizontalEnd.subtracted(start).normalized();
         const vertitalFrontDir = end.subtracted(horizontalEnd).normalized();
@@ -68,71 +71,159 @@ function computeStairShape(stairSegment: StairSegment, stairParam: StairParam) {
         stair.stepCount = stepCount;
         const stepHeight = verticalDistance / stepCount;
         if (stepType === StepType.Normal) {
-            stair.shape.main.vertices = [];
-            stair.shape.main.tempLines = [];
             const stairMainVertices = stair.shape.main.vertices;
             const stairMainTempLines = stair.shape.main.tempLines;
+            const leftPt = start.added(horizontalLeftDir.multiplied(width / 2));
+            const rightPt = start.added(horizontalLeftDir.multiplied(-width / 2));
             if (Math.abs(stepHeight) > HeightTolerance) {
-                for (let i = 0; i < stepCount; i++) {
+                for (let i = 0; i < stepCount - 1; i++) {
+                    const curLeftPt = leftPt.added(horizontalFrontDir.multiplied(i * step)).added(vertitalFrontDir.multiplied(i * stepHeight));
+                    const curRightPt = rightPt.added(horizontalFrontDir.multiplied(i * step)).added(vertitalFrontDir.multiplied(i * stepHeight));
+                    stairMainVertices.push(curLeftPt, curRightPt,);
                     if (stepHeight > 0) {
-                        if (i === 0) {
-                            stairMainVertices.push(start.added(horizontalLeftDir.multiplied(width / 2)), start.added(horizontalLeftDir.multiplied(-width / 2)));
-                        } else {
-                            stairMainVertices.push(stairMainVertices[stairMainVertices.length - 2].added(horizontalFrontDir.multiplied(step)), stairMainVertices[stairMainVertices.length - 1].added(horizontalFrontDir.multiplied(step)));
-                        }
-                        stairMainVertices.push(stairMainVertices[stairMainVertices.length - 2].added(vertitalFrontDir.multiplied(stepHeight)), stairMainVertices[stairMainVertices.length - 1].added(vertitalFrontDir.multiplied(stepHeight)));
-                        stairMainTempLines.push(
-                            [stairMainVertices.length - 4, stairMainVertices.length - 3],
-                            [stairMainVertices.length - 4, stairMainVertices.length - 2],
-                            [stairMainVertices.length - 3, stairMainVertices.length - 1],
-                            [stairMainVertices.length - 2, stairMainVertices.length - 1],
+                        stairMainVertices.push(
+                            curLeftPt.added(vertitalFrontDir.multiplied(stepHeight)),
+                            curRightPt.added(vertitalFrontDir.multiplied(stepHeight)),
                         );
-                        if (i > 0) {
-                            stairMainTempLines.push(
-                                [stairMainVertices.length - 6, stairMainVertices.length - 4],
-                                [stairMainVertices.length - 5, stairMainVertices.length - 3],
-                            );
-                        }
                     } else {
-                        if (i === 0) {
-                            stairMainVertices.push(
-                                start.added(horizontalLeftDir.multiplied(width / 2)).added(vertitalFrontDir.multiplied(stepHeight)),
-                                start.added(horizontalLeftDir.multiplied(-width / 2)).added(vertitalFrontDir.multiplied(stepHeight))
-                            );
-                            stairMainTempLines.push(
-                                [stairMainVertices.length - 2, stairMainVertices.length - 1],
-                            );
-                        } else {
-                            stairMainVertices.push(stairMainVertices[stairMainVertices.length - 2].added(horizontalFrontDir.multiplied(step)), stairMainVertices[stairMainVertices.length - 1].added(horizontalFrontDir.multiplied(step)));
-                            stairMainVertices.push(stairMainVertices[stairMainVertices.length - 2].added(vertitalFrontDir.multiplied(stepHeight)), stairMainVertices[stairMainVertices.length - 1].added(vertitalFrontDir.multiplied(stepHeight)));
-                            stairMainTempLines.push(
-                                [stairMainVertices.length - 4, stairMainVertices.length - 3],
-                                [stairMainVertices.length - 4, stairMainVertices.length - 2],
-                                [stairMainVertices.length - 3, stairMainVertices.length - 1],
-                                [stairMainVertices.length - 2, stairMainVertices.length - 1],
-                                [stairMainVertices.length - 6, stairMainVertices.length - 4],
-                                [stairMainVertices.length - 5, stairMainVertices.length - 3],
-                            );
-                        }
+                        stairMainVertices.push(
+                            curLeftPt.added(horizontalFrontDir.multiplied(step)),
+                            curRightPt.added(horizontalFrontDir.multiplied(step)),
+                        );
                     }
+                    stairMainTempLines.push(
+                        [4 * i, 1 + 4 * i],
+                        [4 * i, 2 + 4 * i],
+                        [1 + 4 * i, 3 + 4 * i],
+                        [2 + 4 * i, 3 + 4 * i],
+                        [2 + 4 * i, 4 + 4 * i],
+                        [3 + 4 * i, 5 + 4 * i],
+                    );
                 }
                 if (lastStepLength > LengthTolerance) {
-                    stairMainVertices.push(stairMainVertices[stairMainVertices.length - 2].added(horizontalFrontDir.multiplied(step)), stairMainVertices[stairMainVertices.length - 1].added(horizontalFrontDir.multiplied(step)));
+                    if (stepHeight > 0) {
+                        stairMainVertices.push(
+                            stairMainVertices[stairMainVertices.length - 2].added(vertitalFrontDir.multiplied(stepHeight)),
+                            stairMainVertices[stairMainVertices.length - 1].added(vertitalFrontDir.multiplied(stepHeight))
+                        );
+                        stairMainVertices.push(
+                            stairMainVertices[stairMainVertices.length - 2].added(horizontalFrontDir.multiplied(lastStepLength)),
+                            stairMainVertices[stairMainVertices.length - 1].added(horizontalFrontDir.multiplied(lastStepLength))
+                        );
+                        stairMainTempLines.push(
+                            [4 * stepCount, 1 + 4 * stepCount],
+                            [4 * stepCount, 2 + 4 * stepCount],
+                            [1 + 4 * stepCount, 3 + 4 * stepCount],
+                            [2 + 4 * stepCount, 3 + 4 * stepCount],
+                            [2 + 4 * stepCount, 4 + 4 * stepCount],
+                            [3 + 4 * stepCount, 5 + 4 * stepCount],
+                            [4 * (stepCount + 1), 1 + 4 * (stepCount + 1)],
+                        );
+                    } else {
+                        stairMainVertices.push(
+                            stairMainVertices[stairMainVertices.length - 2].added(horizontalFrontDir.multiplied(lastStepLength)),
+                            stairMainVertices[stairMainVertices.length - 1].added(horizontalFrontDir.multiplied(lastStepLength))
+                        );
+                        stairMainTempLines.push(
+                            [4 * stepCount, 1 + 4 * stepCount],
+                            [4 * stepCount, 2 + 4 * stepCount],
+                            [1 + 4 * stepCount, 3 + 4 * stepCount],
+                            [2 + 4 * stepCount, 3 + 4 * stepCount],
+                        );
+                    }
+                } else {
                     stairMainTempLines.push(
-                        [stairMainVertices.length - 2, stairMainVertices.length - 1],
+                        [4 * stepCount, 1 + 4 * stepCount],
                     );
+                }
+                if (stepCount > 1) {
+                    stairMainTempLines.push(
+                        [stairMainVertices.length - 2, 2 + stairMainVertices.length - 2],
+                        [1 + stairMainVertices.length - 2, 3 + stairMainVertices.length - 2],
+                        [2 + stairMainVertices.length - 2, 3 + stairMainVertices.length - 2],
+                        [2 + stairMainVertices.length - 2, 4 + stairMainVertices.length - 2],
+                        [3 + stairMainVertices.length - 2, 5 + stairMainVertices.length - 2],
+                        [stairMainVertices.length + 2, 1 + stairMainVertices.length + 2],
+                        [stairMainVertices.length + 2, 2 + stairMainVertices.length + 2],
+                        [1 + stairMainVertices.length + 2, 3 + stairMainVertices.length + 2],
+                    );
+                    if (stepHeight > 0) {
+                        stairMainVertices.push(
+                            leftPt.added(vertitalFrontDir.multiplied((stepCount - 1) * stepHeight)).added(horizontalFrontDir.multiplied((stepCount - 2) * step)),
+                            rightPt.added(vertitalFrontDir.multiplied((stepCount - 1) * stepHeight)).added(horizontalFrontDir.multiplied((stepCount - 2) * step)),
+                        );
+                        stairMainVertices.push(
+                            leftPt.added(vertitalFrontDir.multiplied(stepHeight)),
+                            rightPt.added(vertitalFrontDir.multiplied(stepHeight)),
+                        );
+                    } else {
+                        stairMainVertices.push(
+                            leftPt.added(vertitalFrontDir.multiplied((stepCount - 2) * stepHeight + lastStepLength / step * stepHeight)).added(horizontalFrontDir.multiplied(horizontalDistance)),
+                            rightPt.added(vertitalFrontDir.multiplied((stepCount - 2) * stepHeight + lastStepLength / step * stepHeight)).added(horizontalFrontDir.multiplied(horizontalDistance)),
+                        );
+                        stairMainVertices.push(
+                            leftPt.added(horizontalFrontDir.multiplied(step)),
+                            rightPt.added(horizontalFrontDir.multiplied(step)),
+                        );
+                    }
+                } else {
+                    stairMainTempLines.push(
+                        [stairMainVertices.length - 2, 2 + stairMainVertices.length - 2],
+                        [1 + stairMainVertices.length - 2, 3 + stairMainVertices.length - 2],
+                        [2 + stairMainVertices.length - 2, 3 + stairMainVertices.length - 2],
+                        [2 + stairMainVertices.length - 2, 4 + stairMainVertices.length - 2],
+                        [3 + stairMainVertices.length - 2, 5 + stairMainVertices.length - 2],
+                    );
+                    if (stepHeight > 0) {
+                        stairMainVertices.push(
+                            leftPt.added(horizontalFrontDir.multiplied(horizontalDistance)),
+                            rightPt.added(horizontalFrontDir.multiplied(horizontalDistance)),
+                        );
+                    } else {
+                        stairMainVertices.push(
+                            leftPt.added(vertitalFrontDir.multiplied(stepHeight)),
+                            rightPt.added(vertitalFrontDir.multiplied(stepHeight)),
+                        );
+                    }
                 }
 
             } else {
                 for (let j = 0; j < stepCount; j++) {
-                    if (j === 0) {
-                        stairMainVertices.push(start.added(horizontalLeftDir.multiplied(width / 2)), start.added(horizontalLeftDir.multiplied(-width / 2)));
-                    } else {
-                        stairMainVertices.push(stairMainVertices[stairMainVertices.length - 2].added(horizontalFrontDir.multiplied(step)), stairMainVertices[stairMainVertices.length - 1].added(horizontalFrontDir.multiplied(step)));
-                    }
-                    stairMainVertices.push(stairMainVertices[stairMainVertices.length - 2].added(vertitalFrontDir.multiplied(stepHeight)), stairMainVertices[stairMainVertices.length - 1].added(vertitalFrontDir.multiplied(stepHeight)));
-                    
+                    const curLeftPt = leftPt.added(horizontalFrontDir.multiplied(j * step));
+                    const curRightPt = rightPt.added(horizontalFrontDir.multiplied(j * step));
+                    stairMainVertices.push(
+                        curLeftPt.added(vertitalFrontDir.multiplied(-DefaultBoardThickness)),
+                        curRightPt.added(vertitalFrontDir.multiplied(-DefaultBoardThickness)),
+                    );
+                    stairMainVertices.push(curLeftPt, curRightPt);
+
+                    stairMainTempLines.push(
+                        [4 * j, 1 + 4 * j],
+                        [1 + 4 * j, 3 + 4 * j],
+                        [3 + 4 * j, 2 + 4 * j],
+                        [2 + 4 * j, 4 * j],
+                        [4 * j, 4 + 4 * j],
+                        [1 + 4 * j, 5 + 4 * j],
+                        [3 + 4 * j, 7 + 4 * j],
+                        [4 + 4 * j, 6 + 4 * j],
+                    );
                 }
+                stairMainVertices.push(
+                    leftPt.added(horizontalFrontDir.multiplied(horizontalDistance)).added(vertitalFrontDir.multiplied(-DefaultBoardThickness)),
+                    rightPt.added(horizontalFrontDir.multiplied(horizontalDistance)).added(vertitalFrontDir.multiplied(-DefaultBoardThickness)),
+                );
+                stairMainVertices.push(
+                    leftPt.added(horizontalFrontDir.multiplied(horizontalDistance)),
+                    rightPt.added(horizontalFrontDir.multiplied(horizontalDistance))
+                );
+                // if (lastStepLength > LengthTolerance) {
+                stairMainTempLines.push(
+                    [4 * stepCount, 1 + 4 * stepCount],
+                    [1 + 4 * stepCount, 3 + 4 * stepCount],
+                    [3 + 4 * stepCount, 2 + 4 * stepCount],
+                    [2 + 4 * stepCount, 4 * stepCount],
+                );
+                // }
             }
         } else if (stepType === StepType.Open) {
 
@@ -143,5 +234,19 @@ function computeStairShape(stairSegment: StairSegment, stairParam: StairParam) {
 }
 
 function computeCornerShape(stairSegment: StairSegment, stairParam: StairParam) {
+    const { start, end, stairShape: { stair, corner } } = stairSegment;
+    const { width, type, step, stepType, cornerType } = stairParam;
+    const horizontalEnd = GeomLib.createPoint3d(end.x - start.x, end.y - start.y, start.z);
+    corner.main.vertices = [];
+    corner.main.tempLines = [];
+    const mainVertices = corner.main.vertices;
+    corner.main.tempLines
+    if (cornerType === CornerType.Rectangle) {
+        const verticalDistance = end.z - start.z;
+        const horizontalDistance = start.distanceTo(horizontalEnd);
+        const stepCount = Math.ceil(horizontalDistance / step);
+        const stepHeight = verticalDistance / stepCount;
+    } else if (cornerType === CornerType.Arc) {
 
+    }
 }
