@@ -16,53 +16,72 @@ export enum StairType {
     Circular = 1,
 }
 
-export enum StepType {
-    Normal = 0,
-    Open = 1,
-    Grounding = 2,
-}
+// export enum StepType {
+//     Normal = 0,
+//     Open = 1,
+//     Grounding = 2,
+// }
 
-export enum CornerType {
-    None = 0,
-    Rectangle = 1,
-    Arc = 2,
-}
+// export enum CornerType {
+//     None = 0,
+//     Rectangle = 1,
+//     Arc = 2,
+// }
 
-export interface HandrailParam {
-    height: number;
-    railRadius: number;
-    railSegment: number;
-    pillarRadius: number;
-    pillarSegment: number;
-}
+// export interface HandrailParam {
+//     height: number;
+//     railRadius: number;
+//     railSegment: number;
+//     pillarRadius: number;
+//     pillarSegment: number;
+// }
 
 export interface StairParam {
-    width: number;
+    startWidth: number;
+    endWidth: number;
     type: StairType;
-    step: number;
-    stepType: StepType;
-    cornerType: CornerType;
-    sideBoard?: boolean;
-    handrail?: HandrailParam;
+    horizontalStep: number;
+    verticalStep: number;
+    upward: boolean;
+
+    // stepType: StepType;
+    // cornerType: CornerType;
+    // sideBoard?: boolean;
+    // handrail?: HandrailParam;
+}
+
+export interface PlatformParam {
+    startWidth: number;
+    endWidth: number;
+    // length: number;
 }
 
 export const DefaultStairParam: StairParam = {
-    width: 1000,
+    startWidth: 1000,
+    endWidth: 1000,
     type: StairType.Straight,
-    step: 50,
-    stepType: StepType.Normal,
-    cornerType: CornerType.Rectangle,
+    horizontalStep: 50,
+    verticalStep: 50,
+    upward: true,
+    // stepType: StepType.Normal,
+    // cornerType: CornerType.Rectangle,
 }
 
-export const DefaultHandrailParam: HandrailParam = {
-    height: 200,
-    railRadius: 20,
-    railSegment: 6,
-    pillarRadius: 20,
-    pillarSegment: 6,
+export const DefaultPlatformParam: PlatformParam = {
+    startWidth: 1000,
+    endWidth: 1000,
+    // length: 1000,
 }
 
-export type PointLike = KPoint3d;
+// export const DefaultHandrailParam: HandrailParam = {
+//     height: 200,
+//     railRadius: 20,
+//     railSegment: 6,
+//     pillarRadius: 20,
+//     pillarSegment: 6,
+// }
+
+// export type PointLike = KPoint3d;
 // {
 //     x: number;
 //     y: number;
@@ -70,39 +89,47 @@ export type PointLike = KPoint3d;
 // }
 
 export interface Shape {
-    vertices: PointLike[];
+    vertices: KPoint3d[];
     // [[1, 2], [2, 3]]
     tempLines: number[][];
 }
 
-export interface PartShape {
-    // 每种stepType不同的vertices排列
-    main: Shape,
-    // stair和corner部分vertices排列不同
-    sideBoard: Shape,
-    handrail: {
-        rails: {
-            segment: number;
-            // 内外两条
-            cylinders: Shape[],
-        },
-        pillars: {
-            segment: number,
-            // 很多条
-            cylinders: Shape[],
-        }
-    }
+// export interface PartShape {
+//     // 每种stepType不同的vertices排列
+//     main: Shape,
+//     // stair和corner部分vertices排列不同
+//     sideBoard: Shape,
+//     handrail: {
+//         rails: {
+//             segment: number;
+//             // 内外两条
+//             cylinders: Shape[],
+//         },
+//         pillars: {
+//             segment: number,
+//             // 很多条
+//             cylinders: Shape[],
+//         }
+//     }
+// }
+
+// export interface StairShape {
+//     stair: { stepCount: number; shape: PartShape },
+//     corner: PartShape,
+// }
+
+export enum ComponentType {
+    Stair = 0,
+    Platform = 1,
 }
 
-export interface StairShape {
-    stair: { stepCount: number; shape: PartShape},
-    corner: PartShape,
-}
-
-export interface StairSegment {
+export interface Segment {
+    type: ComponentType;
     start: KPoint3d;
     end: KPoint3d;
-    stairShape: StairShape;
+    startHeight: number;
+    stairShape: Shape;
+    moldShape: Shape;
 }
 
 export const enum Axis {
@@ -118,32 +145,6 @@ export function isAxisValid(axis: string) {
     return axis === Axis.X || axis === Axis.XMinus || axis === Axis.Y || axis === Axis.YMinus || axis === Axis.Z || axis === Axis.ZMinus;
 }
 
-type PropertyItem = {
-    value: number;
-    min: number;
-    max: number;
-}
-
-export type PathArrayParams = {
-    interval: PropertyItem;
-    intervalLocked?: boolean;
-    count: PropertyItem;
-    pathAxis: Axis;
-    normalAxis: Axis;
-    scale: PropertyItem;
-    scaleLocked?: boolean;
-}
-
-export type PathObject = { curve: KAuxiliaryBoundedCurve, reversed: boolean };
-export type PathPointPose = { point: KPoint3d, direction: KVector3d, normal?: KVector3d, accumulateLength: number };
-
-export const DefaultPathArrayParams: PathArrayParams = {
-    interval: { value: 1000, min: 10, max: 9999999 },
-    count: { value: 5, min: 1, max: 100 },
-    pathAxis: Axis.X,
-    normalAxis: Axis.Z,
-    scale: { value: 1, min: 0.01, max: 1000 },
-}
 
 export const dummyMatrix4 = GeomLib.createIdentityMatrix4();
 export const dummyVector3d = GeomLib.createVector3d(0, 0, 1);

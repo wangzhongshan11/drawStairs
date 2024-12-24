@@ -1,4 +1,4 @@
-import { DefaultHandrailParam, DefaultStairParam, StairParam, StairSegment } from "./types";
+import { ComponentType, DefaultPlatformParam, DefaultStairParam, PlatformParam, Segment, StairParam } from "./types";
 import { isKArc3d, isKArchFace, isKAuxiliaryBoundedCurve, isKAuxiliaryLine, isKEdge, isKFace, isKGroupInstance, isKPlane, isKVertex } from "./utils";
 
 type ModelType = {
@@ -17,14 +17,22 @@ enum Stage {
 
 export class DrawStairsTool implements KTool {
     private stairParam: StairParam = DefaultStairParam;
-    private stairSegments: StairSegment[] = [];
+    private platformParam: PlatformParam = DefaultPlatformParam;
+    private segments: Segment[] = [];
     onToolActive(): void {
+        const toolHelper = app.getToolHelper();
+        toolHelper.setExcludeInferenceTypes([
+            KEntityType.Face, KEntityType.Edge, KEntityType.AuxiliaryBoundedCurve, KEntityType.AuxiliaryLine, KAppEntityType.AuxiliaryVertex,
+            KEntityType.GroupInstance, KEntityType.Vertex, KArchFaceType.NonPlanar, KArchFaceType.Planar,
+        ]);
     }
 
     onToolDeactive(): void {
         const pluginUI = app.getPluginUI();
         this.tryCommit();
         pluginUI.postMessage({ type: 'leaveDrawStairsTool' }, '*');
+        const toolHelper = app.getToolHelper();
+        toolHelper.setExcludeInferenceTypes([]);
         this.clear();
     }
     onMouseMove(event: KMouseEvent, inferenceResult?: KInferenceResult): void {
@@ -32,54 +40,26 @@ export class DrawStairsTool implements KTool {
         const curModel = this.stage === Stage.PickUpModel ? this.model : this.targetModel;
         if (inferenceResult) {
             const position = inferenceResult.position;
-            if (this.stairSegments.length) {
-                const lastStairSegment = this.stairSegments[this.stairSegments.length - 1];
+            if (this.segments.length) {
+                const lastStairSegment = this.segments[this.segments.length - 1];
                 lastStairSegment.end = position;
 
             } else {
-                const stairSegment: StairSegment = {
+                const segment: Segment = {
+                    type: ComponentType.Stair,
                     start: position,
                     end: position,
+                    startHeight: 0,
                     stairShape: {
-                        stair: {
-                            stepCount: 0,
-                            shape: {
-                            main: { vertices: [], tempLines: [], },
-                            // stair和corner部分vertices排列不同
-                            sideBoard: { vertices: [], tempLines: [], },
-                            handrail: {
-                                rails: {
-                                    segment: DefaultHandrailParam.railSegment,
-                                    // 内外两条
-                                    cylinders: [],
-                                },
-                                pillars: {
-                                    segment: DefaultHandrailParam.pillarSegment,
-                                    // 很多条
-                                    cylinders: [],
-                                }
-                            }
-                        }},
-                        corner: {
-                            main: [],
-                            // stair和corner部分vertices排列不同
-                            sideBoard: [],
-                            handrail: {
-                                rail: {
-                                    segment: DefaultHandrailParam.railSegment,
-                                    // 内外两条
-                                    vertices: [],
-                                },
-                                pillar: {
-                                    segment: DefaultHandrailParam.pillarSegment,
-                                    // 很多条
-                                    vertices: [],
-                                }
-                            }
-                        }
-                    }
+                        vertices: [],
+                        tempLines: [],
+                    },
+                    moldShape: {
+                        vertices: [],
+                        tempLines: [],
+                    },
                 }
-                this.stairSegments.push(stairSegment);
+                this.segments.push(segment);
             }
             const transform = inferenceResult.instancePath.reduce<KMatrix4>((acc, instance) => {
                 acc.multiply(instance.getTransform());
