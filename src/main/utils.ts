@@ -1,4 +1,4 @@
-import { ComponentType, CornerType, PlatformParam, Segment, StairParam, StairSegment, StairType, StepType } from "./types";
+import { ComponentParam, ComponentType, Segment, StairType } from "./types";
 
 export function isKArchFace(entity: KEntity | KArchFace | undefined | null): entity is KArchFace {
     return !!entity && (entity.getType() === KArchFaceType.NonPlanar || entity.getType() === KArchFaceType.Planar);
@@ -43,20 +43,20 @@ export function isKArc3d(entity: KBoundedCurve3d | undefined | null): entity is 
 
 const HeightTolerance: number = 5;
 const LengthTolerance: number = 1;
-const DirectionZ = GeomLib.createVector3d(0, 0, 1);
+export const DirectionZ = GeomLib.createVector3d(0, 0, 1);
 const DefaultBoardThickness = 50;
-function computeComponentShape(segment: Segment, stairParam: StairParam, platformParam: PlatformParam) {
+function computeComponentShape(segment: Segment, componentParam: ComponentParam) {
     const { type } = segment;
     if (type === ComponentType.Stair) {
-        computeStairShape(segment, stairParam);
+        computeStairShape(segment, componentParam);
     } else {
-        computePlatformShape(segment, platformParam);
+        computePlatformShape(segment, componentParam);
     }
 }
 
-function computeStairShape(segment: Segment, stairParam: StairParam) {
+function computeStairShape(segment: Segment, componentParam: ComponentParam) {
     const { start, end, stairShape, startHeight } = segment;
-    const { startWidth, endWidth, type, horizontalStep, verticalStep, upward } = stairParam;
+    const { startWidth, endWidth, type, horizontalStep, verticalStep, upward } = componentParam;
     stairShape.vertices = [];
     stairShape.tempLines = [];
     const { vertices, tempLines } = stairShape;
@@ -187,9 +187,9 @@ function computeStairShape(segment: Segment, stairParam: StairParam) {
     }
 }
 
-function computePlatformShape(segment: Segment, platformaram: PlatformParam) {
+function computePlatformShape(segment: Segment, componentParam: ComponentParam) {
     const { start, end, moldShape: { vertices, tempLines } } = segment;
-    const { startWidth, endWidth } = platformaram;
+    const { startWidth, endWidth } = componentParam;
     const horizontalEnd = GeomLib.createPoint3d(end.x - start.x, end.y - start.y, start.z);
     corner.main.vertices = [];
     corner.main.tempLines = [];

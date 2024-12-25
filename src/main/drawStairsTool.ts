@@ -1,5 +1,5 @@
-import { ComponentType, DefaultPlatformParam, DefaultStairParam, PlatformParam, Segment, StairParam } from "./types";
-import { isKArc3d, isKArchFace, isKAuxiliaryBoundedCurve, isKAuxiliaryLine, isKEdge, isKFace, isKGroupInstance, isKPlane, isKVertex } from "./utils";
+import { ComponentType, DefaultPlatformParam, DefaultComponentParam, ComponentParam, Segment } from "./types";
+import { DirectionZ, isKArc3d, isKArchFace, isKAuxiliaryBoundedCurve, isKAuxiliaryLine, isKEdge, isKFace, isKGroupInstance, isKPlane, isKVertex } from "./utils";
 
 type ModelType = {
     position: KPoint3d;
@@ -16,8 +16,9 @@ enum Stage {
 }
 
 export class DrawStairsTool implements KTool {
-    private stairParam: StairParam = DefaultStairParam;
-    private platformParam: PlatformParam = DefaultPlatformParam;
+    // private stairParam: StairParam = DefaultStairParam;
+    // private platformParam: PlatformParam = DefaultPlatformParam;
+    private componentParam: ComponentParam = { ...DefaultComponentParam };
     private segments: Segment[] = [];
     onToolActive(): void {
         const toolHelper = app.getToolHelper();
@@ -37,18 +38,112 @@ export class DrawStairsTool implements KTool {
     }
     onMouseMove(event: KMouseEvent, inferenceResult?: KInferenceResult): void {
         const appView = app.getActiveView();
-        const curModel = this.stage === Stage.PickUpModel ? this.model : this.targetModel;
         if (inferenceResult) {
+            const { startWidth, endWidth, tempWidth } = this.componentParam;
             const position = inferenceResult.position;
             if (this.segments.length) {
                 const lastStairSegment = this.segments[this.segments.length - 1];
-                lastStairSegment.end = position;
+                if (lastStairSegment.startLocked) {
+                    if (lastStairSegment.type === ComponentType.Stair) {
+                        lastStairSegment.end = position;
+                        // to compute points
+                    } else {
+                        if (this.segments.length > 2) {
+                            const preStairSegment = this.segments[this.segments.length - 2];
+                            if (preStairSegment.type === ComponentType.Stair) {
+                                const { start: prevStart, end: prevEnd, param: prevParam, moldShape: prevMoldShape } = preStairSegment;
+                                const prevDir = prevEnd.subtracted(prevStart);
+                                const prevLeftDir = DirectionZ.cross(prevDir).normalized();
+                                const curDir = position.subtracted(lastStairSegment.start);
+                                const angle = curDir.angleTo(prevDir, DirectionZ);
+
+                                const curLeftDir = DirectionZ.cross(curDir).normalized();
+                                const curEndLeftCorner = position.added(curLeftDir.multiplied(tempWidth / 2));
+                                const dir1 = curEndLeftCorner.subtracted(lastStairSegment.start);
+                                const angle1 = dir1.angle(curDir);
+                                if (0 <= angle && angle < (Math.PI / 2 - angle1)) {
+                                    const rightCorner = lastStairSegment.start.added(prevLeftDir.multiplied(-tempWidth / Math.cos(angle)));
+                                    const leftConnectPoint = tempWidth > prevParam.endWidth ? prevMoldShape.vertices[prevMoldShape.vertices.length - 1] : 
+                                    lastStairSegment.start.added(prevLeftDir.multiplied(-tempWidth * Math.cos(angle)));
+                                } else if (angle > (Math.PI * 3 / 2 + angle1)) {
+                                    const angle2 = Math.PI * 2 - angle;
+                                } else if (angle >= Math.PI) {
+                                    const leftLength = curDir.dot(prevLeftDir);
+                                    if (leftLength > tempWidth / 2) {
+                                        this.componentParam.startWidth = leftLength + tempWidth / 2;
+                                        this.componentParam.endWidth = leftLength + tempWidth / 2;
+                                        lastStairSegment.leftCorner = lastStairSegment.start.added(prevLeftDir.multiplied(leftLength));
+                                        lastStairSegment.rightCorner = lastStairSegment.start.added(prevLeftDir.multiplied(-tempWidth / 2));
+                                    } else {
+                                        this.componentParam.startWidth = tempWidth;
+                                        this.componentParam.endWidth = tempWidth;
+                                        lastStairSegment.leftCorner = lastStairSegment.start.added(prevLeftDir.multiplied(tempWidth / 2));
+                                        lastStairSegment.rightCorner = lastStairSegment.start.added(prevLeftDir.multiplied(-tempWidth / 2));
+                                    }
+                                } else {
+                                    const rightLength = curDir.dot(prevLeftDir);
+                                    if (rightLength > tempWidth / 2) {
+                                        this.componentParam.startWidth = rightLength + tempWidth / 2;
+                                        this.componentParam.endWidth = rightLength + tempWidth / 2;
+                                        lastStairSegment.leftCorner = lastStairSegment.start.added(prevLeftDir.multiplied(tempWidth / 2));
+                                        lastStairSegment.rightCorner = lastStairSegment.start.added(prevLeftDir.multiplied(-rightLength));
+                                    } else {
+                                        this.componentParam.startWidth = tempWidth;
+                                        this.componentParam.endWidth = tempWidth;
+                                        lastStairSegment.leftCorner = lastStairSegment.start.added(prevLeftDir.multiplied(tempWidth / 2));
+                                        lastStairSegment.rightCorner = lastStairSegment.start.added(prevLeftDir.multiplied(-tempWidth / 2));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+
+                }
 
             } else {
-                const segment: Segment = {
+
+            }
+        }
+    }
+
+    onLButtonUp(event: KMouseEvent, inferenceResult?: KInferenceResult): void {
+        if (inferenceResult) {
+            const position = inferenceResult.position;
+            if (this.segments.length) {
+                const lastSegment = this.segments[this.segments.length - 1];
+                if (!lastSegment.startLocked) {
+                    lastSegment.startLocked = true;
+
+                } else {
+                    this.componentParam = { ...DefaultComponentParam };
+                    lastSegment.endLocked = true;
+                    const nextSegment: Segment = {
+                        type: ComponentType.Stair,
+                        start: lastSegment.end,
+                        end: lastSegment.end,
+                        startLocked: lastSegment.type === ComponentType.Platform ? false : true,
+                        endLocked: false,
+                        startHeight: 0,
+                        stairShape: {
+                            vertices: [],
+                            tempLines: [],
+                        },
+                        moldShape: {
+                            vertices: [],
+                            tempLines: [],
+                        },
+                        param: this.componentParam,
+                    }
+                    this.segments.push(nextSegment);
+                }
+            } else {
+                const firstSegment: Segment = {
                     type: ComponentType.Stair,
                     start: position,
                     end: position,
+                    startLocked: true,
+                    endLocked: false,
                     startHeight: 0,
                     stairShape: {
                         vertices: [],
@@ -58,246 +153,11 @@ export class DrawStairsTool implements KTool {
                         vertices: [],
                         tempLines: [],
                     },
+                    param: this.componentParam,
                 }
-                this.segments.push(segment);
+                this.segments.push(firstSegment);
             }
-            const transform = inferenceResult.instancePath.reduce<KMatrix4>((acc, instance) => {
-                acc.multiply(instance.getTransform());
-                return acc;
-            }, GeomLib.createIdentityMatrix4());
 
-            let inferenceModel: ModelType | undefined
-            if (isKFace(entity)) {
-                const surface = entity.getSurface();
-                if (isKPlane(surface)) {
-                    if (!isKFace(curModel?.inferenceEntity) || curModel?.inferenceEntity.getKey() !== entity.getKey()) {
-                        const normal = inferenceResult.normal;
-                        // const normal = surface.normal.appliedMatrix4(transform);
-                        const faceVertexPoints: KPoint3d[] = [];
-                        entity.getVertices().forEach(vertex => {
-                            const point = vertex.getPoint();
-                            if (point) {
-                                faceVertexPoints.push(point.appliedMatrix4(transform));
-                            }
-                        });
-                        inferenceModel = { position: inferenceResult.position, inferenceEntity: entity, normal, path: inferenceResult.instancePath };
-                        if (curModel?.tempShapeId) {
-                            appView.clearTemporaryShapesByIds([curModel.tempShapeId]);
-                        }
-                        if (faceVertexPoints.length > 1) {
-                            faceVertexPoints.push(faceVertexPoints[0]);
-                            const tempShapeId = appView.drawFlatLines(
-                                [faceVertexPoints],
-                                {
-                                    color: { r: 255, g: 0, b: 0 },
-                                    pattern: KLinePattern.Solid,
-                                }
-                            )?.ids[0];
-                            inferenceModel.tempShapeId = tempShapeId;
-                        }
-                        if (this.stage === Stage.PickUpModel) {
-                            this.model = inferenceModel;
-                        } else {
-                            this.targetModel = inferenceModel;
-                        }
-                        return;
-                    }
-                    curModel.position = inferenceResult.position;
-                    return;
-                }
-            } else if (isKEdge(entity)) {
-                const p0 = entity.getVertexA()?.getPoint();
-                const p1 = entity.getVertexB()?.getPoint();
-                if (p0 && p1) {
-                    if (!isKEdge(curModel?.inferenceEntity) || curModel?.inferenceEntity.getKey() !== entity.getKey()) {
-                        const points: KPoint3d[] = [p0.appliedMatrix4(transform), p1.appliedMatrix4(transform)];
-                        const direction = points[1].subtracted(points[0]);
-                        inferenceModel = { position: inferenceResult.position, inferenceEntity: entity, direction, path: inferenceResult.instancePath, };
-                        if (curModel?.tempShapeId) {
-                            appView.clearTemporaryShapesByIds([curModel.tempShapeId]);
-                        }
-                        const tempShapeId = appView.drawFlatLines(
-                            [points],
-                            {
-                                color: { r: 255, g: 0, b: 0 },
-                                pattern: KLinePattern.Solid,
-                            }
-                        )?.ids[0];
-                        inferenceModel.tempShapeId = tempShapeId;
-                        if (this.stage === Stage.PickUpModel) {
-                            this.model = inferenceModel;
-                        } else {
-                            this.targetModel = inferenceModel;
-                        }
-                        return;
-                    }
-                    curModel.position = inferenceResult.position;
-                    return;
-                }
-            } else if (isKVertex(entity)) {
-                const p0 = entity.getPoint();
-                if (p0) {
-                    if (!isKVertex(curModel?.inferenceEntity) || !curModel?.inferenceEntity.getPoint()?.isEqual(p0)) {
-                        inferenceModel = { position: inferenceResult.position, inferenceEntity: entity, path: inferenceResult.instancePath, };
-                        if (curModel?.tempShapeId) {
-                            appView.clearTemporaryShapesByIds([curModel.tempShapeId]);
-                        }
-                        const tempShapeId = appView.drawPoints(
-                            [p0.appliedMatrix4(transform)],
-                            {
-                                color: { r: 255, g: 0, b: 0 },
-                            }
-                        )?.id;
-                        inferenceModel.tempShapeId = tempShapeId;
-                        if (this.stage === Stage.PickUpModel) {
-                            this.model = inferenceModel;
-                        } else {
-                            this.targetModel = inferenceModel;
-                        }
-                        return;
-                    }
-                    curModel.position = inferenceResult.position;
-                    return;
-                }
-            } else if (isKAuxiliaryBoundedCurve(entity)) {
-                const boundedCurve = entity.getBoundedCurve();
-                if (isKArc3d(boundedCurve)) {
-                    const curvePoints = boundedCurve.getApproximatePointsByAngle();
-                    if (curvePoints.length) {
-                        if (!isKAuxiliaryBoundedCurve(curModel?.inferenceEntity) || curModel?.inferenceEntity.getKey() !== entity.getKey()) {
-                            const points: KPoint3d[] = curvePoints.map(p => p.appliedMatrix4(transform));
-                            const normal = boundedCurve.normal.appliedMatrix4(transform).normalized();
-                            inferenceModel = { position: inferenceResult.position, inferenceEntity: entity, normal, path: inferenceResult.instancePath, };
-                            if (curModel?.tempShapeId) {
-                                appView.clearTemporaryShapesByIds([curModel.tempShapeId]);
-                            }
-                            const tempShapeId = appView.drawFlatLines(
-                                [points],
-                                {
-                                    color: { r: 255, g: 0, b: 0 },
-                                    pattern: KLinePattern.Solid,
-                                }
-                            )?.ids[0];
-                            inferenceModel.tempShapeId = tempShapeId;
-                            if (this.stage === Stage.PickUpModel) {
-                                this.model = inferenceModel;
-                            } else {
-                                this.targetModel = inferenceModel;
-                            }
-                            return;
-                        }
-                        curModel.position = inferenceResult.position;
-                        return;
-                    }
-                } else {
-                    const p0 = entity.getStartVertex()?.getPoint();
-                    const p1 = entity.getEndVertex()?.getPoint();
-                    if (p0 && p1) {
-                        if (!isKAuxiliaryBoundedCurve(curModel?.inferenceEntity) || curModel?.inferenceEntity.getKey() !== entity.getKey()) {
-                            const points: KPoint3d[] = [p0.appliedMatrix4(transform), p1.appliedMatrix4(transform)];
-                            const direction = points[1].subtracted(points[0]);
-                            inferenceModel = { position: inferenceResult.position, inferenceEntity: entity, direction, path: inferenceResult.instancePath, };
-                            if (curModel?.tempShapeId) {
-                                appView.clearTemporaryShapesByIds([curModel.tempShapeId]);
-                            }
-                            const tempShapeId = appView.drawFlatLines(
-                                [points],
-                                {
-                                    color: { r: 255, g: 0, b: 0 },
-                                    pattern: KLinePattern.Solid,
-                                }
-                            )?.ids[0];
-                            inferenceModel.tempShapeId = tempShapeId;
-                            if (this.stage === Stage.PickUpModel) {
-                                this.model = inferenceModel;
-                            } else {
-                                this.targetModel = inferenceModel;
-                            }
-                            return;
-                        }
-                        curModel.position = inferenceResult.position;
-                        return;
-                    }
-                }
-            } else if (isKAuxiliaryLine(entity)) {
-                const line = entity.getLine();
-
-                if (!isKAuxiliaryLine(curModel?.inferenceEntity) || curModel?.inferenceEntity.getKey() !== entity.getKey()) {
-                    const { direction: lineDirection, origin } = line;
-                    const points: KPoint3d[] = [origin.added(lineDirection.multiplied(100000)).appliedMatrix4(transform), origin.added(lineDirection.multiplied(-100000)).appliedMatrix4(transform)];
-                    const direction = points[1].subtracted(points[0]);
-                    inferenceModel = { position: inferenceResult.position, inferenceEntity: entity, direction, path: inferenceResult.instancePath, };
-                    if (curModel?.tempShapeId) {
-                        appView.clearTemporaryShapesByIds([curModel.tempShapeId]);
-                    }
-                    const tempShapeId = appView.drawFlatLines(
-                        [points],
-                        {
-                            color: { r: 255, g: 0, b: 0 },
-                            pattern: KLinePattern.Solid,
-                        }
-                    )?.ids[0];
-                    inferenceModel.tempShapeId = tempShapeId;
-                    if (this.stage === Stage.PickUpModel) {
-                        this.model = inferenceModel;
-                    } else {
-                        this.targetModel = inferenceModel;
-                    }
-                    return;
-                }
-                curModel.position = inferenceResult.position;
-                return;
-            } else if (isKArchFace(entity)) {
-                if (this.stage === Stage.PickUpTarget) {
-                    const surface = entity.getSurface();
-                    if (isKPlane(surface)) {
-                        const contour = entity.getFace3d().contour;
-                        const normal = inferenceResult.normal;
-                        // const normal = surface.normal.appliedMatrix4(transform);
-                        const contourPoints: KPoint3d[] = contour.map(segment => segment.startPoint);
-                        inferenceModel = { position: inferenceResult.position, inferenceEntity: entity, normal, path: inferenceResult.instancePath };
-                        if (curModel?.tempShapeId) {
-                            appView.clearTemporaryShapesByIds([curModel.tempShapeId]);
-                        }
-                        if (contourPoints.length > 1) {
-                            contourPoints.push(contourPoints[0]);
-                            const tempShapeId = appView.drawFlatLines(
-                                [contourPoints],
-                                {
-                                    color: { r: 255, g: 0, b: 0 },
-                                    pattern: KLinePattern.Solid,
-                                }
-                            )?.ids[0];
-                            inferenceModel.tempShapeId = tempShapeId;
-                        }
-
-                        this.targetModel = inferenceModel;
-                        return;
-                    }
-                }
-            } else if (isKGroupInstance(entity)) {
-
-            }
-        }
-
-        if (curModel?.tempShapeId) {
-            appView.clearTemporaryShapesByIds([curModel.tempShapeId]);
-        }
-        if (this.stage === Stage.PickUpModel) {
-            this.model = undefined;
-        } else {
-            this.targetModel = undefined;
-        }
-    }
-    onLButtonUp(event: KMouseEvent, inferenceResult?: KInferenceResult): void {
-        if (this.stage === Stage.PickUpModel) {
-            if (this.model) {
-                this.stage = Stage.PickUpTarget;
-            }
-        } else {
-            if (this.targetModel) {
-                app.deactivateCustomTool(this);
-            }
         }
     }
 

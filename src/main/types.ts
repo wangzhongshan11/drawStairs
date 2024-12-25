@@ -36,14 +36,15 @@ export enum StairType {
 //     pillarSegment: number;
 // }
 
-export interface StairParam {
+export interface ComponentParam {
     startWidth: number;
     endWidth: number;
+    tempWidth: number;
     type: StairType;
     horizontalStep: number;
     verticalStep: number;
     upward: boolean;
-
+    
     // stepType: StepType;
     // cornerType: CornerType;
     // sideBoard?: boolean;
@@ -56,9 +57,10 @@ export interface PlatformParam {
     // length: number;
 }
 
-export const DefaultStairParam: StairParam = {
+export const DefaultComponentParam: ComponentParam = {
     startWidth: 1000,
     endWidth: 1000,
+    tempWidth: 1000,
     type: StairType.Straight,
     horizontalStep: 50,
     verticalStep: 50,
@@ -127,9 +129,14 @@ export interface Segment {
     type: ComponentType;
     start: KPoint3d;
     end: KPoint3d;
+    leftCorner?: KPoint3d;
+    rightCorner?: KPoint3d;
+    startLocked: boolean;
+    endLocked: boolean;
     startHeight: number;
     stairShape: Shape;
     moldShape: Shape;
+    param: ComponentParam;
 }
 
 export const enum Axis {
