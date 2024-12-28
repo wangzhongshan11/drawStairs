@@ -1,7 +1,7 @@
 import { alignTool } from "./drawStairsTool";
 
 const pluginUI = app.getPluginUI();
-pluginUI.resize(240, 700);
+pluginUI.resize(240, 300);
 pluginUI.mount();
 
 let activatedCustomTool: KTool | undefined;

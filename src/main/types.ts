@@ -40,6 +40,7 @@ export interface ComponentParam {
     startWidth: number;
     endWidth: number;
     tempWidth: number;
+    platformThickness: number;
     type: StairType;
     horizontalStep: number;
     verticalStep: number;
@@ -61,9 +62,10 @@ export const DefaultComponentParam: ComponentParam = {
     startWidth: 1000,
     endWidth: 1000,
     tempWidth: 1000,
+    platformThickness: 50,
     type: StairType.Straight,
-    horizontalStep: 50,
-    verticalStep: 50,
+    horizontalStep: 500,
+    verticalStep: 100,
     upward: true,
     // stepType: StepType.Normal,
     // cornerType: CornerType.Rectangle,
@@ -137,6 +139,8 @@ export interface Segment {
     stairShape: Shape;
     moldShape: Shape;
     param: ComponentParam;
+
+    tempShapeId?: string[];
 }
 
 export const enum Axis {
