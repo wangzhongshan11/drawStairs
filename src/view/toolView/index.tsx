@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Tooltip } from 'antd';
 import "./index.css";
 import "../assets/drawStairs.svg";
+import { ComponentType } from '../../main/types';
 
 enum ToolType {
     Context = 0,
@@ -15,15 +16,25 @@ interface ToolItem {
     icon?: string;
     tip?: string;
     tipImg?: string;
+    componentType: ComponentType,
 }
 
 const tools: ToolItem[] = [
     {
-        name: "楼梯绘制",
+        name: "直阶梯",
         type: ToolType.Context,
-        key: "DrawStairsTool",
-        tip: "楼梯绘制工具",
+        key: "StraightStairsTool",
+        tip: "旋转阶梯绘制",
         icon: "drawStairs",
+        componentType: ComponentType.StraightStair,
+    },
+    {
+        name: "旋转阶梯",
+        type: ToolType.Context,
+        key: "CircularStairsTool",
+        tip: "旋转阶梯绘制",
+        icon: "drawStairs",
+        componentType: ComponentType.CircularStair,
     },
 ]
 
@@ -56,23 +67,16 @@ export default class ToolView extends React.Component<{}, State> {
             window.parent.postMessage({ type: `deActivate${toolItem.key}` }, '*');
             this.setState({ activeToolKey: undefined });
         } else {
-            window.parent.postMessage({ type: `activate${toolItem.key}` }, '*');
+            window.parent.postMessage({ type: `activate${toolItem.key}`, componentType: toolItem.componentType }, '*');
             this.setState({ activeToolKey: toolItem.key });
         }
-        if (toolItem.key === "PatchMakeGroupTool") {
-            setTimeout(() => {
-                window.parent.postMessage({ type: `deActivate${toolItem.key}` }, '*');
-                this.setState({ activeToolKey: undefined });
-            }, 50);
-        }
-        // console.log('active: ' + !active)
     }
 
     render() {
         const { activeToolKey } = this.state;
         return <div className='tools-wrapper'>
             {tools.map((toolItem, index) => {
-                const className = activeToolKey === toolItem.key ? 'tool-button-active' : 'button tool-button-normal';
+                const className = activeToolKey === toolItem.key ? 'button-active' : 'button button-normal';
                 return <div className='button-wrapper' key={toolItem.key}>
                     <Tooltip title={toolItem.name} color={"#f9f6b3"} overlayInnerStyle={{ color: "black" }}>
                         <button

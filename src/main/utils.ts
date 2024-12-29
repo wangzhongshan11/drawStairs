@@ -1,4 +1,4 @@
-import { ComponentParam, ComponentType, Segment, StairType } from "./types";
+import { ComponentParam, ComponentType, Segment } from "./types";
 
 export function isKArchFace(entity: KEntity | KArchFace | undefined | null): entity is KArchFace {
     return !!entity && (entity.getType() === KArchFaceType.NonPlanar || entity.getType() === KArchFaceType.Planar);
@@ -43,13 +43,13 @@ export function isKArc3d(entity: KBoundedCurve3d | undefined | null): entity is 
 
 // const HeightTolerance: number = 5;
 const LengthTolerance: number = 1;
-const AngleTolerance = Math.PI / 18;
+const AngleTolerance = Math.PI / 36;
 
 export const DirectionZ = GeomLib.createVector3d(0, 0, 1);
 // const DefaultBoardThickness = 50;
 export function computeComponentShape(segment: Segment, componentParam: ComponentParam, segments: Segment[]) {
-    const { type } = segment;
-    if (type === ComponentType.Stair) {
+    const { type } = componentParam;
+    if (type === ComponentType.StraightStair || type === ComponentType.CircularStair) {
         computeStairShape(segment, componentParam);
     } else {
         computePlatformShape(segment, componentParam, segments);
@@ -57,32 +57,52 @@ export function computeComponentShape(segment: Segment, componentParam: Componen
 }
 
 function computeStairShape(segment: Segment, componentParam: ComponentParam) {
-    const { start, end, stairShape, startHeight } = segment;
+    const { start, end, stairShape, moldShape, startHeight, baseLineSeg3d } = segment;
     const { startWidth, endWidth, type, horizontalStep, verticalStep, upward } = componentParam;
     stairShape.vertices = [];
     stairShape.tempLines = [];
+    moldShape.vertices = [];
+    moldShape.tempLines = [];
     const { vertices, tempLines } = stairShape;
-    if (type === StairType.Straight) {
-        const horizontalFrontDir = end.subtracted(start).normalized();
-        const vertitalFrontDir = DirectionZ;
+    const { vertices: moldVertices, tempLines: moldTempLines } = moldShape;
+    if (type === ComponentType.StraightStair) {
+        let horizontalFrontDir = end.subtracted(start).normalized();
+        let horizontalDistance = start.distanceTo(end);
+        if (baseLineSeg3d) {
+            const angle = horizontalFrontDir.angle(baseLineSeg3d.direction);
+            const deltaAngle = Math.abs(angle - Math.PI / 2)
+            if (deltaAngle <= AngleTolerance) {
+                horizontalFrontDir = baseLineSeg3d.direction.cross(horizontalFrontDir.cross(baseLineSeg3d.direction)).normalized();
+                horizontalDistance = horizontalDistance * Math.cos(deltaAngle);
+            }
+        }
+        const verticalFrontDir = DirectionZ;
         const horizontalLeftDir = DirectionZ.cross(horizontalFrontDir);
-        const horizontalDistance = start.distanceTo(end);
         const stepFloatCount = horizontalDistance / horizontalStep;
         const stepCount = Math.ceil(stepFloatCount);
+        segment.endHeight = segment.startHeight + stepCount * verticalStep;
         if (stepCount < 1) return;
         const lastStepLength = horizontalDistance - (stepCount - 1) * horizontalStep;
         const stepHeight = upward ? verticalStep : -verticalStep;
-        const leftPt = start.added(DirectionZ.multiplied(startHeight)).added(horizontalLeftDir.multiplied(startWidth / 2));
-        const rightPt = start.added(DirectionZ.multiplied(startHeight)).added(horizontalLeftDir.multiplied(-startWidth / 2));
+        const leftPt = start.added(horizontalLeftDir.multiplied(startWidth / 2));
+        const rightPt = start.added(horizontalLeftDir.multiplied(-startWidth / 2));
         const widthDelta = (endWidth - startWidth) / 2 / (stepFloatCount);
         for (let i = 0; i < stepCount - 1; i++) {
-            const curLeftPt = leftPt.added(horizontalFrontDir.multiplied(i * horizontalStep)).added(horizontalLeftDir.multiplied(i * widthDelta)).added(vertitalFrontDir.multiplied(i * stepHeight));
-            const curRightPt = rightPt.added(horizontalFrontDir.multiplied(i * horizontalStep)).added(horizontalLeftDir.multiplied(-i * widthDelta)).added(vertitalFrontDir.multiplied(i * stepHeight));
-            vertices.push(curLeftPt, curRightPt,);
+            const curLeftMoldPt = leftPt.added(horizontalFrontDir.multiplied(i * horizontalStep)).added(horizontalLeftDir.multiplied(i * widthDelta));
+            const curRightMoldPt = rightPt.added(horizontalFrontDir.multiplied(i * horizontalStep)).added(horizontalLeftDir.multiplied(-i * widthDelta));
+            const curLeftPt = curLeftMoldPt.added(DirectionZ.multiplied(startHeight)).added(verticalFrontDir.multiplied(i * stepHeight));
+            const curRightPt = curRightMoldPt.added(DirectionZ.multiplied(startHeight)).added(verticalFrontDir.multiplied(i * stepHeight));
+            moldVertices.push(curLeftMoldPt, curRightMoldPt);
+            moldTempLines.push(
+                [2 * i, 1 + 2 * i],
+                [2 * i, 2 + 2 * i],
+                [1 + 2 * i, 3 + 2 * i],
+            );
+            vertices.push(curLeftPt, curRightPt);
             if (upward) {
                 vertices.push(
-                    curLeftPt.added(vertitalFrontDir.multiplied(stepHeight)),
-                    curRightPt.added(vertitalFrontDir.multiplied(stepHeight)),
+                    curLeftPt.added(verticalFrontDir.multiplied(stepHeight)),
+                    curRightPt.added(verticalFrontDir.multiplied(stepHeight)),
                 );
             } else {
                 vertices.push(
@@ -100,47 +120,81 @@ function computeStairShape(segment: Segment, componentParam: ComponentParam) {
             );
         }
         // if (lastStepLength > LengthTolerance) {
-        const lastLeftPoint = stepCount > 1 ? vertices[vertices.length - 2] : leftPt;
-        const lastRightPoint = stepCount > 1 ? vertices[vertices.length - 1] : rightPt;
+        // const lastLeftPoint = stepCount > 1 ? vertices[vertices.length - 2] : leftPt;
+        // const lastRightPoint = stepCount > 1 ? vertices[vertices.length - 1] : rightPt;
+        moldVertices.push(
+            stepCount > 1 ? moldVertices[moldVertices.length - 2].added(horizontalFrontDir.multiplied(horizontalStep)) : leftPt,
+            stepCount > 1 ? moldVertices[moldVertices.length - 1].added(horizontalFrontDir.multiplied(horizontalStep)) : rightPt,
+        );
+        moldTempLines.push(
+            [2 * (stepCount - 1), 1 + 2 * (stepCount - 1)],
+        );
+        if (lastStepLength > LengthTolerance) {
+            moldVertices.push(
+                moldVertices[moldVertices.length - 2].added(horizontalLeftDir.multiplied(lastStepLength / horizontalStep * widthDelta)).added(horizontalFrontDir.multiplied(lastStepLength)),
+                moldVertices[moldVertices.length - 1].added(horizontalLeftDir.multiplied(-lastStepLength / horizontalStep * widthDelta)).added(horizontalFrontDir.multiplied(lastStepLength))
+            );
+            moldTempLines.push(
+                [2 * (stepCount - 1), 2 + 2 * (stepCount - 1)],
+                [1 + 2 * (stepCount - 1), 3 + 2 * (stepCount - 1)],
+                [2 * stepCount, 1 + 2 * stepCount],
+            );
+        }
         if (upward) {
             vertices.push(
-                lastLeftPoint.added(horizontalLeftDir.multiplied(lastStepLength / horizontalStep * widthDelta)).added(vertitalFrontDir.multiplied(stepHeight)),
-                lastRightPoint.added(horizontalLeftDir.multiplied(-lastStepLength / horizontalStep * widthDelta)).added(vertitalFrontDir.multiplied(stepHeight))
+                // lastLeftPoint.added(horizontalLeftDir.multiplied(lastStepLength / horizontalStep * widthDelta)).added(verticalFrontDir.multiplied(stepHeight)),
+                // lastRightPoint.added(horizontalLeftDir.multiplied(-lastStepLength / horizontalStep * widthDelta)).added(verticalFrontDir.multiplied(stepHeight))
+                stepCount > 1 ? vertices[vertices.length - 2].added(horizontalFrontDir.multiplied(horizontalStep)) : leftPt,
+                stepCount > 1 ? vertices[vertices.length - 1].added(horizontalFrontDir.multiplied(horizontalStep)) : rightPt,
             );
             tempLines.push(
                 [4 * (stepCount - 1), 1 + 4 * (stepCount - 1)],
             );
             if (lastStepLength > LengthTolerance) {
                 vertices.push(
-                    vertices[vertices.length - 2].added(horizontalFrontDir.multiplied(lastStepLength)),
-                    vertices[vertices.length - 1].added(horizontalFrontDir.multiplied(lastStepLength))
+                    vertices[vertices.length - 2].added(verticalFrontDir.multiplied(verticalStep)),
+                    vertices[vertices.length - 1].added(verticalFrontDir.multiplied(verticalStep))
+                );
+                vertices.push(
+                    vertices[vertices.length - 2].added(horizontalLeftDir.multiplied(lastStepLength / horizontalStep * widthDelta)).added(horizontalFrontDir.multiplied(lastStepLength)),
+                    vertices[vertices.length - 1].added(horizontalLeftDir.multiplied(-lastStepLength / horizontalStep * widthDelta)).added(horizontalFrontDir.multiplied(lastStepLength))
                 );
                 tempLines.push(
                     // [4 * stepCount, 1 + 4 * stepCount],
                     [4 * (stepCount - 1), 2 + 4 * (stepCount - 1)],
                     [1 + 4 * (stepCount - 1), 3 + 4 * (stepCount - 1)],
                     [2 + 4 * (stepCount - 1), 3 + 4 * (stepCount - 1)],
-                    // [2 + 4 * (stepCount - 1), 4 + 4 * (stepCount - 1)],
-                    // [3 + 4 * (stepCount - 1), 5 + 4 * (stepCount - 1)],
-                    // [4 * ((stepCount - 1) + 1), 1 + 4 * ((stepCount - 1) + 1)],
+                    [2 + 4 * (stepCount - 1), 4 + 4 * (stepCount - 1)],
+                    [3 + 4 * (stepCount - 1), 5 + 4 * (stepCount - 1)],
+                    [4 * stepCount, 1 + 4 * stepCount],
                 );
             }
         } else {
+            vertices.push(
+                // lastLeftPoint.added(horizontalLeftDir.multiplied(lastStepLength / horizontalStep * widthDelta)).added(verticalFrontDir.multiplied(stepHeight)),
+                // lastRightPoint.added(horizontalLeftDir.multiplied(-lastStepLength / horizontalStep * widthDelta)).added(verticalFrontDir.multiplied(stepHeight))
+                stepCount > 1 ? vertices[vertices.length - 2].added(verticalFrontDir.multiplied(verticalStep)) : leftPt,
+                stepCount > 1 ? vertices[vertices.length - 1].added(verticalFrontDir.multiplied(verticalStep)) : rightPt,
+            );
+            tempLines.push(
+                [4 * (stepCount - 1), 1 + 4 * (stepCount - 1)],
+            );
             if (lastStepLength > LengthTolerance) {
                 vertices.push(
-                    lastLeftPoint.added(horizontalLeftDir.multiplied(lastStepLength / horizontalStep * widthDelta)).added(horizontalFrontDir.multiplied(lastStepLength)),
-                    lastRightPoint.added(horizontalLeftDir.multiplied(-lastStepLength / horizontalStep * widthDelta)).added(horizontalFrontDir.multiplied(lastStepLength))
+                    vertices[vertices.length - 2].added(horizontalLeftDir.multiplied(lastStepLength / horizontalStep * widthDelta)).added(horizontalFrontDir.multiplied(lastStepLength)),
+                    vertices[vertices.length - 1].added(horizontalLeftDir.multiplied(-lastStepLength / horizontalStep * widthDelta)).added(horizontalFrontDir.multiplied(lastStepLength))
                 );
                 tempLines.push(
-                    [4 * (stepCount - 1), 1 + 4 * (stepCount - 1)],
+                    // [4 * (stepCount - 1), 1 + 4 * (stepCount - 1)],
                     [4 * (stepCount - 1), 2 + 4 * (stepCount - 1)],
                     [1 + 4 * (stepCount - 1), 3 + 4 * (stepCount - 1)],
                     [2 + 4 * (stepCount - 1), 3 + 4 * (stepCount - 1)],
                 );
-            } else {
-                tempLines.pop();
-                tempLines.pop();
             }
+            // else {
+            //     tempLines.pop();
+            //     tempLines.pop();
+            // }
         }
         // } else {
         //     tempLines.push(
@@ -160,8 +214,8 @@ function computeStairShape(segment: Segment, componentParam: ComponentParam) {
             );
             if (upward) {
                 vertices.push(
-                    vertices[vertices.length - 2].added(vertitalFrontDir.multiplied(-stepHeight - (1 - lastStepLength / horizontalStep) * stepHeight)),
-                    vertices[vertices.length - 1].added(vertitalFrontDir.multiplied(-stepHeight - (1 - lastStepLength / horizontalStep) * stepHeight)),
+                    vertices[vertices.length - 2].added(verticalFrontDir.multiplied(-stepHeight - (1 - lastStepLength / horizontalStep) * stepHeight)),
+                    vertices[vertices.length - 1].added(verticalFrontDir.multiplied(-stepHeight - (1 - lastStepLength / horizontalStep) * stepHeight)),
                 );
                 vertices.push(
                     vertices[0].added(horizontalFrontDir.multiplied(horizontalStep)),
@@ -173,8 +227,8 @@ function computeStairShape(segment: Segment, componentParam: ComponentParam) {
                     vertices[vertices.length - 1].added(horizontalFrontDir.multiplied(-lastStepLength - horizontalStep)),
                 );
                 vertices.push(
-                    vertices[0].added(vertitalFrontDir.multiplied(stepHeight)),
-                    vertices[1].added(vertitalFrontDir.multiplied(stepHeight)),
+                    vertices[0].added(verticalFrontDir.multiplied(stepHeight)),
+                    vertices[1].added(verticalFrontDir.multiplied(stepHeight)),
                 );
             }
         } else {
@@ -187,13 +241,13 @@ function computeStairShape(segment: Segment, componentParam: ComponentParam) {
             );
             if (upward) {
                 vertices.push(
-                    vertices[vertices.length - 2].added(vertitalFrontDir.multiplied(-stepHeight)),
-                    vertices[vertices.length - 1].added(vertitalFrontDir.multiplied(-stepHeight)),
+                    vertices[vertices.length - 2].added(verticalFrontDir.multiplied(-stepHeight)),
+                    vertices[vertices.length - 1].added(verticalFrontDir.multiplied(-stepHeight)),
                 );
             } else {
                 vertices.push(
-                    vertices[0].added(vertitalFrontDir.multiplied(stepHeight)),
-                    vertices[1].added(vertitalFrontDir.multiplied(stepHeight)),
+                    vertices[0].added(verticalFrontDir.multiplied(stepHeight)),
+                    vertices[1].added(verticalFrontDir.multiplied(stepHeight)),
                 );
             }
         }
@@ -216,9 +270,8 @@ function computePlatformShape(segment: Segment, componentParam: ComponentParam, 
 
         const preStairSegment = segments[segments.length - 2];
         // if (preStairSegment.type === ComponentType.Stair) {
-        const { start: prevStart, end: prevEnd, param: prevParam, moldShape: prevMoldShape } = preStairSegment;
-        const prevHeight = prevEnd.z;
-        const prevDirNormalized = prevEnd.subtracted(prevStart);
+        const { start: prevStart, end: prevEnd, param: prevParam, moldShape: prevMoldShape, endHeight: prevEndHeight } = preStairSegment;
+        const prevDirNormalized = prevEnd.subtracted(prevStart).normalized();
         const prevLeftDir = DirectionZ.cross(prevDirNormalized).normalized();
         const angle = curDir.angleTo(prevDirNormalized, DirectionZ);
         const frontLength = curDir.dot(prevDirNormalized);
@@ -227,119 +280,143 @@ function computePlatformShape(segment: Segment, componentParam: ComponentParam, 
         const dir1 = curEndLeftCorner.subtracted(segment.start);
         const angle1 = dir1.angle(curDir);
 
-
-        if (AngleTolerance < angle && angle < (Math.PI / 2 - angle1)) {
-            const leftConnectPoint = tempWidth > prevParam.endWidth ? prevMoldShape.vertices[prevMoldShape.vertices.length - 2] :
-                start.added(prevLeftDir.multiplied(tempWidth / 2 * Math.cos(angle)));
-            moldShape.vertices = [
-                start.added(curLeftDir.multiplied(tempWidth / 2)),
-                leftConnectPoint,
-                start.added(prevLeftDir.multiplied(-tempWidth / 2 / Math.cos(angle))),
-                end.added(curLeftDir.multiplied(tempWidth / 2)),
-                end.added(curLeftDir.multiplied(-tempWidth / 2)),
-            ];
-            moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0]];
-            stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevHeight))),
-            ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevHeight - platformThickness))),
-            ];
-            stairShape.tempLines = [
-                ...moldShape.tempLines,
-                ...moldShape.tempLines.map(seg => [seg[0] + 5, seg[1] + 5]),
-                [0, 5], [1, 6], [2, 7], [3, 8], [4, 9],
-            ];
-        } else if (angle <= AngleTolerance || angle >= (Math.PI - AngleTolerance)) {
+        if (angle <= AngleTolerance || angle >= (Math.PI * 2 - AngleTolerance) || prevParam.type === ComponentType.Platform) {
             segment.end = segment.start.added(prevDirNormalized.multiplied(frontLength));
             moldShape.vertices = [
                 start.added(prevLeftDir.multiplied(tempWidth / 2)),
                 start.added(prevLeftDir.multiplied(-tempWidth / 2)),
+                segment.end.added(prevLeftDir.multiplied(-tempWidth / 2)),
                 segment.end.added(prevLeftDir.multiplied(tempWidth / 2)),
-                segment.end.added(prevLeftDir.multiplied(-tempWidth / 2)),
             ];
             moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 0]];
-            stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevHeight))),
-            ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevHeight - platformThickness))),
+            stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevEndHeight))),
+            ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevEndHeight - platformThickness))),
             ];
             stairShape.tempLines = [
                 ...moldShape.tempLines,
                 ...moldShape.tempLines.map(seg => [seg[0] + 4, seg[1] + 4]),
-                [0, 4], [1, 5], [2, 6], [3, 7], [4, 8],
-            ];
-        } else if (angle > (Math.PI * 3 / 2 + angle1)) {
-
-            const rightConnectPoint = tempWidth > prevParam.endWidth ? prevMoldShape.vertices[prevMoldShape.vertices.length - 1] :
-                start.added(prevLeftDir.multiplied(-tempWidth / 2 * Math.cos(angle)));
-            moldShape.vertices = [
-                start.added(prevLeftDir.multiplied(-tempWidth / 2 / Math.cos(angle))),
-                rightConnectPoint,
-                start.added(curLeftDir.multiplied(-tempWidth / 2)),
-                end.added(curLeftDir.multiplied(tempWidth / 2)),
-                end.added(curLeftDir.multiplied(-tempWidth / 2)),
-            ];
-            moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0]];
-            stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevHeight))),
-            ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevHeight - platformThickness))),
-            ];
-            stairShape.tempLines = [
-                ...moldShape.tempLines,
-                ...moldShape.tempLines.map(seg => [seg[0] + 5, seg[1] + 5]),
-                [0, 5], [1, 6], [2, 7], [3, 8], [4, 9],
-            ];
-        } else if (angle >= Math.PI) {
-            const validFrontLength = Math.max(tempWidth, frontLength);
-            segment.end = segment.start.added(prevDirNormalized.multiplied(validFrontLength));
-
-            const leftLength = curDir.dot(prevLeftDir);
-            const validLeftLength = Math.max(tempWidth / 2, leftLength);
-            componentParam.startWidth = validLeftLength + tempWidth / 2;
-            componentParam.endWidth = validLeftLength + tempWidth / 2;
-
-            moldShape.vertices = [
-                start.added(prevLeftDir.multiplied(validLeftLength)),
-                start.added(prevLeftDir.multiplied(-tempWidth / 2)),
-                segment.end.added(prevLeftDir.multiplied(validLeftLength)),
-                segment.end.added(prevLeftDir.multiplied(-tempWidth / 2)),
-            ];
-            moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 0]];
-            stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevHeight))),
-            ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevHeight - platformThickness))),
-            ];
-            stairShape.tempLines = [
-                ...moldShape.tempLines,
-                ...moldShape.tempLines.map(seg => [seg[0] + 4, seg[1] + 4]),
-                [0, 4], [1, 5], [2, 6], [3, 7], [4, 8],
+                [0, 4], [1, 5], [2, 6], [3, 7],
             ];
         } else {
-            const rightLength = curDir.dot(prevLeftDir);
-            const validFrontLength = Math.max(tempWidth, frontLength);
-            segment.end = segment.start.added(prevDirNormalized.multiplied(validFrontLength));
+            if (AngleTolerance < angle && angle < (Math.PI / 2 - angle1)) {
+                let leftConnectPoints = [prevMoldShape.vertices[prevMoldShape.vertices.length - 2], prevMoldShape.vertices[prevMoldShape.vertices.length - 2]];
+                if (tempWidth <= prevParam.endWidth) {
+                    const l1 = tempWidth / 2 / Math.cos(angle);
+                    if (l1 > prevParam.endWidth / 2) {
+                        const a1 = l1 - prevParam.endWidth / 2;
+                        const c1 = a1 / Math.tan(angle);
+                        leftConnectPoints = [start.added(prevLeftDir.multiplied(prevParam.endWidth / 2)).added(prevDirNormalized.multiplied(c1)), start.added(prevLeftDir.multiplied(prevParam.endWidth / 2))];
+                    } else {
+                        leftConnectPoints = [start.added(prevLeftDir.multiplied(l1)), start.added(prevLeftDir.multiplied(l1))];
+                    }
+                }
+                moldShape.vertices = [
+                    // start.added(curLeftDir.multiplied(tempWidth / 2)),
+                    ...leftConnectPoints,
+                    start.added(prevLeftDir.multiplied(-tempWidth / 2 / Math.cos(angle))),
+                    end.added(curLeftDir.multiplied(-tempWidth / 2)),
+                    end.added(curLeftDir.multiplied(tempWidth / 2)),
+                ];
+                moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0]];
+                stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevEndHeight))),
+                ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevEndHeight - platformThickness))),
+                ];
+                stairShape.tempLines = [
+                    ...moldShape.tempLines,
+                    ...moldShape.tempLines.map(seg => [seg[0] + 5, seg[1] + 5]),
+                    [0, 5], [1, 6], [2, 7], [3, 8], [4, 9],
+                ];
+            } else if (angle > (Math.PI * 3 / 2 + angle1)) {
 
-            const validRightLength = Math.max(tempWidth / 2, rightLength);
-            componentParam.startWidth = validRightLength + tempWidth / 2;
-            componentParam.endWidth = validRightLength + tempWidth / 2;
+                // const rightConnectPoint = tempWidth > prevParam.endWidth ? prevMoldShape.vertices[prevMoldShape.vertices.length - 1] :
+                //     start.added(prevLeftDir.multiplied(-tempWidth / 2 * Math.cos(angle)));
 
-            moldShape.vertices = [
-                start.added(prevLeftDir.multiplied(tempWidth / 2)),
-                start.added(prevLeftDir.multiplied(-validRightLength)),
-                segment.end.added(prevLeftDir.multiplied(tempWidth / 2)),
-                segment.end.added(prevLeftDir.multiplied(-validRightLength)),
-            ];
-            moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 0]];
-            stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevHeight))),
-            ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevHeight - platformThickness))),
-            ];
-            stairShape.tempLines = [
-                ...moldShape.tempLines,
-                ...moldShape.tempLines.map(seg => [seg[0] + 4, seg[1] + 4]),
-                [0, 4], [1, 5], [2, 6], [3, 7], [4, 8],
-            ];
+                let rightConnectPoints = [prevMoldShape.vertices[prevMoldShape.vertices.length - 1], prevMoldShape.vertices[prevMoldShape.vertices.length - 1]];
+                if (tempWidth <= prevParam.endWidth) {
+                    const l2 = tempWidth / 2 / Math.cos(angle);
+                    if (l2 > prevParam.endWidth / 2) {
+                        const a2 = l2 - prevParam.endWidth / 2;
+                        const c2 = a2 / Math.tan(Math.PI * 2 - angle);
+                        rightConnectPoints = [start.added(prevLeftDir.multiplied(-prevParam.endWidth / 2)), start.added(prevLeftDir.multiplied(-prevParam.endWidth / 2)).added(prevDirNormalized.multiplied(c2))];
+                    } else {
+                        rightConnectPoints = [start.added(prevLeftDir.multiplied(-l2)), start.added(prevLeftDir.multiplied(-l2))];
+                    }
+                }
+
+                moldShape.vertices = [
+                    start.added(prevLeftDir.multiplied(tempWidth / 2 / Math.cos(angle))),
+                    ...rightConnectPoints,
+                    // start.added(curLeftDir.multiplied(-tempWidth / 2)),
+                    end.added(curLeftDir.multiplied(-tempWidth / 2)),
+                    end.added(curLeftDir.multiplied(tempWidth / 2)),
+                ];
+                moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0]];
+                stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevEndHeight))),
+                ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevEndHeight - platformThickness))),
+                ];
+                stairShape.tempLines = [
+                    ...moldShape.tempLines,
+                    ...moldShape.tempLines.map(seg => [seg[0] + 5, seg[1] + 5]),
+                    [0, 5], [1, 6], [2, 7], [3, 8], [4, 9],
+                ];
+            } else if (angle >= Math.PI) {
+                const validFrontLength = Math.max(tempWidth, frontLength);
+                segment.end = segment.start.added(prevDirNormalized.multiplied(validFrontLength));
+
+                const leftLength = curDir.dot(prevLeftDir);
+                const validLeftLength = Math.max(tempWidth / 2, leftLength);
+                // componentParam.startWidth = validLeftLength + tempWidth / 2;
+                // componentParam.endWidth = validLeftLength + tempWidth / 2;
+
+                moldShape.vertices = [
+                    start.added(prevLeftDir.multiplied(validLeftLength)),
+                    start.added(prevLeftDir.multiplied(-tempWidth / 2)),
+                    segment.end.added(prevLeftDir.multiplied(-tempWidth / 2)),
+                    segment.end.added(prevLeftDir.multiplied(validLeftLength)),
+                ];
+                moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 0]];
+                stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevEndHeight))),
+                ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevEndHeight - platformThickness))),
+                ];
+                stairShape.tempLines = [
+                    ...moldShape.tempLines,
+                    ...moldShape.tempLines.map(seg => [seg[0] + 4, seg[1] + 4]),
+                    [0, 4], [1, 5], [2, 6], [3, 7],
+                ];
+            } else {
+                const rightLength = -curDir.dot(prevLeftDir);
+                const validFrontLength = Math.max(tempWidth, frontLength);
+                segment.end = segment.start.added(prevDirNormalized.multiplied(validFrontLength));
+
+                const validRightLength = Math.max(tempWidth / 2, rightLength);
+                // componentParam.startWidth = validRightLength + tempWidth / 2;
+                // componentParam.endWidth = validRightLength + tempWidth / 2;
+
+                moldShape.vertices = [
+                    start.added(prevLeftDir.multiplied(tempWidth / 2)),
+                    start.added(prevLeftDir.multiplied(-validRightLength)),
+                    segment.end.added(prevLeftDir.multiplied(-validRightLength)),
+                    segment.end.added(prevLeftDir.multiplied(tempWidth / 2)),
+                ];
+                moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 0]];
+                stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevEndHeight))),
+                ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevEndHeight - platformThickness))),
+                ];
+                stairShape.tempLines = [
+                    ...moldShape.tempLines,
+                    ...moldShape.tempLines.map(seg => [seg[0] + 4, seg[1] + 4]),
+                    [0, 4], [1, 5], [2, 6], [3, 7],
+                ];
+            }
         }
+
         // }
     } else {
         moldShape.vertices = [
             start.added(curLeftDir.multiplied(tempWidth / 2)),
             start.added(curLeftDir.multiplied(-tempWidth / 2)),
-            segment.end.added(curLeftDir.multiplied(tempWidth / 2)),
             segment.end.added(curLeftDir.multiplied(-tempWidth / 2)),
+            segment.end.added(curLeftDir.multiplied(tempWidth / 2)),
         ];
         moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 0]];
         stairShape.vertices = [...moldShape.vertices,
@@ -348,7 +425,7 @@ function computePlatformShape(segment: Segment, componentParam: ComponentParam, 
         stairShape.tempLines = [
             ...moldShape.tempLines,
             ...moldShape.tempLines.map(seg => [seg[0] + 4, seg[1] + 4]),
-            [0, 4], [1, 5], [2, 6], [3, 7], [4, 8],
+            [0, 4], [1, 5], [2, 6], [3, 7],
         ];
     }
 

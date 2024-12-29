@@ -11,11 +11,163 @@ export const PathReversedDelimiter = '-';
 export const PathDelimiter = '&';
 export const ManualPrefix = 'm';
 
-export enum StairType {
-    Straight = 0,
-    Circular = 1,
+
+export enum ComponentParamType {
+    HorizontalStep = "horizontalStep",
+    VerticalStep = "verticalStep",
+    StartWidth = "startWidth",
+    EndWidth = "endWidth",
+    Type = "type",
+    Upward = "upward",
+    PlatformThickness = "platformThickness",
 }
 
+// interface ParamSettings {
+//     min: number;
+//     max: number;
+//     step: number;
+//     unit: string;
+//     precision: number;
+// }
+
+export enum ComponentType {
+    StraightStair = 0,
+    CircularStair = 1,
+    Platform = 2,
+}
+
+export const ComponentParamSettings = {
+    [ComponentParamType.HorizontalStep]: {
+        title: "步长",
+        min: 1,
+        max: 100000,
+        step: 10,
+        unit: '长',
+        precision: 0,
+    },
+    [ComponentParamType.VerticalStep]: {
+        title: "步长",
+        min: 1,
+        max: 100000,
+        step: 10,
+        unit: '高',
+        precision: 0,
+    },
+    [ComponentParamType.StartWidth]: {
+        title: "宽度",
+        min: 1,
+        max: 100000,
+        step: 50,
+        unit: '起',
+        precision: 0,
+    },
+    [ComponentParamType.EndWidth]: {
+        title: "宽度",
+        min: 1,
+        max: 100000,
+        step: 50,
+        unit: '终',
+        precision: 0,
+    },
+    [ComponentParamType.Type]: {
+        // radioValues: [ComponentType.StraightStair, ComponentType.CircularStair, ComponentType.Platform],
+        // texts: ["直阶", "旋转阶梯", "平台"],
+        title: "类型",
+        radioOptions: [
+            { value: ComponentType.StraightStair, text: "直阶" },
+            { value: ComponentType.CircularStair, text: "旋转阶梯" },
+            { value: ComponentType.Platform, text: "平台" },
+        ]
+    },
+    [ComponentParamType.Upward]: {
+        // radioValues: [1, 0],
+        // texts: ["向上", "向下"],
+        title: "方向",
+        radioOptions: [
+            { value: true, text: "向上" },
+            { value: false, text: "向下" },
+        ]
+    },
+    [ComponentParamType.PlatformThickness]: {
+        title: "厚度",
+        min: 1,
+        max: 100000,
+        step: 10,
+        unit: '',
+        precision: 0,
+    },
+}
+
+export interface ComponentParam {
+    horizontalStep: number;
+    verticalStep: number;
+    startWidth: number;
+    endWidth: number;
+    type: ComponentType;
+    upward: boolean;
+    platformThickness: number;
+
+    tempWidth: number;
+
+    // stepType: StepType;
+    // cornerType: CornerType;
+    // sideBoard?: boolean;
+    // handrail?: HandrailParam;
+}
+
+export const DefaultComponentParam: ComponentParam = {
+    horizontalStep: 500,
+    verticalStep: 100,
+    startWidth: 1000,
+    endWidth: 1000,
+    type: ComponentType.StraightStair,
+    upward: true,
+    platformThickness: 50,
+
+    tempWidth: 1000,
+    // stepType: StepType.Normal,
+    // cornerType: CornerType.Rectangle,
+}
+
+export interface Shape {
+    vertices: KPoint3d[];
+    // [[1, 2], [2, 3]]
+    tempLines: number[][];
+}
+export interface Segment {
+    start: KPoint3d;
+    end: KPoint3d;
+    // leftCorner?: KPoint3d;
+    // rightCorner?: KPoint3d;
+    startLocked: boolean;
+    endLocked: boolean;
+    startHeight: number;
+    endHeight: number;
+    stairShape: Shape;
+    moldShape: Shape;
+    param: ComponentParam;
+
+    baseLineSeg3d?: KLineSegment3d;
+
+    tempShapeId?: string[];
+    pickStartTempShapeId?: string;
+}
+
+// export enum StairType {
+//     Straight = 0,
+//     Circular = 1,
+// }
+// export interface PlatformParam {
+//     startWidth: number;
+//     endWidth: number;
+//     // length: number;
+// }
+
+// export const DefaultPlatformParam: PlatformParam = {
+//     startWidth: 1000,
+//     endWidth: 1000,
+//     // length: 1000,
+// }
 // export enum StepType {
 //     Normal = 0,
 //     Open = 1,
@@ -36,47 +188,6 @@ export enum StairType {
 //     pillarSegment: number;
 // }
 
-export interface ComponentParam {
-    startWidth: number;
-    endWidth: number;
-    tempWidth: number;
-    platformThickness: number;
-    type: StairType;
-    horizontalStep: number;
-    verticalStep: number;
-    upward: boolean;
-    
-    // stepType: StepType;
-    // cornerType: CornerType;
-    // sideBoard?: boolean;
-    // handrail?: HandrailParam;
-}
-
-export interface PlatformParam {
-    startWidth: number;
-    endWidth: number;
-    // length: number;
-}
-
-export const DefaultComponentParam: ComponentParam = {
-    startWidth: 1000,
-    endWidth: 1000,
-    tempWidth: 1000,
-    platformThickness: 50,
-    type: StairType.Straight,
-    horizontalStep: 500,
-    verticalStep: 100,
-    upward: true,
-    // stepType: StepType.Normal,
-    // cornerType: CornerType.Rectangle,
-}
-
-export const DefaultPlatformParam: PlatformParam = {
-    startWidth: 1000,
-    endWidth: 1000,
-    // length: 1000,
-}
-
 // export const DefaultHandrailParam: HandrailParam = {
 //     height: 200,
 //     railRadius: 20,
@@ -92,11 +203,7 @@ export const DefaultPlatformParam: PlatformParam = {
 //     z: number;
 // }
 
-export interface Shape {
-    vertices: KPoint3d[];
-    // [[1, 2], [2, 3]]
-    tempLines: number[][];
-}
+
 
 // export interface PartShape {
 //     // 每种stepType不同的vertices排列
@@ -122,26 +229,6 @@ export interface Shape {
 //     corner: PartShape,
 // }
 
-export enum ComponentType {
-    Stair = 0,
-    Platform = 1,
-}
-
-export interface Segment {
-    type: ComponentType;
-    start: KPoint3d;
-    end: KPoint3d;
-    leftCorner?: KPoint3d;
-    rightCorner?: KPoint3d;
-    startLocked: boolean;
-    endLocked: boolean;
-    startHeight: number;
-    stairShape: Shape;
-    moldShape: Shape;
-    param: ComponentParam;
-
-    tempShapeId?: string[];
-}
 
 export const enum Axis {
     X = 'X',
@@ -155,8 +242,3 @@ export const enum Axis {
 export function isAxisValid(axis: string) {
     return axis === Axis.X || axis === Axis.XMinus || axis === Axis.Y || axis === Axis.YMinus || axis === Axis.Z || axis === Axis.ZMinus;
 }
-
-
-export const dummyMatrix4 = GeomLib.createIdentityMatrix4();
-export const dummyVector3d = GeomLib.createVector3d(0, 0, 1);
-export const dummyPoint3d = GeomLib.createPoint3d(0, 0, 0);

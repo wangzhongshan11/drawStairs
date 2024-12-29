@@ -1,24 +1,24 @@
-import { alignTool } from "./drawStairsTool";
+import { drawStairsTool } from "./drawStairsTool";
 
 const pluginUI = app.getPluginUI();
-pluginUI.resize(240, 300);
+pluginUI.resize(300, 700);
 pluginUI.mount();
 
 let activatedCustomTool: KTool | undefined;
 
 async function onUIMessage(data: any) {
     try {
-        if (data.type?.startsWith('activate')) {
-            if (activatedCustomTool) {
-                app.deactivateCustomTool(activatedCustomTool, true);
-            }
-        }
-        if (data.type === 'activateDrawStairsTool') {
-            app.activateCustomTool(alignTool, true);
-            activatedCustomTool = alignTool;
-        } else if (data.type === 'deActivateDrawStairsTool') {
-            app.deactivateCustomTool(alignTool, false);
+        if (data.type === 'activateStraightStairsTool' || data.type === 'activateCircularStairsTool') {
+            app.activateCustomTool(drawStairsTool, true);
+            activatedCustomTool = drawStairsTool;
+            drawStairsTool.changeComponentType(data.componentType);
+        } else if (data.type === 'deActivateStraightStairsTool' || data.type === 'deActivateCircularStairsTool') {
+            app.deactivateCustomTool(drawStairsTool, false);
             activatedCustomTool = undefined;
+        } else if (data.type === 'componentParamChange') {
+            if (activatedCustomTool === drawStairsTool) {
+                drawStairsTool.changeComponentParam(data.componentParam)
+            }
         }
     } catch (error) {
         console.error(error);

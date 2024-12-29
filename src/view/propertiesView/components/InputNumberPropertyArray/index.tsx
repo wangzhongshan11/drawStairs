@@ -1,0 +1,96 @@
+import * as React from 'react'
+import "./index.css";
+import { InputNumber } from 'antd';
+
+interface Props {
+    title: string;
+    units: string[];
+    values: number[];
+    min: number[];
+    max: number[];
+    step: number[];
+    precisions: number[];
+    disabled?: boolean;
+    onChange?: (values: number[]) => void;
+}
+
+interface State {
+    inputtingValues: number[];
+}
+
+export default class InputNumberPropertyArray extends React.Component<Props, State> {
+    state: Readonly<State> = { inputtingValues: [...this.props.values] };
+
+    // private onChange = (values: number[] | null) => {
+    //     this.setState({ inputtingValues: values });
+    // }
+
+    private getOnChange = (index: number) => {
+        return (value: number | null) => {
+            const { inputtingValues } = this.state;
+
+            const newInputtingValues = inputtingValues;
+            if (value !== undefined && value !== null) {
+                newInputtingValues[index] = value;
+                this.setState({ inputtingValues: newInputtingValues });
+            }
+        }
+    }
+
+    private onBlur = () => {
+        const { onChange } = this.props;
+        const { inputtingValues } = this.state;
+        if (onChange && inputtingValues !== undefined && inputtingValues !== null) {
+            onChange(inputtingValues);
+            // this.setState({ inputtingValues: undefined });
+        }
+    }
+
+    private getOnStep = (index: number) => {
+
+        return (value: number, info: { offset: string | number; type: 'up' | 'down'; }) => {
+            const { onChange } = this.props;
+            const { inputtingValues } = this.state;
+            if (onChange) {
+                const newValues = [...inputtingValues];
+                newValues[index] = value;
+                onChange(newValues);
+            }
+        }
+    }
+
+    render() {
+        const { title, units, precisions, min, max, step, disabled } = this.props;
+        const { inputtingValues } = this.state;
+        return (
+            <div className='inputNumber-property-array-wrapper'>
+                <div className='title'>{title}</div>
+                <div className='inputs'>
+                    {inputtingValues.map((value, index) => {
+                        return <div key={index} className='wrapper'>
+                            <InputNumber<number>
+                                className='input'
+                                value={value}
+                                // key={index}
+                                // defaultValue={1000}
+                                precision={precisions[index]}
+                                // suffix={units[index]}
+                                min={min[index]}
+                                max={max[index]}
+                                step={step[index]}
+                                disabled={disabled}
+                                // formatter={(value) => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                // parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as unknown as number}
+                                onChange={this.getOnChange(index).bind(this)}
+                                onBlur={this.onBlur.bind(this)}
+                                onPressEnter={this.onBlur.bind(this)}
+                                onStep={this.getOnStep(index).bind(this)}
+                            />
+                            <div className='suffix'>{units[index]}</div>
+                        </div>
+                    })}
+                </div>
+            </div>
+        )
+    }
+}
