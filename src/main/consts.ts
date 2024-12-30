@@ -20,5 +20,9 @@ export const FirstSegment = {
         vertices: [],
         tempLines: [],
     },
+    cornerShape: {
+        vertices: [],
+        tempLines: [],
+    },
     param: DefaultComponentParam,
 }

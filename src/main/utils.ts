@@ -57,27 +57,37 @@ export function computeComponentShape(segment: Segment, componentParam: Componen
 }
 
 function computeStairShape(segment: Segment, componentParam: ComponentParam) {
-    const { start, end, stairShape, moldShape, startHeight, baseLineSeg3d } = segment;
+    const { start, end, stairShape, moldShape, cornerShape, startHeight, baseLineSeg3d } = segment;
     const { startWidth, endWidth, type, horizontalStep, verticalStep, upward } = componentParam;
     stairShape.vertices = [];
     stairShape.tempLines = [];
     moldShape.vertices = [];
     moldShape.tempLines = [];
+    cornerShape.vertices = [];
+    cornerShape.tempLines = [];
     const { vertices, tempLines } = stairShape;
     const { vertices: moldVertices, tempLines: moldTempLines } = moldShape;
     if (type === ComponentType.StraightStair) {
         let horizontalFrontDir = end.subtracted(start).normalized();
         let horizontalDistance = start.distanceTo(end);
+        const verticalFrontDir = DirectionZ;
+        let horizontalLeftDir = DirectionZ.cross(horizontalFrontDir);
         if (baseLineSeg3d) {
             const angle = horizontalFrontDir.angle(baseLineSeg3d.direction);
             const deltaAngle = Math.abs(angle - Math.PI / 2)
             if (deltaAngle <= AngleTolerance) {
                 horizontalFrontDir = baseLineSeg3d.direction.cross(horizontalFrontDir.cross(baseLineSeg3d.direction)).normalized();
                 horizontalDistance = horizontalDistance * Math.cos(deltaAngle);
+                horizontalLeftDir = DirectionZ.cross(horizontalFrontDir);
+            } else {
+                if (angle < Math.PI / 2) {
+                    cornerShape.vertices = [start, ];
+                    cornerShape.tempLines = [];
+                } else {
+
+                }
             }
         }
-        const verticalFrontDir = DirectionZ;
-        const horizontalLeftDir = DirectionZ.cross(horizontalFrontDir);
         const stepFloatCount = horizontalDistance / horizontalStep;
         const stepCount = Math.ceil(stepFloatCount);
         segment.endHeight = segment.startHeight + stepCount * verticalStep;
@@ -119,9 +129,7 @@ function computeStairShape(segment: Segment, componentParam: ComponentParam) {
                 [3 + 4 * i, 5 + 4 * i],
             );
         }
-        // if (lastStepLength > LengthTolerance) {
-        // const lastLeftPoint = stepCount > 1 ? vertices[vertices.length - 2] : leftPt;
-        // const lastRightPoint = stepCount > 1 ? vertices[vertices.length - 1] : rightPt;
+
         moldVertices.push(
             stepCount > 1 ? moldVertices[moldVertices.length - 2].added(horizontalFrontDir.multiplied(horizontalStep)) : leftPt,
             stepCount > 1 ? moldVertices[moldVertices.length - 1].added(horizontalFrontDir.multiplied(horizontalStep)) : rightPt,
@@ -142,8 +150,6 @@ function computeStairShape(segment: Segment, componentParam: ComponentParam) {
         }
         if (upward) {
             vertices.push(
-                // lastLeftPoint.added(horizontalLeftDir.multiplied(lastStepLength / horizontalStep * widthDelta)).added(verticalFrontDir.multiplied(stepHeight)),
-                // lastRightPoint.added(horizontalLeftDir.multiplied(-lastStepLength / horizontalStep * widthDelta)).added(verticalFrontDir.multiplied(stepHeight))
                 stepCount > 1 ? vertices[vertices.length - 2].added(horizontalFrontDir.multiplied(horizontalStep)) : leftPt,
                 stepCount > 1 ? vertices[vertices.length - 1].added(horizontalFrontDir.multiplied(horizontalStep)) : rightPt,
             );
@@ -171,8 +177,6 @@ function computeStairShape(segment: Segment, componentParam: ComponentParam) {
             }
         } else {
             vertices.push(
-                // lastLeftPoint.added(horizontalLeftDir.multiplied(lastStepLength / horizontalStep * widthDelta)).added(verticalFrontDir.multiplied(stepHeight)),
-                // lastRightPoint.added(horizontalLeftDir.multiplied(-lastStepLength / horizontalStep * widthDelta)).added(verticalFrontDir.multiplied(stepHeight))
                 stepCount > 1 ? vertices[vertices.length - 2].added(verticalFrontDir.multiplied(verticalStep)) : leftPt,
                 stepCount > 1 ? vertices[vertices.length - 1].added(verticalFrontDir.multiplied(verticalStep)) : rightPt,
             );
@@ -191,16 +195,7 @@ function computeStairShape(segment: Segment, componentParam: ComponentParam) {
                     [2 + 4 * (stepCount - 1), 3 + 4 * (stepCount - 1)],
                 );
             }
-            // else {
-            //     tempLines.pop();
-            //     tempLines.pop();
-            // }
         }
-        // } else {
-        //     tempLines.push(
-        //         [4 * stepCount, 1 + 4 * stepCount],
-        //     );
-        // }
         if ((upward && stepCount > 1) || (!upward && stepCount > 2)) {
             tempLines.push(
                 [vertices.length - 2, 2 + vertices.length - 2],

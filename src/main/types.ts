@@ -37,7 +37,7 @@ export enum ComponentType {
 }
 
 export const ComponentParamSettings = {
-    [ComponentParamType.HorizontalStep]: {
+    horizontalStep: {
         title: "步长",
         min: 1,
         max: 100000,
@@ -45,7 +45,7 @@ export const ComponentParamSettings = {
         unit: '长',
         precision: 0,
     },
-    [ComponentParamType.VerticalStep]: {
+    verticalStep: {
         title: "步长",
         min: 1,
         max: 100000,
@@ -53,7 +53,7 @@ export const ComponentParamSettings = {
         unit: '高',
         precision: 0,
     },
-    [ComponentParamType.StartWidth]: {
+    startWidth: {
         title: "宽度",
         min: 1,
         max: 100000,
@@ -61,7 +61,7 @@ export const ComponentParamSettings = {
         unit: '起',
         precision: 0,
     },
-    [ComponentParamType.EndWidth]: {
+    endWidth: {
         title: "宽度",
         min: 1,
         max: 100000,
@@ -69,7 +69,7 @@ export const ComponentParamSettings = {
         unit: '终',
         precision: 0,
     },
-    [ComponentParamType.Type]: {
+    type: {
         // radioValues: [ComponentType.StraightStair, ComponentType.CircularStair, ComponentType.Platform],
         // texts: ["直阶", "旋转阶梯", "平台"],
         title: "类型",
@@ -79,7 +79,7 @@ export const ComponentParamSettings = {
             { value: ComponentType.Platform, text: "平台" },
         ]
     },
-    [ComponentParamType.Upward]: {
+    upward: {
         // radioValues: [1, 0],
         // texts: ["向上", "向下"],
         title: "方向",
@@ -88,7 +88,7 @@ export const ComponentParamSettings = {
             { value: false, text: "向下" },
         ]
     },
-    [ComponentParamType.PlatformThickness]: {
+    platformThickness: {
         title: "厚度",
         min: 1,
         max: 100000,
@@ -97,6 +97,7 @@ export const ComponentParamSettings = {
         precision: 0,
     },
 }
+
 
 export interface ComponentParam {
     horizontalStep: number;
@@ -145,8 +146,10 @@ export interface Segment {
     endHeight: number;
     stairShape: Shape;
     moldShape: Shape;
+    cornerShape: Shape;
     param: ComponentParam;
 
+    // anti clockwise
     baseLineSeg3d?: KLineSegment3d;
 
     tempShapeId?: string[];
