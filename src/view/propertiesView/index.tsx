@@ -1,7 +1,7 @@
 import * as React from 'react'
 import "./index.css";
 import InputNumberPropertyArray from './components/InputNumberPropertyArray';
-import { ComponentParam, ComponentParamSettings, ComponentParamType, ComponentType } from '../../main/types';
+import { ComponentParam, ComponentParamSettings, ComponentParamType, ComponentType } from '../../main/tools/DrawStairsTool/types';
 import RadioProperty from './components/RadioProperty';
 import InputNumberProperty from './components/InputNumberProperty';
 
@@ -37,9 +37,11 @@ export default class PropertiesView extends React.Component<{}, State> {
                 //     const componentParamType = componentParamTypes[i];
                 // const a = componentParam[componentParamType];
                 (componentParam as any)[componentParamType] = value;
-
+                if (componentParam.type === ComponentType.Platform && componentParamType === ComponentParamType.StartWidth) {
+                    componentParam.endWidth = value as number;
+                }
                 // }
-                window.parent.postMessage({ type: 'componentParamChange', componentParam }, '*');
+                window.parent.postMessage({ type: 'componentParamChange', componentParam, changeParams: [componentParamType] }, '*');
             }
         }
     }
@@ -51,13 +53,13 @@ export default class PropertiesView extends React.Component<{}, State> {
                 for (let i = 0; i < componentParamTypes.length; i++) {
                     const componentParamType = componentParamTypes[i];
                     // const a = componentParam[componentParamType];
-                    if (componentParamType === ComponentParamType.StartWidth || componentParamType === ComponentParamType.EndWidth) {
-                        componentParam.tempWidth = values[i];
-                    }
+                    // if (componentParamType === ComponentParamType.StartWidth || componentParamType === ComponentParamType.EndWidth) {
+                    //     componentParam.tempWidth = values[i];
+                    // }
                     (componentParam as any)[componentParamType] = values[i];
 
                 }
-                window.parent.postMessage({ type: 'componentParamChange', componentParam }, '*');
+                window.parent.postMessage({ type: 'componentParamChange', componentParam, changeParams: componentParamTypes }, '*');
             }
         }
     }
@@ -67,7 +69,7 @@ export default class PropertiesView extends React.Component<{}, State> {
         if (!componentParam) {
             return null;
         }
-        const { horizontalStep, verticalStep, startWidth, endWidth, type, upward, platformThickness } = componentParam;
+        const { horizontalStep, verticalStep, startWidth, endWidth, offsetWidth, type, upward, platformThickness } = componentParam;
         // const disabled = !this.state.componentParam;
         return (
             <div className='properties-wrapper'>
@@ -83,18 +85,35 @@ export default class PropertiesView extends React.Component<{}, State> {
                     // disabled={disabled}
                     onChange={this.getOnArrayChange([ComponentParamType.HorizontalStep, ComponentParamType.VerticalStep]).bind(this)}
                 />
-                <InputNumberPropertyArray
-                    title={ComponentParamSettings[ComponentParamType.StartWidth].title}
-                    units={[ComponentParamSettings[ComponentParamType.StartWidth].unit, ComponentParamSettings[ComponentParamType.EndWidth].unit]}
-                    // units={['长', '高']}
-                    values={[startWidth, endWidth]}
-                    precisions={[ComponentParamSettings[ComponentParamType.StartWidth].precision, ComponentParamSettings[ComponentParamType.EndWidth].precision]}
-                    min={[ComponentParamSettings[ComponentParamType.StartWidth].min, ComponentParamSettings[ComponentParamType.EndWidth].min]}
-                    max={[ComponentParamSettings[ComponentParamType.StartWidth].max, ComponentParamSettings[ComponentParamType.EndWidth].max]}
-                    step={[ComponentParamSettings[ComponentParamType.StartWidth].step, ComponentParamSettings[ComponentParamType.EndWidth].step]}
-                    // disabled={disabled}
-                    onChange={this.getOnArrayChange([ComponentParamType.StartWidth, ComponentParamType.EndWidth]).bind(this)}
-                />
+                {
+                    type !== ComponentType.Platform &&
+
+                    <InputNumberPropertyArray
+                        title={ComponentParamSettings[ComponentParamType.StartWidth].title}
+                        units={[ComponentParamSettings[ComponentParamType.StartWidth].unit, ComponentParamSettings[ComponentParamType.EndWidth].unit]}
+                        // units={['长', '高']}
+                        values={[startWidth, endWidth]}
+                        precisions={[ComponentParamSettings[ComponentParamType.StartWidth].precision, ComponentParamSettings[ComponentParamType.EndWidth].precision]}
+                        min={[ComponentParamSettings[ComponentParamType.StartWidth].min, ComponentParamSettings[ComponentParamType.EndWidth].min]}
+                        max={[ComponentParamSettings[ComponentParamType.StartWidth].max, ComponentParamSettings[ComponentParamType.EndWidth].max]}
+                        step={[ComponentParamSettings[ComponentParamType.StartWidth].step, ComponentParamSettings[ComponentParamType.EndWidth].step]}
+                        // disabled={disabled}
+                        onChange={this.getOnArrayChange([ComponentParamType.StartWidth, ComponentParamType.EndWidth]).bind(this)}
+                    />}
+
+                {
+                    type === ComponentType.Platform &&
+                    <InputNumberProperty
+                        title={ComponentParamSettings[ComponentParamType.StartWidth].title}
+                        unit={ComponentParamSettings[ComponentParamType.StartWidth].unit}
+                        value={startWidth + Math.abs(offsetWidth)}
+                        precision={ComponentParamSettings[ComponentParamType.StartWidth].precision}
+                        min={ComponentParamSettings[ComponentParamType.StartWidth].min}
+                        max={ComponentParamSettings[ComponentParamType.StartWidth].max}
+                        step={ComponentParamSettings[ComponentParamType.StartWidth].step}
+                        // disabled={disabled}
+                        onChange={this.getOnChange(ComponentParamType.StartWidth).bind(this)}
+                    />}
                 <InputNumberProperty
                     title={ComponentParamSettings[ComponentParamType.PlatformThickness].title}
                     unit={ComponentParamSettings[ComponentParamType.PlatformThickness].unit}

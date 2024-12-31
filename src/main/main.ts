@@ -1,4 +1,4 @@
-import { drawStairsTool } from "./drawStairsTool";
+import { drawStairsTool } from "./tools/DrawStairsTool/index";
 
 const pluginUI = app.getPluginUI();
 pluginUI.resize(300, 700);
@@ -17,7 +17,7 @@ async function onUIMessage(data: any) {
             activatedCustomTool = undefined;
         } else if (data.type === 'componentParamChange') {
             if (activatedCustomTool === drawStairsTool) {
-                drawStairsTool.changeComponentParam(data.componentParam)
+                drawStairsTool.changeComponentParam(data.componentParam, data.changeParams);
             }
         }
     } catch (error) {

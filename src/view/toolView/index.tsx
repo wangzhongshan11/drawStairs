@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Tooltip } from 'antd';
 import "./index.css";
 import "../assets/drawStairs.svg";
-import { ComponentType } from '../../main/types';
+import { ComponentType } from '../../main/tools/DrawStairsTool/types';
 
 enum ToolType {
     Context = 0,
