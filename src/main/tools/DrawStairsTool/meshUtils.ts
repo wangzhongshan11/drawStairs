@@ -17,9 +17,9 @@ export function generateMeshes(segments: Segment[]): KMesh[] {
 }
 
 function generateStairMesh(segment: Segment) {
-    const { stairShape: { vertices, stepCount }, cornerShape: { vertices: cornerVertices }, param: { upward } } = segment;
+    const { startLocked, stairShape: { vertices, stepCount }, cornerShape: { vertices: cornerVertices }, param: { upward } } = segment;
 
-    if (stepCount < 1) return undefined;
+    if (stepCount < 1 || !startLocked) return undefined;
 
     const stairMesh: KMesh = {
         vertices: vertices.map(vertex => [vertex.x, vertex.y, vertex.z]),
@@ -27,8 +27,8 @@ function generateStairMesh(segment: Segment) {
         softEdges: [],
     }
 
-    const lastLeftIndex = vertices.length / 2 - 1;
-    const leftIndex = vertices.length / 2 - ((!upward && stepCount > 1) ? 2 : 1);
+    const lastLeftIndex = vertices.length - 2;
+    const leftIndex = vertices.length - ((!upward && stepCount > 1) ? 4 : 2);
     for (let i = 0; i < stepCount; i++) {
         stairMesh.triangleIndices.push(
             // stair faces

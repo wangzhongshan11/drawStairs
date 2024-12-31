@@ -10,32 +10,34 @@ export const LengthTolerance: number = 1;
 export const AngleTolerance = Math.PI / 36;
 // const DefaultBoardThickness = 50;
 
-export const FirstSegment = {
-    start: dummyPoint3d,
-    end: dummyPoint3d,
-    startLocked: true,
-    endLocked: false,
-    startHeight: 0,
-    endHeight: 0,
-    stairShape: {
-        stepCount: 0,
-        vertices: [],
-        tempLines: [],
-    },
-    moldShape: {
-        stepCount: 0,
-        vertices: [],
-        tempLines: [],
-    },
-    cornerShape: {
-        stepCount: 0,
-        vertices: [],
-        tempLines: [],
-    },
-    cornerMoldShape: {
-        stepCount: 0,
-        vertices: [],
-        tempLines: [],
-    },
-    param: DefaultComponentParam,
+export function getEmptySegment() {
+    return {
+        start: dummyPoint3d,
+        end: dummyPoint3d,
+        startLocked: true,
+        endLocked: false,
+        startHeight: 0,
+        endHeight: 0,
+        stairShape: {
+            stepCount: 0,
+            vertices: [],
+            tempLines: [],
+        },
+        moldShape: {
+            stepCount: 0,
+            vertices: [],
+            tempLines: [],
+        },
+        cornerShape: {
+            stepCount: 0,
+            vertices: [],
+            tempLines: [],
+        },
+        cornerMoldShape: {
+            stepCount: 0,
+            vertices: [],
+            tempLines: [],
+        },
+        param: {...DefaultComponentParam},
+    }
 }

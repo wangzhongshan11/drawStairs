@@ -1,8 +1,8 @@
-import { FirstSegment } from "./consts";
 import { ComponentType, DefaultComponentParam, ComponentParam, Segment, ParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType } from "./types";
 import { generateTempShape } from "./tempMeshUtils";
 import { generateMeshes } from "./meshUtils";
 import { stringifyParam, stringifyStartEnd } from "./utils";
+import { getEmptySegment } from "./consts";
 
 const design = app.getActiveDesign();
 const pluginUI = app.getPluginUI();
@@ -95,7 +95,7 @@ export class DrawStairsTool implements KTool {
 
                     lastSegment.endLocked = true;
                     const nextSegment: Segment = {
-                        ...FirstSegment,
+                        ...getEmptySegment(),
                         start: lastSegment.end,
                         end: lastSegment.end,
                         startLocked: type === ComponentType.Platform ? false : true,
@@ -111,7 +111,7 @@ export class DrawStairsTool implements KTool {
                     this.segments.push(nextSegment);
                 }
             } else {
-                const firstSegment: Segment = { ...FirstSegment, start: position, end: position, param: this.componentParam };
+                const firstSegment: Segment = { ...getEmptySegment(), start: position, end: position, param: this.componentParam };
                 this.segments.push(firstSegment);
             }
         }
