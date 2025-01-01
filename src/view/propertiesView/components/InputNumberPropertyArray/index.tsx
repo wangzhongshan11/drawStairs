@@ -11,6 +11,7 @@ interface Props {
     step: number[];
     precisions: number[];
     disabled?: boolean;
+    withProportional?: boolean;
     onChange?: (values: number[]) => void;
 }
 
@@ -18,7 +19,7 @@ interface State {
     inputtingValues: number[];
 }
 
-export default class InputNumberPropertyArray extends React.Component<Props, State> {
+export default class InputNumberPropertyArray extends React.PureComponent<Props, State> {
     state: Readonly<State> = { inputtingValues: [...this.props.values] };
 
     // private onChange = (values: number[] | null) => {
@@ -28,9 +29,14 @@ export default class InputNumberPropertyArray extends React.Component<Props, Sta
     private getOnChange = (index: number) => {
         return (value: number | null) => {
             const { inputtingValues } = this.state;
-
+            const { withProportional } = this.props;
             const newInputtingValues = inputtingValues;
             if (value !== undefined && value !== null) {
+                for (let i = 0; i < inputtingValues.length; i++) {
+                    if (withProportional && i !== index) {
+                        newInputtingValues[i] = newInputtingValues[i] / newInputtingValues[index] * value;
+                    }
+                }
                 newInputtingValues[index] = value;
                 this.setState({ inputtingValues: newInputtingValues });
             }
@@ -49,10 +55,15 @@ export default class InputNumberPropertyArray extends React.Component<Props, Sta
     private getOnStep = (index: number) => {
 
         return (value: number, info: { offset: string | number; type: 'up' | 'down'; }) => {
-            const { onChange } = this.props;
+            const { withProportional, onChange } = this.props;
             const { inputtingValues } = this.state;
             if (onChange) {
                 const newValues = [...inputtingValues];
+                for (let i = 0; i < inputtingValues.length; i++) {
+                    if (withProportional && i !== index) {
+                        newValues[i] = newValues[i] / newValues[index] * value;
+                    }
+                }
                 newValues[index] = value;
                 onChange(newValues);
             }

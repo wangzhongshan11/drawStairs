@@ -1,4 +1,4 @@
-import { DefaultComponentParam } from "./types";
+import { DefaultComponentParam, Segment } from "./types";
 
 export const dummyMatrix4 = GeomLib.createIdentityMatrix4();
 export const dummyVector3d = GeomLib.createVector3d(0, 0, 1);
@@ -10,7 +10,7 @@ export const LengthTolerance: number = 1;
 export const AngleTolerance = Math.PI / 36;
 // const DefaultBoardThickness = 50;
 
-export function getEmptySegment() {
+export function getEmptySegment(): Segment {
     return {
         start: dummyPoint3d,
         end: dummyPoint3d,
@@ -38,6 +38,7 @@ export function getEmptySegment() {
             vertices: [],
             tempLines: [],
         },
+        index: 0,
         param: {...DefaultComponentParam},
     }
 }

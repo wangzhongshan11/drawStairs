@@ -235,15 +235,20 @@ function generateTempStairShape(segment: Segment, componentParam: ComponentParam
 }
 
 function generateTempPlatformShape(segment: Segment, componentParam: ComponentParam, segments: Segment[]) {
-    const { startWidth, platformThickness } = componentParam;
+    const { startWidth, platformThickness, platformLength, platformLengthLocked } = componentParam;
 
-    const { start, end, stairShape, moldShape } = segment;
-    const curDir = end.subtracted(start);
+    const { start, stairShape, moldShape } = segment;
+
+
+    const curDir = segment.end.subtracted(start);
+    const curDirNormalized = segment.end.subtracted(start).normalized();
     const curLeftDir = DirectionZ.cross(curDir).normalized();
     stairShape.vertices = [];
     stairShape.tempLines = [];
     moldShape.vertices = [];
     moldShape.tempLines = [];
+    segment.end = platformLengthLocked ? segment.start.added(curDirNormalized.multiplied(platformLength)) : segment.end;
+
     if (segments.length > 1) {
 
         const preStairSegment = segments[segments.length - 2];
@@ -252,14 +257,15 @@ function generateTempPlatformShape(segment: Segment, componentParam: ComponentPa
         const prevDirNormalized = prevEnd.subtracted(prevStart).normalized();
         const prevLeftDir = DirectionZ.cross(prevDirNormalized).normalized();
         const angle = curDir.angleTo(prevDirNormalized, DirectionZ);
-        const frontLength = curDir.dot(prevDirNormalized);
+        const frontLength = platformLengthLocked ? platformLength : Math.abs(curDir.dot(prevDirNormalized));
 
-        const curEndLeftCorner = end.added(curLeftDir.multiplied(startWidth / 2));
+        const curEndLeftCorner = segment.end.added(curLeftDir.multiplied(startWidth / 2));
         const dir1 = curEndLeftCorner.subtracted(segment.start);
         const angle1 = dir1.angle(curDir);
 
         if (angle <= AngleTolerance || angle >= (Math.PI * 2 - AngleTolerance) || prevParam.type === ComponentType.Platform) {
             segment.end = segment.start.added(prevDirNormalized.multiplied(frontLength));
+            componentParam.platformLength = segment.end.distanceTo(segment.start);
             moldShape.vertices = [
                 start.added(prevLeftDir.multiplied(startWidth / 2)),
                 start.added(prevLeftDir.multiplied(-startWidth / 2)),
@@ -277,6 +283,8 @@ function generateTempPlatformShape(segment: Segment, componentParam: ComponentPa
             ];
         } else {
             if (AngleTolerance < angle && angle < (Math.PI / 2 - angle1)) {
+                componentParam.platformLength = segment.end.distanceTo(segment.start);
+
                 let leftConnectPoints = [prevMoldShape.vertices[prevMoldShape.vertices.length - 2], prevMoldShape.vertices[prevMoldShape.vertices.length - 2]];
                 if (startWidth <= prevParam.endWidth) {
                     const l1 = startWidth / 2 / Math.cos(angle);
@@ -292,8 +300,8 @@ function generateTempPlatformShape(segment: Segment, componentParam: ComponentPa
                     // start.added(curLeftDir.multiplied(startWidth / 2)),
                     ...leftConnectPoints,
                     start.added(prevLeftDir.multiplied(-startWidth / 2 / Math.cos(angle))),
-                    end.added(curLeftDir.multiplied(-startWidth / 2)),
-                    end.added(curLeftDir.multiplied(startWidth / 2)),
+                    segment.end.added(curLeftDir.multiplied(-startWidth / 2)),
+                    segment.end.added(curLeftDir.multiplied(startWidth / 2)),
                 ];
                 moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0]];
                 stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevEndHeight))),
@@ -305,6 +313,7 @@ function generateTempPlatformShape(segment: Segment, componentParam: ComponentPa
                     [0, 5], [1, 6], [2, 7], [3, 8], [4, 9],
                 ];
             } else if (angle > (Math.PI * 3 / 2 + angle1)) {
+                componentParam.platformLength = segment.end.distanceTo(segment.start);
 
                 // const rightConnectPoint = startWidth > prevParam.endWidth ? prevMoldShape.vertices[prevMoldShape.vertices.length - 1] :
                 //     start.added(prevLeftDir.multiplied(-startWidth / 2 * Math.cos(angle)));
@@ -325,8 +334,8 @@ function generateTempPlatformShape(segment: Segment, componentParam: ComponentPa
                     start.added(prevLeftDir.multiplied(startWidth / 2 / Math.cos(angle))),
                     ...rightConnectPoints,
                     // start.added(curLeftDir.multiplied(-startWidth / 2)),
-                    end.added(curLeftDir.multiplied(-startWidth / 2)),
-                    end.added(curLeftDir.multiplied(startWidth / 2)),
+                    segment.end.added(curLeftDir.multiplied(-startWidth / 2)),
+                    segment.end.added(curLeftDir.multiplied(startWidth / 2)),
                 ];
                 moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0]];
                 stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(prevEndHeight))),
@@ -338,8 +347,8 @@ function generateTempPlatformShape(segment: Segment, componentParam: ComponentPa
                     [0, 5], [1, 6], [2, 7], [3, 8], [4, 9],
                 ];
             } else if (angle >= Math.PI) {
-                const validFrontLength = Math.max(startWidth, frontLength);
-                const frontEnd = segment.start.added(prevDirNormalized.multiplied(validFrontLength));
+                componentParam.platformLength = frontLength;
+                const frontEnd = segment.start.added(prevDirNormalized.multiplied(frontLength));
 
                 const leftLength = curDir.dot(prevLeftDir);
                 const validLeftLength = Math.max(startWidth / 2, leftLength);
@@ -367,10 +376,11 @@ function generateTempPlatformShape(segment: Segment, componentParam: ComponentPa
                     [0, 4], [1, 5], [2, 6], [3, 7],
                 ];
             } else {
+                componentParam.platformLength = frontLength;
                 const rightLength = -curDir.dot(prevLeftDir);
-                const validFrontLength = Math.max(startWidth, frontLength);
-                const frontEnd1 = segment.start.added(prevDirNormalized.multiplied(validFrontLength));
-                
+                // const validFrontLength = Math.max(startWidth, frontLength);
+                const frontEnd1 = segment.start.added(prevDirNormalized.multiplied(frontLength));
+
                 const validRightLength = Math.max(startWidth / 2, rightLength);
                 if (rightLength < startWidth / 2) {
                     segment.end = frontEnd1;
@@ -401,6 +411,7 @@ function generateTempPlatformShape(segment: Segment, componentParam: ComponentPa
 
         // }
     } else {
+        componentParam.platformLength = segment.end.distanceTo(segment.start);
         moldShape.vertices = [
             start.added(curLeftDir.multiplied(startWidth / 2)),
             start.added(curLeftDir.multiplied(-startWidth / 2)),

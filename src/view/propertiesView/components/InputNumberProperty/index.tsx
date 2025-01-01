@@ -18,8 +18,12 @@ interface State {
     inputtingValue: number;
 }
 
-export default class InputNumberProperty extends React.Component<Props, State> {
+export default class InputNumberProperty extends React.PureComponent<Props, State> {
     state: Readonly<State> = { inputtingValue: this.props.value };
+
+    componentWillReceiveProps(nextProps: Readonly<Props>, nextContext: any): void {
+        this.setState({ inputtingValue: nextProps.value });
+    }
 
     private onChange = (value: number | null) => {
         if (value !== undefined && value !== null)

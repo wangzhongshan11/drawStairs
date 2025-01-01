@@ -17,9 +17,9 @@ export function generateMeshes(segments: Segment[]): KMesh[] {
 }
 
 function generateStairMesh(segment: Segment) {
-    const { startLocked, stairShape: { vertices, stepCount }, cornerShape: { vertices: cornerVertices }, param: { upward } } = segment;
+    const { startLocked, endLocked, stairShape: { vertices, stepCount }, cornerShape: { vertices: cornerVertices }, param: { upward } } = segment;
 
-    if (stepCount < 1 || !startLocked) return undefined;
+    if (stepCount < 1 || !startLocked || !endLocked) return undefined;
 
     const stairMesh: KMesh = {
         vertices: vertices.map(vertex => [vertex.x, vertex.y, vertex.z]),
@@ -27,7 +27,6 @@ function generateStairMesh(segment: Segment) {
         softEdges: [],
     }
 
-    const lastLeftIndex = vertices.length - 2;
     const leftIndex = vertices.length - ((!upward && stepCount > 1) ? 4 : 2);
     for (let i = 0; i < stepCount; i++) {
         stairMesh.triangleIndices.push(
@@ -48,16 +47,17 @@ function generateStairMesh(segment: Segment) {
         );
 
         if (i === stepCount - 1 && upward && stepCount > 1) {
+            const bbLeftIndex = vertices.length - 4;
             stairMesh.triangleIndices.push(
                 // tail side faces
-                [lastLeftIndex, i * 4, (i + 1) * 4],
-                [lastLeftIndex + 1, (i + 1) * 4 + 1, i * 4 + 1],
+                [bbLeftIndex, i * 4, (i + 1) * 4],
+                [bbLeftIndex + 1, (i + 1) * 4 + 1, i * 4 + 1],
             );
             stairMesh.softEdges?.push(
-                [lastLeftIndex, i * 4],
+                [bbLeftIndex, i * 4],
                 [i * 4, (i + 1) * 4],
 
-                [lastLeftIndex + 1, i * 4 + 1],
+                [bbLeftIndex + 1, i * 4 + 1],
                 [(i + 1) * 4 + 1, i * 4 + 1],
             );
         } else {
@@ -164,16 +164,18 @@ function generateStairMesh(segment: Segment) {
 }
 
 function generatePlatformMesh(segment: Segment) {
-    const { stairShape: { vertices } } = segment;
-    const vertexLength = vertices.length / 2;
-    if (vertexLength === 4 || vertexLength === 5) {
-        const platformMesh: KMesh = {
-            vertices: vertices.map(vertex => [vertex.x, vertex.y, vertex.z]),
-            triangleIndices: [],
-            softEdges: [],
+    const { endLocked, stairShape: { vertices } } = segment;
+    if (endLocked) {
+        const vertexLength = vertices.length / 2;
+        if (vertexLength === 4 || vertexLength === 5) {
+            const platformMesh: KMesh = {
+                vertices: [],
+                triangleIndices: [],
+                softEdges: [],
+            }
+            generatePolygonMesh(vertices, platformMesh);
+            segment.mesh = platformMesh;
         }
-        generatePolygonMesh(vertices, platformMesh);
-        segment.mesh = platformMesh;
     }
 
     return undefined;
@@ -187,7 +189,7 @@ function generatePolygonMesh(vertices: KPoint3d[], mesh: KMesh) {
     for (let i = 0; i < segCount; i++) {
         const right = i === segCount - 1 ? 0 : i + 1;
         const bottomRight = i === segCount - 1 ? segCount : i + segCount + 1;
-        mesh.vertices.push(
+        mesh.triangleIndices.push(
             [i + vertexLength, i + segCount + vertexLength, bottomRight + vertexLength],
             [i + vertexLength, bottomRight + vertexLength, right + vertexLength],
         );
@@ -195,9 +197,10 @@ function generatePolygonMesh(vertices: KPoint3d[], mesh: KMesh) {
             [i + vertexLength, bottomRight + vertexLength],
         );
         if (i > 0 && i < segCount - 1) {
-            mesh.vertices.push(
+            mesh.triangleIndices.push(
+                // top and bottom
                 [i + vertexLength, right + vertexLength, 0 + vertexLength],
-                [bottomRight + vertexLength, i + vertexLength, segCount + vertexLength],
+                [bottomRight + vertexLength, i + segCount + vertexLength, segCount + vertexLength],
             );
             if (i > 1) {
                 mesh.softEdges?.push(

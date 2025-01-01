@@ -71,6 +71,8 @@ export function parseParam(value: string) {
             }
         }
     }
+    param.platformLengthLocked = true;
+    return param;
 }
 
 export function stringifyStartEnd(start: KPoint3d, end: KPoint3d) {

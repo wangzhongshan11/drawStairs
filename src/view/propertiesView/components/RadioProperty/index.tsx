@@ -10,7 +10,7 @@ interface Props {
     onChange?: (value: (string | number)) => void;
 }
 
-export default class RadioProperty extends React.Component<Props> {
+export default class RadioProperty extends React.PureComponent<Props> {
 
     private onChange = (e: RadioChangeEvent) => {
         const { onChange } = this.props;

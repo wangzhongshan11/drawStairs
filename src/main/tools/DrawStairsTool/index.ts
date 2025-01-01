@@ -1,7 +1,7 @@
-import { ComponentType, DefaultComponentParam, ComponentParam, Segment, ParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType } from "./types";
+import { ComponentType, DefaultComponentParam, ComponentParam, Segment, ParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType, ComponentIndexKey, StairModelValue } from "./types";
 import { generateTempShape } from "./tempMeshUtils";
 import { generateMeshes } from "./meshUtils";
-import { stringifyParam, stringifyStartEnd } from "./utils";
+import { parseParam, parseStartEnd, stringifyParam, stringifyStartEnd } from "./utils";
 import { getEmptySegment } from "./consts";
 
 const design = app.getActiveDesign();
@@ -18,7 +18,11 @@ export class DrawStairsTool implements KTool {
             KEntityType.Face, KEntityType.Edge, KEntityType.AuxiliaryBoundedCurve, KEntityType.AuxiliaryLine, KEntityType.AuxiliaryVertex,
             KEntityType.GroupInstance, KEntityType.Vertex, KArchFaceType.NonPlanar, KArchFaceType.Planar,
         ]);
-        pluginUI.postMessage({ type: 'componentParamChanged', componentParam: { ...this.componentParam } }, '*');
+        const firstSegment: Segment = getEmptySegment();
+        firstSegment.startLocked = false;
+        pluginUI.postMessage({ type: 'componentParamChanged', componentParam: { ...firstSegment.param, index: firstSegment.index } }, '*');
+        // pluginUI.postMessage({ type: 'componentParamChanged', componentParam: { ...this.componentParam, index: this.segments.length ? this.segments[this.segments.length - 1] : 0 } }, '*');
+        this.segments.push(firstSegment);
     }
 
     onToolDeactive(): void {
@@ -67,6 +71,8 @@ export class DrawStairsTool implements KTool {
                         }
                     }
                 }
+                pluginUI.postMessage({ type: 'componentParamChanged', componentParam: { ...this.componentParam } }, '*');
+
             } else {
 
             }
@@ -75,7 +81,7 @@ export class DrawStairsTool implements KTool {
 
     onLButtonUp(event: KMouseEvent, inferenceResult?: KInferenceResult): void {
         if (inferenceResult) {
-            const position = inferenceResult.position;
+            // const position = inferenceResult.position;
             if (this.segments.length) {
                 const lastSegment = this.segments[this.segments.length - 1];
                 if (!lastSegment.startLocked) {
@@ -102,6 +108,7 @@ export class DrawStairsTool implements KTool {
                         startHeight: lastSegment.endHeight,
                         endHeight: lastSegment.endHeight,
                         param: this.componentParam,
+                        index: this.segments.length,
                     };
                     if (type !== ComponentType.Platform) {
                         const { moldShape: { vertices } } = lastSegment;
@@ -110,9 +117,6 @@ export class DrawStairsTool implements KTool {
                     }
                     this.segments.push(nextSegment);
                 }
-            } else {
-                const firstSegment: Segment = { ...getEmptySegment(), start: position, end: position, param: this.componentParam };
-                this.segments.push(firstSegment);
             }
         }
     }
@@ -179,11 +183,14 @@ export class DrawStairsTool implements KTool {
             }
             this.componentParam = componentParam;
             this.drawTempComponent(lastSegment);
+        } else {
+            this.componentParam = componentParam;
         }
     }
 
     changeComponentType(componentType: ComponentType) {
         this.componentParam.type = componentType;
+        pluginUI.postMessage({ type: 'componentParamChanged', componentParam: { ...this.componentParam } }, '*');
         this.changeComponentParam(this.componentParam, [ComponentParamType.Type]);
     }
 
@@ -207,6 +214,7 @@ export class DrawStairsTool implements KTool {
                         operationSuccess = operationSuccess && !!newInstance;
                         const groupDef = newInstance?.getGroupDefinition();
                         if (newInstance && groupDef) {
+                            operationSuccess = operationSuccess && groupDef.setCustomProperty(ComponentIndexKey, `${newInstances.length}`).isSuccess;
                             newInstances.push(newInstance);
                             const paramString = stringifyParam(param);
                             const startEndString = stringifyStartEnd(GeomLib.createPoint3d(start.x, start.y, startHeight), GeomLib.createPoint3d(end.x, end.y, endHeight));
@@ -225,13 +233,54 @@ export class DrawStairsTool implements KTool {
                 operationSuccess = operationSuccess && !!parentInstance;
                 const parentDef = parentInstance?.getGroupDefinition();
                 if (parentInstance && parentDef) {
-                    operationSuccess = operationSuccess && parentDef.setCustomProperty(StairModelKey, 'DrawStairModel').isSuccess;
+                    operationSuccess = operationSuccess && parentDef.setCustomProperty(StairModelKey, StairModelValue).isSuccess;
                 }
             }
             if (operationSuccess) {
                 design.commitOperation();
             } else {
                 design.abortOperation();
+            }
+        }
+    }
+
+    setModel(groupInstance: KGroupInstance) {
+        const groupDef = groupInstance.getGroupDefinition();
+        if (groupDef) {
+            const stairModelProperty = groupDef.getCustomProperty(StairModelKey);
+            if (stairModelProperty === StairModelValue) {
+                const segments: Segment[] = [];
+                const subGroupInstances = groupDef.getSubGroupInstances();
+                for (const subInstance of subGroupInstances) {
+                    const subDef = subInstance.getGroupDefinition();
+                    if (subDef) {
+                        const componentIndexValue = parseInt(subDef.getCustomProperty(ComponentIndexKey));
+                        if (isFinite(componentIndexValue)) {
+                            const param = parseParam(subDef.getCustomProperty(ParamKey));
+                            const startEnd = parseStartEnd(subDef.getCustomProperty(StartEndKey));
+                            const baseLineSeg3d = parseStartEnd(subDef.getCustomProperty(BaseLineSeg3dKey));
+                            if (param && startEnd && baseLineSeg3d) {
+                                const segment: Segment = {
+                                    ...getEmptySegment(),
+                                    start: startEnd.start,
+                                    end: startEnd.end,
+                                    startHeight: startEnd.start.z,
+                                    endHeight: startEnd.end.z,
+                                    baseLineSeg3d,
+                                    param,
+                                    startLocked: true,
+                                    endLocked: true,
+                                    index: componentIndexValue,
+                                }
+                                segments.push(segment);
+                            }
+                        }
+                    }
+                }
+                if (segments.length) {
+                    segments.sort((a, b) => a.index - b.index);
+                    this.segments = segments;
+                }
             }
         }
     }

@@ -1,9 +1,11 @@
 
 export const StairModelKey = 'DrawStairsModel';
+export const StairModelValue = '1';
 // export const StairKey = 'DSStair';
 // export const PlatformKey = 'DSPlatform';
 export const ParamKey = 'DSParam';
 // startHeight and endHeight cached in start and end
+export const ComponentIndexKey = 'Ind';
 export const StartEndKey = 'SToE';
 export const BaseLineSeg3dKey = 'BaseLine';
 
@@ -15,6 +17,9 @@ export enum ComponentParamType {
     VerticalStep = "verticalStep",
     StartWidth = "startWidth",
     EndWidth = "endWidth",
+    WidthProportional = 'widthProportional',
+    PlatformLength = 'platformLength',
+    PlatformLengthLocked = 'platformLengthLocked',
     Type = "type",
     Upward = "upward",
     PlatformThickness = "platformThickness",
@@ -67,6 +72,14 @@ export const ComponentParamSettings = {
         unit: '终',
         precision: 0,
     },
+    platformLength: {
+        title: "长度",
+        min: 100,
+        max: 100000,
+        step: 50,
+        unit: '',
+        precision: 0,
+    },
     type: {
         // radioValues: [ComponentType.StraightStair, ComponentType.CircularStair, ComponentType.Platform],
         // texts: ["直阶", "旋转阶梯", "平台"],
@@ -104,10 +117,13 @@ export interface ComponentParam {
     endWidth: number;
     // left is true
     offsetWidth: number;
+    platformLength: number;
     type: ComponentType;
     upward: boolean;
     platformThickness: number;
 
+    widthProportional?: boolean;
+    platformLengthLocked?: boolean;
 
     // stepType: StepType;
     // cornerType: CornerType;
@@ -117,14 +133,17 @@ export interface ComponentParam {
 
 export const DefaultComponentParam: ComponentParam = {
     horizontalStep: 500,
-    verticalStep: 100,
+    verticalStep: 200,
     startWidth: 1000,
     endWidth: 1000,
     offsetWidth: 0,
+    platformLength: 2000,
     type: ComponentType.StraightStair,
     upward: true,
-    platformThickness: 50,
+    platformThickness: 200,
 
+    widthProportional: false,
+    platformLengthLocked: false,
     // stepType: StepType.Normal,
     // cornerType: CornerType.Rectangle,
 }
@@ -154,7 +173,7 @@ export interface Segment {
     cornerShape: Shape;
     cornerMoldShape: Shape;
 
-
+    index: number;
     tempShapeId?: string[];
     pickStartTempShapeId?: string;
 

@@ -1,3 +1,23 @@
 .properties-wrapper {
     padding-left: 2%;
+
+    .start-end-width-wrapper {
+        display: flex;
+        justify-content: flex-start;
+    }
+
+    .platform-length-wrapper {
+        display: flex;
+        justify-content: flex-start;
+
+        .lock-button {
+            margin-left: 10px;
+        }
+    }
+
+    .lock-button {
+        svg:hover {
+            background-color: rgb(228, 226, 222);
+        }
+    }
 }

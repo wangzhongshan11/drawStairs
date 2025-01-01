@@ -58,7 +58,6 @@ export default class ToolView extends React.Component<{}, State> {
         if (messageData?.type?.startsWith('leave')) {
             this.setState({ activeToolKey: undefined });
         }
-        console.log(messageData.type);
     }
 
     private onClick = (toolItem: ToolItem) => {
