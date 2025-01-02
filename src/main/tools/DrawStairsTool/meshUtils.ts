@@ -1,4 +1,5 @@
-import { ComponentType, Segment } from "./types";
+import { BaseLineSeg3dKey, ComponentType, ParamKey, Segment, StartEndKey } from "./types";
+import { stringifyParam, stringifyStartEnd } from "./utils";
 
 export function generateMeshes(segments: Segment[]): KMesh[] {
     const meshes: KMesh[] = [];
@@ -210,4 +211,34 @@ function generatePolygonMesh(vertices: KPoint3d[], mesh: KMesh) {
             }
         }
     }
+}
+
+export function buildComponentInstance(segment: Segment) {
+    const { start, end, startHeight, endHeight, baseLineSeg3d, param, mesh } = segment;
+    const design = app.getActiveDesign();
+
+    let operationSuccess = true;
+    if (mesh?.vertices.length) {
+        const newShell = design.createShellFromMesh(mesh)?.newShell;
+        operationSuccess = operationSuccess && !!newShell;
+        if (newShell) {
+            const newInstance = design.makeGroup(newShell.getFaces(), [], [])?.addedInstance;
+            operationSuccess = operationSuccess && !!newInstance;
+            const groupDef = newInstance?.getGroupDefinition();
+            if (newInstance && groupDef) {
+                // operationSuccess = operationSuccess && groupDef.setCustomProperty(ComponentIndexKey, `${newInstances.length}`).isSuccess;
+                // newInstances.push(newInstance);
+                const paramString = stringifyParam(param);
+                const startEndString = stringifyStartEnd(GeomLib.createPoint3d(start.x, start.y, startHeight), GeomLib.createPoint3d(end.x, end.y, endHeight));
+                operationSuccess = operationSuccess && groupDef.setCustomProperty(ParamKey, paramString).isSuccess;
+                operationSuccess = operationSuccess && groupDef.setCustomProperty(StartEndKey, startEndString).isSuccess;
+                if (baseLineSeg3d) {
+                    const BaseLineString = stringifyStartEnd(baseLineSeg3d.start, baseLineSeg3d.end);
+                    operationSuccess = operationSuccess && groupDef.setCustomProperty(BaseLineSeg3dKey, BaseLineString).isSuccess;
+                }
+                return newInstance;
+            }
+        }
+    }
+    return undefined;
 }

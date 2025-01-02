@@ -109,8 +109,18 @@ export const ComponentParamSettings = {
     },
 }
 
+export function getComponentTitle(componentType: ComponentType) {
+    if (componentType === ComponentType.StraightStair) {
+        return '直';
+    } else if (componentType === ComponentType.CircularStair) {
+        return '旋';
+    } else {
+        return '台';
+    }
+}
 
 export interface ComponentParam {
+    index: number;
     horizontalStep: number;
     verticalStep: number;
     startWidth: number;
@@ -125,6 +135,7 @@ export interface ComponentParam {
     widthProportional?: boolean;
     platformLengthLocked?: boolean;
 
+
     // stepType: StepType;
     // cornerType: CornerType;
     // sideBoard?: boolean;
@@ -132,6 +143,7 @@ export interface ComponentParam {
 }
 
 export const DefaultComponentParam: ComponentParam = {
+    index: 0,
     horizontalStep: 500,
     verticalStep: 200,
     startWidth: 1000,
@@ -173,7 +185,6 @@ export interface Segment {
     cornerShape: Shape;
     cornerMoldShape: Shape;
 
-    index: number;
     tempShapeId?: string[];
     pickStartTempShapeId?: string;
 

@@ -38,7 +38,6 @@ export function getEmptySegment(): Segment {
             vertices: [],
             tempLines: [],
         },
-        index: 0,
         param: {...DefaultComponentParam},
     }
 }

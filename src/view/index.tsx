@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import "./index.css";
 import ToolView from './toolView';
-import PropertiesView from './propertiesView';
+import PropertiesView from './propertiesView/index';
 import { Divider } from 'antd';
 
 class App extends React.Component {

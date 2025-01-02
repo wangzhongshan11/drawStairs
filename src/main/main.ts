@@ -2,7 +2,7 @@ import { drawStairsTool } from "./tools/DrawStairsTool/index";
 import { isKGroupInstance } from "./tools/DrawStairsTool/utils";
 
 const pluginUI = app.getPluginUI();
-pluginUI.resize(300, 700);
+pluginUI.resize(340, 700);
 pluginUI.mount();
 
 let activatedCustomTool: KTool | undefined;
@@ -14,7 +14,7 @@ async function onUIMessage(data: any) {
                 app.activateCustomTool(drawStairsTool, true);
                 activatedCustomTool = drawStairsTool;
             }
-            drawStairsTool.changeComponentType(data.componentType);
+            // drawStairsTool.changeComponentType(data.componentType);
         } else if (data.type === 'deActivateStraightStairsTool' || data.type === 'deActivateCircularStairsTool') {
             app.deactivateCustomTool(drawStairsTool, false);
             activatedCustomTool = undefined;
@@ -37,7 +37,10 @@ selection.addObserver({
         const allEntities = selection.getAllEntities();
         if (allEntities.length === 1 && isKGroupInstance(allEntities[0])) {
             drawStairsTool.setModel(allEntities[0]);
-        }
+        } 
+        // else if (allEntities.length) {
+        //     drawStairsTool.setModel();
+        // }
     }
 });
 
