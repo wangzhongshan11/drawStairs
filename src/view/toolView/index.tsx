@@ -3,6 +3,8 @@ import { Tooltip } from 'antd';
 import "./index.css";
 import "../assets/drawStairs.svg";
 import { ComponentType } from '../../main/tools/DrawStairsTool/types';
+import { Divider } from 'antd';
+import { MessageType } from '../../main/types';
 
 enum ToolType {
     Context = 0,
@@ -21,21 +23,21 @@ interface ToolItem {
 
 const tools: ToolItem[] = [
     {
-        name: "直阶梯",
+        name: "阶梯绘制",
         type: ToolType.Context,
         key: "StraightStairsTool",
-        tip: "旋转阶梯绘制",
+        tip: "阶梯绘制",
         icon: "drawStairs",
         componentType: ComponentType.StraightStair,
     },
-    {
-        name: "旋转阶梯",
-        type: ToolType.Context,
-        key: "CircularStairsTool",
-        tip: "旋转阶梯绘制",
-        icon: "drawStairs",
-        componentType: ComponentType.CircularStair,
-    },
+    // {
+    //     name: "旋转阶梯",
+    //     type: ToolType.Context,
+    //     key: "CircularStairsTool",
+    //     tip: "旋转阶梯绘制",
+    //     icon: "drawStairs",
+    //     componentType: ComponentType.CircularStair,
+    // },
 ]
 
 interface State {
@@ -55,7 +57,7 @@ export default class ToolView extends React.Component<{}, State> {
 
     private onMessage = (event: any) => {
         const messageData = event.data;
-        if (messageData?.type?.startsWith('leave')) {
+        if (messageData?.type === MessageType.LeaveDrawStairsTool || messageData?.type === MessageType.DrawStairModelSettled) {
             this.setState({ activeToolKey: undefined });
         }
     }
@@ -63,34 +65,37 @@ export default class ToolView extends React.Component<{}, State> {
     private onClick = (toolItem: ToolItem) => {
         const { activeToolKey } = this.state;
         if (activeToolKey === toolItem.key) {
-            window.parent.postMessage({ type: `deActivate${toolItem.key}` }, '*');
+            window.parent.postMessage({ type: MessageType.DeActivateDrawStairsTool }, '*');
             this.setState({ activeToolKey: undefined });
         } else {
-            window.parent.postMessage({ type: `activate${toolItem.key}`, componentType: toolItem.componentType }, '*');
+            window.parent.postMessage({ type: MessageType.ActivateDrawStairsTool, componentType: toolItem.componentType }, '*');
             this.setState({ activeToolKey: toolItem.key });
         }
     }
 
     render() {
         const { activeToolKey } = this.state;
-        return <div className='tools-wrapper'>
-            {tools.map((toolItem, index) => {
-                const className = activeToolKey === toolItem.key ? 'button-active' : 'button button-normal';
-                return <div className='button-wrapper' key={toolItem.key}>
-                    <Tooltip title={toolItem.name} color={"#f9f6b3"} overlayInnerStyle={{ color: "black" }}>
-                        <button
-                            className={`button ${className}`}
-                            onClick={this.onClick.bind(this, toolItem)}
-                        >
-                            <svg className={`svg-icon`} >
-                                <use xlinkHref={`#${toolItem.icon}`} />
-                            </svg>
-                        </button>
-                    </Tooltip>
+        return <>
+            <div className='tools-wrapper'>
+                {tools.map((toolItem, index) => {
+                    const className = activeToolKey === toolItem.key ? 'button-active' : 'button button-normal';
+                    return <div className='button-wrapper' key={toolItem.key}>
+                        <Tooltip title={toolItem.name} color={"#f9f6b3"} overlayInnerStyle={{ color: "black" }}>
+                            <button
+                                className={`button ${className}`}
+                                onClick={this.onClick.bind(this, toolItem)}
+                            >
+                                <svg className={`svg-icon`} >
+                                    <use xlinkHref={`#${toolItem.icon}`} />
+                                </svg>
+                            </button>
+                        </Tooltip>
 
-                </div>
-            })}
-        </div>
+                    </div>
+                })}
+            </div>
+            <Divider style={{ borderColor: 'black' }}>{activeToolKey ? "阶梯参数" : "使用教程"}</Divider>
+        </>
     }
 }
 

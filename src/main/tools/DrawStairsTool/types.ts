@@ -17,6 +17,7 @@ export enum ComponentParamType {
     VerticalStep = "verticalStep",
     StartWidth = "startWidth",
     EndWidth = "endWidth",
+    StepProportional = 'stepProportional',
     WidthProportional = 'widthProportional',
     PlatformLength = 'platformLength',
     PlatformLengthLocked = 'platformLengthLocked',
@@ -132,6 +133,7 @@ export interface ComponentParam {
     upward: boolean;
     platformThickness: number;
 
+    stepProportional?: boolean;
     widthProportional?: boolean;
     platformLengthLocked?: boolean;
 
@@ -154,7 +156,8 @@ export const DefaultComponentParam: ComponentParam = {
     upward: true,
     platformThickness: 200,
 
-    widthProportional: false,
+    stepProportional: true,
+    widthProportional: true,
     platformLengthLocked: false,
     // stepType: StepType.Normal,
     // cornerType: CornerType.Rectangle,

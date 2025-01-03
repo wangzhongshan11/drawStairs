@@ -1,5 +1,5 @@
 .property-tabs-wrapper {
-    width: 40px;
+    width: 50px;
     height: 500px;
 
     .ant-tabs-nav {
@@ -7,6 +7,12 @@
 
         .ant-tabs-tab {
             padding: 8px 8px;
+            margin: 0 !important;
+
+            .ant-tabs-tab-btn {
+                width: 100%;
+                text-align: center;
+            }
         }
 
         /* .ant-tabs-tab-active {
@@ -26,7 +32,7 @@
     display: flex;
     
     .properties-content-wrapper {
-        padding-left: 4%;
+        padding-left: 3%;
     
         .start-end-width-wrapper {
             display: flex;

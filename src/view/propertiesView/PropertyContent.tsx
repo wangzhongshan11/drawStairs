@@ -1,10 +1,11 @@
 import * as React from 'react'
 import "./index.css";
 import InputNumberPropertyArray from './components/InputNumberPropertyArray';
-import { ComponentParam, ComponentParamSettings, ComponentParamType, ComponentType } from '../../main/tools/DrawStairsTool/types';
+import { ComponentParam, ComponentParamSettings, ComponentParamType, ComponentType, DefaultComponentParam } from '../../main/tools/DrawStairsTool/types';
 import RadioProperty from './components/RadioProperty';
 import InputNumberProperty from './components/InputNumberProperty';
 import { LockOutlined, UnlockOutlined } from '@ant-design/icons';
+import { MessageType } from '../../main/types';
 
 interface Props {
     componentParam?: ComponentParam;
@@ -15,9 +16,9 @@ interface State {
 }
 
 export default class PropertiesContent extends React.Component<Props, State> {
-    state: Readonly<State> = { componentParam: this.props.componentParam};
+    state: Readonly<State> = { componentParam: this.props.componentParam || { ...DefaultComponentParam } };
 
-    
+
     componentWillReceiveProps(nextProps: Readonly<Props>, nextContext: any): void {
         this.setState({ componentParam: nextProps.componentParam });
     }
@@ -56,7 +57,7 @@ export default class PropertiesContent extends React.Component<Props, State> {
                     (componentParam as any)[componentParamType] = value;
                 }
                 // }
-                window.parent.postMessage({ type: 'componentParamChange', componentParam, changeParams: [componentParamType] }, '*');
+                window.parent.postMessage({ type: MessageType.ComponentParamChange, componentParam, changeParams: [componentParamType] }, '*');
                 this.setState({ componentParam: { ...componentParam } });
 
             }
@@ -77,9 +78,11 @@ export default class PropertiesContent extends React.Component<Props, State> {
 
                 } else if (componentParamType === ComponentParamType.WidthProportional) {
                     componentParam.widthProportional = !componentParam.widthProportional;
+                } else if (componentParamType === ComponentParamType.StepProportional) {
+                    componentParam.stepProportional = !componentParam.stepProportional;
                 }
                 // }
-                window.parent.postMessage({ type: 'componentParamChange', componentParam, changeParams: [componentParamType] }, '*');
+                window.parent.postMessage({ type: MessageType.ComponentParamChange, componentParam, changeParams: [componentParamType] }, '*');
                 this.setState({ componentParam: { ...componentParam } });
 
             }
@@ -99,7 +102,7 @@ export default class PropertiesContent extends React.Component<Props, State> {
                     (componentParam as any)[componentParamType] = values[i];
 
                 }
-                window.parent.postMessage({ type: 'componentParamChange', componentParam, changeParams: componentParamTypes }, '*');
+                window.parent.postMessage({ type: MessageType.ComponentParamChange, componentParam, changeParams: componentParamTypes }, '*');
                 this.setState({ componentParam: { ...componentParam } });
             }
         }
@@ -110,22 +113,36 @@ export default class PropertiesContent extends React.Component<Props, State> {
         if (!componentParam) {
             return null;
         }
-        const { horizontalStep, verticalStep, startWidth, endWidth, offsetWidth, platformLength, platformLengthLocked, widthProportional, type, upward, platformThickness } = componentParam;
+        const {
+            horizontalStep, verticalStep, startWidth, endWidth, offsetWidth, platformLength, platformLengthLocked, widthProportional, stepProportional, type, upward,
+            platformThickness,
+        } = componentParam;
         // const disabled = !this.state.componentParam;
         return (
             <div className='properties-content-wrapper'>
-                <InputNumberPropertyArray
-                    title={ComponentParamSettings[ComponentParamType.HorizontalStep].title}
-                    units={[ComponentParamSettings[ComponentParamType.HorizontalStep].unit, ComponentParamSettings[ComponentParamType.VerticalStep].unit]}
-                    // units={['长', '高']}
-                    values={[horizontalStep, verticalStep]}
-                    precisions={[ComponentParamSettings[ComponentParamType.HorizontalStep].precision, ComponentParamSettings[ComponentParamType.VerticalStep].precision]}
-                    min={[ComponentParamSettings[ComponentParamType.HorizontalStep].min, ComponentParamSettings[ComponentParamType.VerticalStep].min]}
-                    max={[ComponentParamSettings[ComponentParamType.HorizontalStep].max, ComponentParamSettings[ComponentParamType.VerticalStep].max]}
-                    step={[ComponentParamSettings[ComponentParamType.HorizontalStep].step, ComponentParamSettings[ComponentParamType.VerticalStep].step]}
-                    // disabled={disabled}
-                    onChange={this.getOnArrayChange([ComponentParamType.HorizontalStep, ComponentParamType.VerticalStep]).bind(this)}
-                />
+                {
+                    type !== ComponentType.Platform &&
+                    <div className='start-end-width-wrapper'>
+                        <InputNumberPropertyArray
+                            title={ComponentParamSettings[ComponentParamType.HorizontalStep].title}
+                            units={[ComponentParamSettings[ComponentParamType.HorizontalStep].unit, ComponentParamSettings[ComponentParamType.VerticalStep].unit]}
+                            // units={['长', '高']}
+                            values={[horizontalStep, verticalStep]}
+                            precisions={[ComponentParamSettings[ComponentParamType.HorizontalStep].precision, ComponentParamSettings[ComponentParamType.VerticalStep].precision]}
+                            min={[ComponentParamSettings[ComponentParamType.HorizontalStep].min, ComponentParamSettings[ComponentParamType.VerticalStep].min]}
+                            max={[ComponentParamSettings[ComponentParamType.HorizontalStep].max, ComponentParamSettings[ComponentParamType.VerticalStep].max]}
+                            step={[ComponentParamSettings[ComponentParamType.HorizontalStep].step, ComponentParamSettings[ComponentParamType.VerticalStep].step]}
+                            // disabled={disabled}
+                            withProportional={stepProportional}
+                            onChange={this.getOnArrayChange([ComponentParamType.HorizontalStep, ComponentParamType.VerticalStep]).bind(this)}
+                        />
+                        {
+                            stepProportional ? <LockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.StepProportional).bind(this)} /> :
+                                <UnlockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.StepProportional).bind(this)} />
+                        }
+                    </div>
+                }
+
                 {
                     type !== ComponentType.Platform &&
                     <div className='start-end-width-wrapper'>
@@ -147,6 +164,15 @@ export default class PropertiesContent extends React.Component<Props, State> {
                                 <UnlockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.WidthProportional).bind(this)} />
                         }
                     </div>
+                }
+
+                {
+                    type !== ComponentType.Platform && <RadioProperty
+                        title={ComponentParamSettings[ComponentParamType.Upward].title}
+                        value={upward}
+                        radioOptions={ComponentParamSettings[ComponentParamType.Upward].radioOptions}
+                        onChange={this.getOnChange(ComponentParamType.Upward).bind(this)}
+                    />
                 }
 
                 {
@@ -194,12 +220,7 @@ export default class PropertiesContent extends React.Component<Props, State> {
                     // disabled={disabled}
                     onChange={this.getOnChange(ComponentParamType.PlatformThickness).bind(this)}
                 />}
-                {type !== ComponentType.Platform && <RadioProperty
-                    title={ComponentParamSettings[ComponentParamType.Upward].title}
-                    value={upward}
-                    radioOptions={ComponentParamSettings[ComponentParamType.Upward].radioOptions}
-                    onChange={this.getOnChange(ComponentParamType.Upward).bind(this)}
-                />}
+
                 <RadioProperty
                     title={ComponentParamSettings[ComponentParamType.Type].title}
                     value={type}

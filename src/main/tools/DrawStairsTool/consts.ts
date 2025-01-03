@@ -14,7 +14,7 @@ export function getEmptySegment(): Segment {
     return {
         start: dummyPoint3d,
         end: dummyPoint3d,
-        startLocked: true,
+        startLocked: false,
         endLocked: false,
         startHeight: 0,
         endHeight: 0,

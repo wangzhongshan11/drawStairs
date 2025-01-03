@@ -71,6 +71,8 @@ export function parseParam(value: string) {
             }
         }
     }
+    param.stepProportional = true;
+    param.widthProportional = true;
     param.platformLengthLocked = true;
     return param;
 }
