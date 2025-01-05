@@ -6,8 +6,10 @@ export const dummyPoint3d = GeomLib.createPoint3d(0, 0, 0);
 export const DirectionZ = GeomLib.createVector3d(0, 0, 1);
 
 // const HeightTolerance: number = 5;
-export const LengthTolerance: number = 1;
-export const AngleTolerance = Math.PI / 36;
+export const LengthTolerance: number = 10;
+export const DirectionAngleTolerance = Math.PI / 36;
+export const AngleTolerance = Math.PI / 180;
+export const StepCountLimit = 80;
 // const DefaultBoardThickness = 50;
 
 export function getEmptySegment(): Segment {

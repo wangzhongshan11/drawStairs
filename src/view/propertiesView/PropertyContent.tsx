@@ -46,18 +46,27 @@ export default class PropertiesContent extends React.Component<Props, State> {
                 // for (let i = 0; i < componentParamTypes.length; i++) {
                 //     const componentParamType = componentParamTypes[i];
                 // const a = componentParam[componentParamType];
-                if (componentParam.type === ComponentType.Platform) {
-                    if (componentParamType === ComponentParamType.StartWidth) {
-                        componentParam.endWidth = value as number;
-                    } else if (componentParamType === ComponentParamType.PlatformLength) {
+                if (componentParam.type === ComponentType.Platform && componentParamType === ComponentParamType.StartWidth) {
+                    const { startWidth } = componentParam;
+                    const newWidth = value as number;
+                    const delta = newWidth - startWidth;
+                    if (delta < 0) {
+                        componentParam.startWidth += delta;
+                        componentParam.endWidth += delta;
+                    } else {
+                        componentParam.offsetWidth = delta;
+                    }
+                } else {
+                    if (componentParamType === ComponentParamType.PlatformLength) {
                         componentParam.platformLengthLocked = true;
                     }
-                }
-                if (value !== undefined) {
-                    (componentParam as any)[componentParamType] = value;
+
+                    if (value !== undefined) {
+                        (componentParam as any)[componentParamType] = value;
+                    }
                 }
                 // }
-                window.parent.postMessage({ type: MessageType.ComponentParamChange, componentParam, changeParams: [componentParamType] }, '*');
+                window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam, changeParams: [componentParamType] }, '*');
                 this.setState({ componentParam: { ...componentParam } });
 
             }
@@ -82,7 +91,7 @@ export default class PropertiesContent extends React.Component<Props, State> {
                     componentParam.stepProportional = !componentParam.stepProportional;
                 }
                 // }
-                window.parent.postMessage({ type: MessageType.ComponentParamChange, componentParam, changeParams: [componentParamType] }, '*');
+                window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam, changeParams: [componentParamType] }, '*');
                 this.setState({ componentParam: { ...componentParam } });
 
             }
@@ -102,7 +111,7 @@ export default class PropertiesContent extends React.Component<Props, State> {
                     (componentParam as any)[componentParamType] = values[i];
 
                 }
-                window.parent.postMessage({ type: MessageType.ComponentParamChange, componentParam, changeParams: componentParamTypes }, '*');
+                window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam, changeParams: componentParamTypes }, '*');
                 this.setState({ componentParam: { ...componentParam } });
             }
         }
@@ -115,7 +124,7 @@ export default class PropertiesContent extends React.Component<Props, State> {
         }
         const {
             horizontalStep, verticalStep, startWidth, endWidth, offsetWidth, platformLength, platformLengthLocked, widthProportional, stepProportional, type, upward,
-            platformThickness,
+            platformThickness, modelEditing,
         } = componentParam;
         // const disabled = !this.state.componentParam;
         return (
@@ -203,8 +212,8 @@ export default class PropertiesContent extends React.Component<Props, State> {
                             onChange={this.getOnChange(ComponentParamType.PlatformLength).bind(this)}
                         />
                         {
-                            platformLengthLocked ? <LockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.PlatformLengthLocked).bind(this)} /> :
-                                <UnlockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.PlatformLengthLocked).bind(this)} />
+                            !modelEditing && (platformLengthLocked ? <LockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.PlatformLengthLocked).bind(this)} /> :
+                                <UnlockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.PlatformLengthLocked).bind(this)} />)
                         }
                     </div>
                 }
@@ -221,18 +230,13 @@ export default class PropertiesContent extends React.Component<Props, State> {
                     onChange={this.getOnChange(ComponentParamType.PlatformThickness).bind(this)}
                 />}
 
-                <RadioProperty
+                {!modelEditing && <RadioProperty
                     title={ComponentParamSettings[ComponentParamType.Type].title}
                     value={type}
                     radioOptions={ComponentParamSettings[ComponentParamType.Type].radioOptions}
                     onChange={this.getOnChange(ComponentParamType.Type).bind(this)}
-                />
-
-                {/* <InputNumberProperty title='数量' unit='' value={count.value} precision={0} min={count.min} max={count.max} disabled={disabled} onChange={this.getOnChange(PropertyType.Count)} />
-                <InputNumberProperty title='缩放' unit='' value={scale.value} precision={0} min={scale.min} max={scale.max} disabled={disabled} onChange={this.getOnChange(PropertyType.Scale)} />
-                <SelectProperty title='主轴' value={pathAxis} disabled={disabled} options={pathAxisOptions} onChange={this.getOnChange(PropertyType.PathAxis)} />
-                <SelectProperty title='副轴' value={normalAxis} disabled={disabled} options={normalAxisOptions} onChange={this.getOnChange(PropertyType.NormalAxis)} /> */}
-            </div>
+                />}
+                </div>
         )
     }
 }

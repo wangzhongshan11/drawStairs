@@ -8,6 +8,7 @@ export const ParamKey = 'DSParam';
 export const ComponentIndexKey = 'Ind';
 export const StartEndKey = 'SToE';
 export const BaseLineSeg3dKey = 'BaseLine';
+export const CircleTangentKey = 'CircleTangent';
 
 export const Delimiter = '&';
 export const CoordDelimiter = ',';
@@ -128,6 +129,7 @@ export interface ComponentParam {
     endWidth: number;
     // left is true
     offsetWidth: number;
+    withOffset: boolean;
     platformLength: number;
     type: ComponentType;
     upward: boolean;
@@ -136,6 +138,7 @@ export interface ComponentParam {
     stepProportional?: boolean;
     widthProportional?: boolean;
     platformLengthLocked?: boolean;
+    modelEditing?: boolean;
 
 
     // stepType: StepType;
@@ -151,6 +154,7 @@ export const DefaultComponentParam: ComponentParam = {
     startWidth: 1000,
     endWidth: 1000,
     offsetWidth: 0,
+    withOffset: false,
     platformLength: 2000,
     type: ComponentType.StraightStair,
     upward: true,
@@ -176,6 +180,7 @@ export interface Segment {
     endHeight: number;
     // anti clockwise
     baseLineSeg3d?: { start: KPoint3d, end: KPoint3d };
+    circleTangent?: KVector3d;
     param: ComponentParam;
 
     // leftCorner?: KPoint3d;

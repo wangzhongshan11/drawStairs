@@ -5,6 +5,7 @@ import { ImmutableMap } from './ImmutableMap';
 import { Tabs } from 'antd';
 import PropertiesContent from './PropertyContent';
 import { MessageType } from '../../main/types';
+import { DeleteOutlined } from '@ant-design/icons';
 interface State {
     componentParams: ImmutableMap<number, ComponentParam>;
     componentParam?: ComponentParam;
@@ -24,15 +25,21 @@ export default class PropertiesView extends React.Component<{}, State> {
 
     private onMessage = (event: any) => {
         const messageData = event.data;
-        if (messageData.type === MessageType.ComponentParamChanged) {
-            const { componentParams, componentParam, activeKey } = this.state;
+        const { componentParams, componentParam } = this.state;
+        if (messageData.type === MessageType.ParamChangedByDraw) {
             const newComponentParams = componentParams.set(messageData.componentParam.index, messageData.componentParam);
             this.setState({
                 componentParams: newComponentParams,
-                componentParam: newComponentParams.size === 1 ? [...newComponentParams.values()][0] : componentParam,
-                activeKey: componentParams.has(messageData.componentParam.index) ? activeKey : messageData.componentParam.index.toString(),
+                componentParam: componentParam ? (messageData.componentParam.index === componentParam.index ? messageData.componentParam : componentParam) : messageData.componentParam,
             });
-        } if (messageData.type === MessageType.DrawStairModelSettled) {
+        } else if (messageData.type === MessageType.ComponentAdded) {
+            const newComponentParams = componentParams.set(messageData.componentParam.index, messageData.componentParam);
+            this.setState({
+                componentParams: newComponentParams,
+                componentParam: messageData.componentParam,
+                activeKey: messageData.componentParam.index.toString(),
+            });
+        } else if (messageData.type === MessageType.DrawStairModelSettled) {
             if (messageData.componentParams) {
                 const componentParamMap: Map<number, ComponentParam> = new Map();
                 for (const componentParam of messageData.componentParams) {
@@ -59,6 +66,26 @@ export default class PropertiesView extends React.Component<{}, State> {
         }
     }
 
+    private onTabsEdit = (e: React.MouseEvent | React.KeyboardEvent | string, action: 'add' | 'remove') => {
+        if (action === 'remove' && typeof e === 'string') {
+            const index = parseInt(e);
+            const { componentParams, componentParam, activeKey } = this.state;
+            const theParam = componentParams.get(index);
+            if (!theParam?.modelEditing) {
+                return;
+            }
+            // const index = parseInt(activeKey);
+            const newComponentParams = componentParams.delete(index);
+            window.parent.postMessage({ type: MessageType.RemoveComponent, componentIndex: index }, '*');
+            const newParams = [...newComponentParams.values()];
+            this.setState({
+                componentParams: newComponentParams,
+                activeKey: newComponentParams.size ? (activeKey === e ? newParams[newParams.length - 1].index.toString() : activeKey) : '0',
+                componentParam: newComponentParams.size ? (activeKey === e ? newParams[newParams.length - 1] : componentParam) : undefined,
+            });
+        }
+    }
+
     render() {
         const { componentParams, componentParam, activeKey } = this.state;
         if (!componentParams.size) {
@@ -75,6 +102,10 @@ export default class PropertiesView extends React.Component<{}, State> {
                     onChange={this.onTabChange}
                     // style={{ height: 500 }}
                     size='small'
+                    type='editable-card'
+                    removeIcon={<DeleteOutlined />}
+                    hideAdd={true}
+                    onEdit={this.onTabsEdit}
                     items={componentParams.map((componentParam, i) => {
                         const { index, type } = componentParam;
                         return {

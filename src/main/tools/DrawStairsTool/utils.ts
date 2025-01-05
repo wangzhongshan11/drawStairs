@@ -74,6 +74,7 @@ export function parseParam(value: string) {
     param.stepProportional = true;
     param.widthProportional = true;
     param.platformLengthLocked = true;
+    param.modelEditing = true;
     return param;
 }
 
@@ -99,5 +100,21 @@ export function parseStartEnd(value: string) {
             const end = GeomLib.createPoint3d(parseFloat(endKeyValue[0]), parseFloat(endKeyValue[1]), parseFloat(endKeyValue[2]))
             return { start, end };
         }
+    }
+}
+
+export function stringifyPoint3d(point: KPoint3d | KVector3d) {
+    let value: string = '';
+    value += `${point.x}${CoordDelimiter}`;
+    value += `${point.y}${CoordDelimiter}`;
+    value += `${point.z}`;
+    return value;
+}
+
+export function parseVector3d(value: string) {
+    const items = value.split(CoordDelimiter);
+    if (items.length === 3) {
+        const vector = GeomLib.createVector3d(parseFloat(items[0]), parseFloat(items[1]), parseFloat(items[2]));
+        return vector;
     }
 }

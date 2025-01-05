@@ -1,7 +1,7 @@
-import { ComponentType, ComponentParam, Segment, ParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType, StairModelValue } from "./types";
+import { ComponentType, ComponentParam, Segment, ParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType, StairModelValue, CircleTangentKey } from "./types";
 import { generateShape } from "./tempMeshUtils";
 import { buildComponentInstance, generateMeshes } from "./meshUtils";
-import { parseParam, parseStartEnd } from "./utils";
+import { parseParam, parseStartEnd, parseVector3d } from "./utils";
 import { getEmptySegment } from "./consts";
 import { deActivateDrawStairsTool } from "../../../main/main";
 import { MessageType } from "../../../main/types";
@@ -31,7 +31,7 @@ export class DrawStairsTool implements KTool {
         ]);
         const firstSegment: Segment = getEmptySegment();
         firstSegment.startLocked = false;
-        pluginUI.postMessage({ type: MessageType.ComponentParamChanged, componentParam: { ...firstSegment.param } }, '*');
+        pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...firstSegment.param } }, '*');
         this.segments = [firstSegment];
         this.drawing = true;
         this.editModel = undefined;
@@ -49,11 +49,14 @@ export class DrawStairsTool implements KTool {
     }
 
     onMouseMove(event: KMouseEvent, inferenceResult?: KInferenceResult): void {
+        // console.log('onMouseMove');
         if (inferenceResult) {
             // const { startWidth, endWidth, platformThickness } = this.componentParam;
             const position = inferenceResult.position;
             if (this.segments.length) {
                 const lastSegment = this.segments[this.segments.length - 1];
+                // console.log('lastSegment.startLocked', lastSegment.startLocked);
+
                 if (lastSegment.startLocked) {
                     lastSegment.end = position;
                     this.drawTempComponent(lastSegment);
@@ -91,60 +94,75 @@ export class DrawStairsTool implements KTool {
                     }
                 }
                 if (lastSegment.param.type == ComponentType.Platform && !lastSegment.param.platformLengthLocked) {
-                    pluginUI.postMessage({ type: MessageType.ComponentParamChanged, componentParam: { ...lastSegment.param } }, '*');
+                    pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...lastSegment.param } }, '*');
                 }
             }
         }
     }
 
     onLButtonUp(event: KMouseEvent, inferenceResult?: KInferenceResult): void {
+        // console.log('onLButtonUp');
         if (inferenceResult) {
             // const position = inferenceResult.position;
             if (this.segments.length) {
                 const lastSegment = this.segments[this.segments.length - 1];
-                if (!lastSegment.startLocked) {
-                    lastSegment.startLocked = true;
-                    if (lastSegment.pickStartTempShapeId) {
-                        appView.clearTemporaryShapesByIds([lastSegment.pickStartTempShapeId]);
-                    }
-                    this.drawTempComponent(lastSegment);
-                } else {
-                    // const { type, endWidth } = this.componentParam;
+                if (lastSegment.startLocked) {
+                    console.log('push segment');
+                    const { start, end, param: { type }, circleTangent } = lastSegment;
                     // this.componentParam = {
                     //     ...this.componentParam,
                     //     type: type === ComponentType.Platform ? ComponentType.StraightStair : ComponentType.Platform,
                     //     startWidth: endWidth,
                     // };
+                    if (type === ComponentType.CircularStair && !circleTangent) {
+                        lastSegment.circleTangent = end.subtracted(start).normalized();
+                    } else {
+                        lastSegment.endLocked = true;
 
-                    lastSegment.endLocked = true;
-                    const lastParam = lastSegment.param;
-                    const nextSegment: Segment = {
-                        ...getEmptySegment(),
-                        start: lastSegment.end,
-                        end: lastSegment.end,
-                        startLocked: lastParam.type === ComponentType.Platform ? false : true,
-                        startHeight: lastSegment.endHeight,
-                        endHeight: lastSegment.endHeight,
-                        param: {
-                            ...lastParam,
-                            index: lastParam.index + 1,
-                            startWidth: lastParam.endWidth,
-                            offsetWidth: 0,
-                            type: lastParam.type === ComponentType.Platform ? ComponentType.StraightStair : ComponentType.Platform,
-                            platformLengthLocked: false,
-                        },
-                        // index: this.segments.length,
-                    };
-                    if (lastParam.type !== ComponentType.Platform) {
+                        const lastParam = lastSegment.param;
+                        const nextSegment: Segment = {
+                            ...getEmptySegment(),
+                            start: lastSegment.end,
+                            end: lastSegment.end,
+                            startLocked: lastParam.type === ComponentType.Platform ? false : true,
+                            startHeight: lastSegment.endHeight,
+                            endHeight: lastSegment.endHeight,
+                            param: {
+                                ...lastParam,
+                                index: lastParam.index + 1,
+                                startWidth: lastParam.endWidth,
+                                offsetWidth: 0,
+                                type: lastParam.type === ComponentType.Platform ? ComponentType.StraightStair : ComponentType.Platform,
+                                platformLengthLocked: false,
+                            },
+                            // index: this.segments.length,
+                        };
+                        // if (lastParam.type !== ComponentType.Platform) {
                         const { moldShape: { vertices } } = lastSegment;
+                        if (!lastSegment.baseLineSeg3d) {
+                            lastSegment.baseLineSeg3d = { start: vertices[0], end: vertices[1] };
+                        }
                         nextSegment.baseLineSeg3d = { start: vertices[vertices.length - 1], end: vertices[vertices.length - 2] };
+                        // }
+                        lastParam.modelEditing = true;
+                        pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: lastParam }, '*');
+
+                        this.segments.push(nextSegment);
+                        if (this.focusedComponentIndex !== lastParam.index) {
+                            const focusedSegment = this.segments.find(seg => seg.param.index === this.focusedComponentIndex);
+                            if (focusedSegment) {
+                                this.drawTempComponent(focusedSegment, false);
+                            }
+                        }
+                        this.focusedComponentIndex = nextSegment.param.index;
+                        pluginUI.postMessage({ type: MessageType.ComponentAdded, componentParam: { ...nextSegment.param } }, '*');
                     }
-                    this.segments.push(nextSegment);
-                    if (this.focusedComponentIndex !== lastParam.index) {
-                        this.drawTempComponent(lastSegment, false);
+                } else {
+                    lastSegment.startLocked = true;
+                    if (lastSegment.pickStartTempShapeId) {
+                        appView.clearTemporaryShapesByIds([lastSegment.pickStartTempShapeId]);
                     }
-                    this.focusedComponentIndex = nextSegment.param.index;
-                    pluginUI.postMessage({ type: MessageType.ComponentParamChanged, componentParam: { ...nextSegment.param } }, '*');
+                    this.drawTempComponent(lastSegment);
                 }
             }
         }
@@ -179,19 +197,19 @@ export class DrawStairsTool implements KTool {
             }
             if (tempLinePoints.length) {
                 const drawTempLinesFunc = focused ? appView.drawFlatLines.bind(appView) : appView.drawPolylines.bind(appView);
-                const tempShapeId = drawTempLinesFunc(tempLinePoints, { color: { r: 255, g: 0, b: 0 } });
+                // const colorValue = focused ? 255 : 155;
+                const tempShapeId = drawTempLinesFunc(tempLinePoints, { color: { r: 255, g: 0, b: 0 }, depthTest: false });
                 if (tempShapeId?.ids) {
-                    theSegment.tempShapeId = tempShapeId.ids;
+                    theSegment.tempShapeId = [...tempShapeId.ids];
                 }
-                const moldTempShapeId = drawTempLinesFunc(moldTempLinePoints, { color: { r: 0, g: 255, b: 0 } });
+                const moldTempShapeId = drawTempLinesFunc(moldTempLinePoints, { color: { r: 0, g: 255, b: 0 }, depthTest: this.drawing });
                 if (moldTempShapeId?.ids) {
                     if (theSegment.tempShapeId?.length) {
                         theSegment.tempShapeId.push(...moldTempShapeId.ids);
                     } else {
-                        theSegment.tempShapeId = moldTempShapeId.ids;
+                        theSegment.tempShapeId = [...moldTempShapeId.ids];
                     }
                 }
-
             }
         }
     }
@@ -214,6 +232,35 @@ export class DrawStairsTool implements KTool {
         }
     }
 
+    removeComponent(componentIndex: number) {
+        if (this.segments.length) {
+            const theIndex = this.segments.findIndex(seg => seg.param.index === componentIndex);
+            if (theIndex > -1) {
+                const theSegment = this.segments[theIndex];
+                if (this.drawing) {
+                    if (theSegment.tempShapeId?.length) {
+                        appView.clearTemporaryShapesByIds(theSegment.tempShapeId);
+                    }
+                } else if (this.editModel) {
+                    const theInstance = this.editModel.child.get(componentIndex);
+                    if (theInstance) {
+                        this.editModel.child.delete(componentIndex)
+                        design.removeGroupInstance(theInstance);
+                    }
+                }
+                this.segments.splice(theIndex, 1);
+                if (this.segments.length) {
+                    if (this.focusedComponentIndex === componentIndex) {
+                        this.focusedComponentIndex = this.segments[this.segments.length - 1].param.index;
+                    }
+                } else {
+                    this.editModel = undefined;
+                    this.focusedComponentIndex = 0;
+                }
+            }
+        }
+    }
+
     async changeComponentParam(componentParam: ComponentParam, changeParams: ComponentParamType[]) {
         if (!this.segments.length) return;
 
@@ -221,19 +268,20 @@ export class DrawStairsTool implements KTool {
         const lastSegment = this.segments[this.segments.length - 1];
 
         if (theSegment) {
-            const { startWidth: newWidth } = componentParam;
-            const { start, param: { index, startWidth, type, offsetWidth }, baseLineSeg3d } = theSegment;
-            if (changeParams.indexOf(ComponentParamType.StartWidth) > -1 && type === ComponentType.Platform && baseLineSeg3d && offsetWidth !== 0) {
-                const newStartWidth = Math.ceil(startWidth / (startWidth + Math.abs(offsetWidth)) * newWidth);
-                const sign = offsetWidth / Math.abs(offsetWidth);
-                const newOffsetWidth = sign * (newWidth - newStartWidth);
-                const baseDir = baseLineSeg3d.end.subtracted(baseLineSeg3d.start).normalized();
-                const newEnd = start.added(baseDir.multiplied(sign * (newStartWidth / 2 + Math.abs(newOffsetWidth))));
-                componentParam.startWidth = newStartWidth;
-                componentParam.endWidth = newStartWidth;
-                componentParam.offsetWidth = newOffsetWidth;
-                theSegment.end = newEnd;
-            }
+            const { param: { index } } = theSegment;
+            // const { startWidth: newWidth } = componentParam;
+            // const { start, param: { index, startWidth, type, offsetWidth }, baseLineSeg3d } = theSegment;
+            // if (changeParams.indexOf(ComponentParamType.StartWidth) > -1 && type === ComponentType.Platform && baseLineSeg3d && offsetWidth !== 0) {
+            //     const newStartWidth = Math.ceil(startWidth / (startWidth + Math.abs(offsetWidth)) * newWidth);
+            //     const sign = offsetWidth / Math.abs(offsetWidth);
+            //     const newOffsetWidth = sign * (newWidth - newStartWidth);
+            //     const baseDir = baseLineSeg3d.end.subtracted(baseLineSeg3d.start).normalized();
+            //     const newEnd = start.added(baseDir.multiplied(sign * (newStartWidth / 2 + Math.abs(newOffsetWidth))));
+            //     componentParam.startWidth = newStartWidth;
+            //     componentParam.endWidth = newStartWidth;
+            //     componentParam.offsetWidth = newOffsetWidth;
+            //     theSegment.end = newEnd;
+            // }
             theSegment.param = componentParam;
             if (this.drawing) {
                 this.drawTempComponent(theSegment, theSegment.param.index !== lastSegment.param.index);
@@ -299,6 +347,7 @@ export class DrawStairsTool implements KTool {
                     segment.param.platformLengthLocked = true;
                     segment.param.stepProportional = true;
                     segment.param.widthProportional = true;
+                    segment.param.modelEditing = true;
                     validSegments.push(segment);
                 }
             }
@@ -312,6 +361,8 @@ export class DrawStairsTool implements KTool {
                         design.commitOperation();
                         this.editModel = { parent: parentInstance, child: editModelChild };
                         this.segments = validSegments;
+                        this.drawing = false;
+                        this.drawTempComponent(validSegments[0], true);
                         pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: this.segments.map(seg => ({ ...seg.param })) }, '*');
                         return;
                     }
@@ -343,6 +394,7 @@ export class DrawStairsTool implements KTool {
                         const param = parseParam(subDef.getCustomProperty(ParamKey));
                         const startEnd = parseStartEnd(subDef.getCustomProperty(StartEndKey));
                         const baseLineSeg3d = parseStartEnd(subDef.getCustomProperty(BaseLineSeg3dKey));
+                        const circleTangent = parseVector3d(subDef.getCustomProperty(CircleTangentKey));
                         if (param && startEnd && baseLineSeg3d) {
                             const segment: Segment = {
                                 ...getEmptySegment(),
@@ -351,6 +403,7 @@ export class DrawStairsTool implements KTool {
                                 startHeight: startEnd.start.z,
                                 endHeight: startEnd.end.z,
                                 baseLineSeg3d,
+                                circleTangent,
                                 param,
                                 startLocked: true,
                                 endLocked: true,
@@ -367,7 +420,7 @@ export class DrawStairsTool implements KTool {
                     segments.sort((a, b) => a.param.index - b.param.index);
                     this.segments = segments;
                     this.editModel = editModel;
-
+                    this.drawTempComponent(segments[0], true);
                     pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: this.segments.map(seg => ({ ...seg.param })) }, '*');
                 }
             }

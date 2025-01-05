@@ -44,6 +44,16 @@ export class ImmutableMap<K, V> implements ReadonlyMap<K, V> {
         return result;
     }
 
+    delete(key: K): ImmutableMap<K, V> {
+        if (this._map.get(key)) {
+            const result = new ImmutableMap(this);
+            result._map.delete(key);
+            return result;
+        } else {
+            return this;
+        }
+    }
+
     get size() {
         return this._map.size;
     }
