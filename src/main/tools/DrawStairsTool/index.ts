@@ -169,9 +169,8 @@ export class DrawStairsTool implements KTool {
     }
 
     private drawTempComponent(theSegment: Segment, focused: boolean = false) {
-        if (!this.drawing) return;
         if (theSegment.startLocked) {
-            generateShape(theSegment);
+            generateShape(theSegment, this.drawing);
             const {
                 stairShape: { vertices: stairVertices, tempLines: stairTempLines },
                 moldShape: { vertices: moldVertices, tempLines: moldTempLines },
@@ -194,14 +193,17 @@ export class DrawStairsTool implements KTool {
             }
             if (theSegment.tempShapeId?.length) {
                 appView.clearTemporaryShapesByIds(theSegment.tempShapeId);
+                theSegment.tempShapeId = [];
             }
+            const drawTempLinesFunc = focused ? appView.drawFlatLines.bind(appView) : appView.drawPolylines.bind(appView);
             if (tempLinePoints.length) {
-                const drawTempLinesFunc = focused ? appView.drawFlatLines.bind(appView) : appView.drawPolylines.bind(appView);
                 // const colorValue = focused ? 255 : 155;
                 const tempShapeId = drawTempLinesFunc(tempLinePoints, { color: { r: 255, g: 0, b: 0 }, depthTest: false });
                 if (tempShapeId?.ids) {
                     theSegment.tempShapeId = [...tempShapeId.ids];
                 }
+            }
+            if (moldTempLinePoints.length) {
                 const moldTempShapeId = drawTempLinesFunc(moldTempLinePoints, { color: { r: 0, g: 255, b: 0 }, depthTest: this.drawing });
                 if (moldTempShapeId?.ids) {
                     if (theSegment.tempShapeId?.length) {

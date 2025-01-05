@@ -42,6 +42,7 @@ export function isKArc3d(entity: KBoundedCurve3d | undefined | null): entity is 
 
 export function stringifyParam(param: ComponentParam) {
     let value: string = '';
+    value += `ind=${param.index}${Delimiter}`;
     value += `hs=${param.horizontalStep}${Delimiter}`;
     value += `vs=${param.verticalStep}${Delimiter}`;
     value += `sw=${param.startWidth}${Delimiter}`;
@@ -60,6 +61,7 @@ export function parseParam(value: string) {
         const keyValue = item.split('=');
         if (keyValue.length === 2) {
             switch (keyValue[0]) {
+                case 'ind': param.index = parseInt(keyValue[1]); break;
                 case 'hs': param.horizontalStep = parseInt(keyValue[1]); break;
                 case 'vs': param.verticalStep = parseInt(keyValue[1]); break;
                 case 'sw': param.startWidth = parseInt(keyValue[1]); break;
