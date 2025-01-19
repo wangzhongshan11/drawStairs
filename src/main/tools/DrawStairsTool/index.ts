@@ -33,7 +33,7 @@ export class DrawStairsTool implements KTool {
         ]);
         const firstSegment: Segment = getEmptySegment();
         firstSegment.startLocked = false;
-        pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...firstSegment.param } }, '*');
+        pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...firstSegment.param }, newStair: true }, '*');
         this.segments = [firstSegment];
         this.drawing = true;
         this.clearTempShapes();
@@ -479,6 +479,13 @@ export class DrawStairsTool implements KTool {
                 }
             }
         }
+    }
+
+    clearEditModel() {
+        this.editModel = undefined;
+        this.segments = [];
+        this.focusedComponentIndex = DefaultFocusedComponentIndex;
+        pluginUI.postMessage({ type: MessageType.DrawStairModelSettled }, '*');
     }
 
     private clear() {

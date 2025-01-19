@@ -28,11 +28,22 @@ export default class PropertiesView extends React.Component<{}, State> {
         const messageData = event.data;
         const { componentParams, componentParam } = this.state;
         if (messageData.type === MessageType.ParamChangedByDraw) {
-            const newComponentParams = componentParams.set(messageData.componentParam.index, messageData.componentParam);
-            this.setState({
-                componentParams: newComponentParams,
-                componentParam: componentParam ? (messageData.componentParam.index === componentParam.index ? messageData.componentParam : componentParam) : messageData.componentParam,
-            });
+            if (messageData.newStair) {
+                const a = new ImmutableMap(new Map([[messageData.componentParam.index, messageData.componentParam]]));
+                this.setState({
+                    componentParams: a,
+                    componentParam: messageData.componentParam,
+                    activeKey: messageData.componentParam.index.toString(),
+                    propertiesVisible: true,
+                });
+                console.log('newStair');
+            } else {
+                const newComponentParams = componentParams.set(messageData.componentParam.index, messageData.componentParam);
+                this.setState({
+                    componentParams: newComponentParams,
+                    componentParam: componentParam ? (messageData.componentParam.index === componentParam.index ? messageData.componentParam : componentParam) : messageData.componentParam,
+                });
+            }
         } else if (messageData.type === MessageType.ComponentAdded) {
             const newComponentParams = componentParams.set(messageData.componentParam.index, messageData.componentParam);
             this.setState({

@@ -73,4 +73,21 @@ function onPluginStartUp() {
     if (allEntities.length === 1 && isKGroupInstance(allEntities[0])) {
         drawStairsTool.setModel(allEntities[0]);
     }
+
+    app.addObserver({
+        onPluginClosed: () => {
+
+        },
+        onModelChanged,
+    })
+}
+
+function onModelChanged(changes: { isUndoRedo: boolean, modified?: KGroupDefinition[], added?: KGroupDefinition[], deleted?: KGroupDefinition[] }) {
+    const deleted = changes.deleted;
+    const editModel = drawStairsTool.getEditModel();
+    if (deleted?.length && editModel) {
+        if (deleted.some(deleteGroup => editModel.parent.getGroupDefinition()?.getKey() === deleteGroup.getKey())) {
+            drawStairsTool.clearEditModel();
+        }
+    }
 }

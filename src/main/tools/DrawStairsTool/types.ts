@@ -149,8 +149,8 @@ export interface ComponentParam {
 
 export const DefaultComponentParam: ComponentParam = {
     index: 0,
-    horizontalStep: 500,
-    verticalStep: 200,
+    horizontalStep: 250,
+    verticalStep: 100,
     startWidth: 1000,
     endWidth: 1000,
     offsetWidth: 0,
