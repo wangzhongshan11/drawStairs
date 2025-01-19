@@ -643,8 +643,8 @@ function generatePlatformShape(segment: Segment, temp: boolean = true) {
             param.platformLength = frontLength;
             moldShape.vertices = [
                 start.added(prevLeftDir.multiplied(startWidth / 2)),
-                start.added(prevLeftDir.multiplied(-startWidth / 2)),
-                segment.end.added(prevLeftDir.multiplied(-startWidth / 2)),
+                start.added(prevLeftDir.multiplied(-startWidth / 2 + offsetWidth)),
+                segment.end.added(prevLeftDir.multiplied(-startWidth / 2 + offsetWidth)),
                 segment.end.added(prevLeftDir.multiplied(startWidth / 2)),
             ];
             moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 0]];

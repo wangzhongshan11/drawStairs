@@ -43,18 +43,16 @@ export default class PropertiesContent extends React.Component<Props, State> {
         return (value: number | string) => {
             const { componentParam } = this.state;
             if (componentParam) {
-                // for (let i = 0; i < componentParamTypes.length; i++) {
-                //     const componentParamType = componentParamTypes[i];
-                // const a = componentParam[componentParamType];
                 if (componentParam.type === ComponentType.Platform && componentParamType === ComponentParamType.StartWidth) {
-                    const { startWidth } = componentParam;
+                    const { startWidth, offsetWidth } = componentParam;
                     const newWidth = value as number;
                     const delta = newWidth - startWidth;
-                    if (delta < 0) {
+                    if (delta <= 0 || offsetWidth === 0) {
                         componentParam.startWidth += delta;
                         componentParam.endWidth += delta;
+                        componentParam.offsetWidth = 0;
                     } else {
-                        componentParam.offsetWidth = delta;
+                        componentParam.offsetWidth = componentParam.offsetWidth > 0 ? delta : -delta;
                     }
                 } else {
                     if (componentParamType === ComponentParamType.PlatformLength) {
@@ -65,7 +63,6 @@ export default class PropertiesContent extends React.Component<Props, State> {
                         (componentParam as any)[componentParamType] = value;
                     }
                 }
-                // }
                 window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam, changeParams: [componentParamType] }, '*');
                 this.setState({ componentParam: { ...componentParam } });
 
@@ -78,10 +75,6 @@ export default class PropertiesContent extends React.Component<Props, State> {
         return () => {
             const { componentParam } = this.state;
             if (componentParam) {
-                // for (let i = 0; i < componentParamTypes.length; i++) {
-                //     const componentParamType = componentParamTypes[i];
-                // const a = componentParam[componentParamType];
-
                 if (componentParamType === ComponentParamType.PlatformLengthLocked) {
                     componentParam.platformLengthLocked = !componentParam.platformLengthLocked;
 
@@ -90,7 +83,6 @@ export default class PropertiesContent extends React.Component<Props, State> {
                 } else if (componentParamType === ComponentParamType.StepProportional) {
                     componentParam.stepProportional = !componentParam.stepProportional;
                 }
-                // }
                 window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam, changeParams: [componentParamType] }, '*');
                 this.setState({ componentParam: { ...componentParam } });
 
@@ -104,12 +96,7 @@ export default class PropertiesContent extends React.Component<Props, State> {
             if (componentParam) {
                 for (let i = 0; i < componentParamTypes.length; i++) {
                     const componentParamType = componentParamTypes[i];
-                    // const a = componentParam[componentParamType];
-                    // if (componentParamType === ComponentParamType.StartWidth || componentParamType === ComponentParamType.EndWidth) {
-                    //     componentParam.tempWidth = values[i];
-                    // }
                     (componentParam as any)[componentParamType] = values[i];
-
                 }
                 window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam, changeParams: componentParamTypes }, '*');
                 this.setState({ componentParam: { ...componentParam } });

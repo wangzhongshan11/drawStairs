@@ -48,6 +48,7 @@ export function stringifyParam(param: ComponentParam) {
     value += `sw=${param.startWidth}${Delimiter}`;
     value += `ew=${param.endWidth}${Delimiter}`;
     value += `ow=${param.offsetWidth}${Delimiter}`;
+    value += `pl=${param.platformLength}${Delimiter}`;
     value += `tp=${param.type}${Delimiter}`;
     value += `up=${param.upward ? 1 : 0}${Delimiter}`;
     value += `ptk=${param.platformThickness}`;
@@ -67,6 +68,7 @@ export function parseParam(value: string) {
                 case 'sw': param.startWidth = parseInt(keyValue[1]); break;
                 case 'ew': param.endWidth = parseInt(keyValue[1]); break;
                 case 'ow': param.offsetWidth = parseFloat(keyValue[1]); break;
+                case 'pl': param.platformLength = parseFloat(keyValue[1]); break;
                 case 'tp': param.type = parseInt(keyValue[1]); break;
                 case 'up': param.upward = keyValue[1] === '1' ? true : false; break;
                 case 'ptk': param.platformThickness = parseInt(keyValue[1]); break;
@@ -91,8 +93,7 @@ export function stringifyStartEnd(start: KPoint3d, end: KPoint3d) {
     return value;
 }
 
-
-export function parseStartEnd(value: string) {
+export function parseLineSeg3d(value: string) {
     const items = value.split(Delimiter);
     if (items.length === 2) {
         const startKeyValue = items[0].split(CoordDelimiter);
@@ -101,6 +102,19 @@ export function parseStartEnd(value: string) {
             const start = GeomLib.createPoint3d(parseFloat(startKeyValue[0]), parseFloat(startKeyValue[1]), parseFloat(startKeyValue[2]))
             const end = GeomLib.createPoint3d(parseFloat(endKeyValue[0]), parseFloat(endKeyValue[1]), parseFloat(endKeyValue[2]))
             return { start, end };
+        }
+    }
+}
+
+export function parseStartEnd(value: string) {
+    const items = value.split(Delimiter);
+    if (items.length === 2) {
+        const startKeyValue = items[0].split(CoordDelimiter);
+        const endKeyValue = items[1].split(CoordDelimiter);
+        if (startKeyValue.length === 3 && endKeyValue.length === 3) {
+            const start = GeomLib.createPoint3d(parseFloat(startKeyValue[0]), parseFloat(startKeyValue[1]), 0);
+            const end = GeomLib.createPoint3d(parseFloat(endKeyValue[0]), parseFloat(endKeyValue[1]), 0);
+            return { start, end, startHeight: parseFloat(startKeyValue[2]), endHeight: parseFloat(endKeyValue[2]) };
         }
     }
 }

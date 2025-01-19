@@ -10,7 +10,9 @@ let activatedCustomTool: KTool | undefined;
 
 async function onUIMessage(data: any) {
     try {
-        if (data.type === MessageType.ActivateDrawStairsTool) {
+        if (data.type === MessageType.DrawStairViewMounted) {
+            onPluginStartUp();
+        } else if (data.type === MessageType.ActivateDrawStairsTool) {
             // if (data.type === 'activateStraightStairsTool' || data.type === 'activateCircularStairsTool') {
             if (activatedCustomTool !== drawStairsTool) {
                 app.activateCustomTool(drawStairsTool, true);
@@ -22,15 +24,15 @@ async function onUIMessage(data: any) {
             deActivateDrawStairsTool();
         } else if (data.type === MessageType.ParamChangedByInput) {
             // if (activatedCustomTool === drawStairsTool) {
-                drawStairsTool.changeComponentParam(data.componentParam, data.changeParams);
+            drawStairsTool.changeComponentParam(data.componentParam, data.changeParams);
             // }
         } else if (data.type === MessageType.FocusComponentIndex) {
             // if (activatedCustomTool === drawStairsTool) {
-                drawStairsTool.focusComponent(data.componentIndex);
+            drawStairsTool.focusComponent(data.componentIndex);
             // }
         } else if (data.type === MessageType.RemoveComponent) {
             // if (activatedCustomTool === drawStairsTool) {
-                drawStairsTool.removeComponent(data.componentIndex);
+            drawStairsTool.removeComponent(data.componentIndex);
             // }
         }
     } catch (error) {
@@ -51,11 +53,16 @@ selection.addObserver({
     onSelectionChange: () => {
         const allEntities = selection.getAllEntities();
         if (allEntities.length === 1 && isKGroupInstance(allEntities[0])) {
+            drawStairsTool.clearTempShapes();
             drawStairsTool.setModel(allEntities[0]);
-        }
-        else {
-            if (activatedCustomTool !== drawStairsTool) {
-                pluginUI.postMessage({ type: MessageType.DrawStairModelSettled }, '*');
+        } else if (allEntities.length) {
+            const editPath = app.getActiveDesign().getEditPath();
+            const editModel = drawStairsTool.getEditModel();
+            if (!editModel || (editPath.every(instance => instance.getKey() !== editModel.parent.getKey() && [...editModel.child.values()].every(comp => comp.getKey() !== instance.getKey())))) {
+                drawStairsTool.clearTempShapes();
+                if (activatedCustomTool !== drawStairsTool) {
+                    pluginUI.postMessage({ type: MessageType.PropertiesVisible, propertiesVisible: false }, '*');
+                }
             }
         }
     }
@@ -67,4 +74,3 @@ function onPluginStartUp() {
         drawStairsTool.setModel(allEntities[0]);
     }
 }
-onPluginStartUp();

@@ -144,9 +144,9 @@
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
 "@kudashi/kds-api@latest":
-  version "2.13.26"
-  resolved "http://npm-registry.qunhequnhe.com/@kudashi/kds-api/-/kds-api-2.13.26.tgz#7fff681b4a45af30a16ece59ac6aef55fa21a232"
-  integrity sha512-5zfzsYWomOFcwJmR9k+b6EJ9+yXItlPdrTGwZKf1/C/Q0t0idxlJIEiDchBsmUHrY8cg0hJH3BeDS17Ejs+0dA==
+  version "2.13.27"
+  resolved "https://registry.npmmirror.com/@kudashi/kds-api/-/kds-api-2.13.27.tgz#7992d63d9e9f9466b6b687014903a0f1c6b9400c"
+  integrity sha512-dbDqDYUvtsxjZp81MdAhW69Sp2YuTf11tWauiMii5q6C7jOUjjXrjup6tH8Aau3YYfLBgQKMcDZmp1FqQYZfKA==
 
 "@kudashi/kds-inline-chunk-html-plugin@latest":
   version "1.0.2"

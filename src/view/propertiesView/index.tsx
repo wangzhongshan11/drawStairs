@@ -10,10 +10,11 @@ interface State {
     componentParams: ImmutableMap<number, ComponentParam>;
     componentParam?: ComponentParam;
     activeKey: string;
+    propertiesVisible: boolean;
 }
 
 export default class PropertiesView extends React.Component<{}, State> {
-    state: Readonly<State> = { componentParams: new ImmutableMap(), activeKey: '0' };
+    state: Readonly<State> = { componentParams: new ImmutableMap(), activeKey: '0', propertiesVisible: true };
 
     componentDidMount(): void {
         window.addEventListener("message", this.onMessage);
@@ -48,10 +49,12 @@ export default class PropertiesView extends React.Component<{}, State> {
 
                 const theComponentParams = new ImmutableMap(componentParamMap);
                 const componentParam = [...componentParamMap.values()][0];
-                this.setState({ componentParams: theComponentParams, componentParam, activeKey: componentParam.index.toString() });
+                this.setState({ componentParams: theComponentParams, componentParam, activeKey: componentParam.index.toString(), propertiesVisible: true });
             } else {
-                this.setState({ componentParams: new ImmutableMap(), componentParam: undefined, activeKey: '0' });
+                this.setState({ componentParams: new ImmutableMap(), componentParam: undefined, activeKey: '0', propertiesVisible: true });
             }
+        } else if (messageData?.type === MessageType.PropertiesVisible) {
+            this.setState({ propertiesVisible: messageData.propertiesVisible });
         } else if (messageData?.type === MessageType.LeaveDrawStairsTool) {
             this.setState({ componentParams: new ImmutableMap(), componentParam: undefined, activeKey: '0' });
         }
@@ -87,8 +90,8 @@ export default class PropertiesView extends React.Component<{}, State> {
     }
 
     render() {
-        const { componentParams, componentParam, activeKey } = this.state;
-        if (!componentParams.size) {
+        const { componentParams, componentParam, activeKey, propertiesVisible } = this.state;
+        if (!componentParams.size || !propertiesVisible) {
             return null;
         }
         // const disabled = !this.state.componentParam;
