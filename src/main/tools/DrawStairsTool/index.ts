@@ -36,6 +36,7 @@ export class DrawStairsTool implements KTool {
         pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...firstSegment.param } }, '*');
         this.segments = [firstSegment];
         this.drawing = true;
+        this.clearTempShapes();
         this.editModel = undefined;
         this.focusedComponentIndex = 0;
     }
@@ -276,7 +277,7 @@ export class DrawStairsTool implements KTool {
                     }
                 }
                 const oldFocusedSegment = this.segments.find(seg => seg.param.index === this.focusedComponentIndex);
-                if (((this.drawing && this.focusedComponentIndex !== lastSegmentIndex) || !this.drawing)&& oldFocusedSegment) {
+                if (((this.drawing && this.focusedComponentIndex !== lastSegmentIndex) || (!this.drawing && this.focusedComponentIndex !== componentIndex)) && oldFocusedSegment) {
                     if (this.drawing) {
                         this.drawTempComponent(oldFocusedSegment, false);
                     } else {
