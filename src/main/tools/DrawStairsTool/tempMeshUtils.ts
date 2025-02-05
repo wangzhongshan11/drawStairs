@@ -638,102 +638,105 @@ function generatePlatformShape(segment: Segment, temp: boolean = true) {
                     [0, 4], [1, 5], [2, 6], [3, 7],
                 ];
             }
-        } else if (angle <= DirectionAngleTolerance || angle >= (Math.PI * 2 - DirectionAngleTolerance)) {
-            segment.end = segment.start.added(prevDirNormalized.multiplied(frontLength));
-            param.platformLength = frontLength;
-            moldShape.vertices = [
-                start.added(prevLeftDir.multiplied(startWidth / 2)),
-                start.added(prevLeftDir.multiplied(-startWidth / 2 + offsetWidth)),
-                segment.end.added(prevLeftDir.multiplied(-startWidth / 2 + offsetWidth)),
-                segment.end.added(prevLeftDir.multiplied(startWidth / 2)),
-            ];
-            moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 0]];
-            stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(startHeight))),
-            ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(startHeight - platformThickness))),
-            ];
-            if (temp) {
-                stairShape.tempLines = [
-                    ...moldShape.tempLines,
-                    ...moldShape.tempLines.map(seg => [seg[0] + 4, seg[1] + 4]),
-                    [0, 4], [1, 5], [2, 6], [3, 7],
+        } else {
+            param.offsetWidth = 0;
+            if (angle <= DirectionAngleTolerance || angle >= (Math.PI * 2 - DirectionAngleTolerance)) {
+                segment.end = segment.start.added(prevDirNormalized.multiplied(frontLength));
+                param.platformLength = frontLength;
+                moldShape.vertices = [
+                    start.added(prevLeftDir.multiplied(startWidth / 2)),
+                    start.added(prevLeftDir.multiplied(-startWidth / 2 + offsetWidth)),
+                    segment.end.added(prevLeftDir.multiplied(-startWidth / 2 + offsetWidth)),
+                    segment.end.added(prevLeftDir.multiplied(startWidth / 2)),
                 ];
-            }
-        } else if (DirectionAngleTolerance < angle && angle < (Math.PI / 2 - angle1)) {
-            param.platformLength = segment.end.distanceTo(segment.start);
-
-            let leftConnectPoints = [start.added(curLeftDir.multiplied(startWidth / 2)), baseLineEnd];
-            const baseLineEndDistance = start.distanceTo(baseLineEnd);
-            const leftProjectDistance = startWidth / 2 * Math.cos(angle);
-            if (leftProjectDistance < baseLineEndDistance) {
-                const l1 = startWidth / 2 / Math.cos(angle);
-                if (l1 > baseLineEndDistance) {
-                    const a1 = l1 - baseLineEndDistance;
-                    const c1 = a1 / Math.tan(angle);
-                    leftConnectPoints = [start.added(prevLeftDir.multiplied(baseLineEndDistance)).added(prevDirNormalized.multiplied(c1)), start.added(prevLeftDir.multiplied(baseLineEndDistance))];
-                } else {
-                    leftConnectPoints = [start.added(prevLeftDir.multiplied(l1))];
+                moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 0]];
+                stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(startHeight))),
+                ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(startHeight - platformThickness))),
+                ];
+                if (temp) {
+                    stairShape.tempLines = [
+                        ...moldShape.tempLines,
+                        ...moldShape.tempLines.map(seg => [seg[0] + 4, seg[1] + 4]),
+                        [0, 4], [1, 5], [2, 6], [3, 7],
+                    ];
                 }
-            }
-            moldShape.vertices = [
-                // start.added(curLeftDir.multiplied(startWidth / 2)),
-                ...leftConnectPoints,
-                start.added(prevLeftDir.multiplied(-startWidth / 2 / Math.cos(angle))),
-                segment.end.added(curLeftDir.multiplied(-startWidth / 2)),
-                segment.end.added(curLeftDir.multiplied(startWidth / 2)),
-            ];
-            const moldVertexCount = moldShape.vertices.length;
-            moldShape.tempLines = generateTempLinesLoop(moldVertexCount);
-            // if (moldVertexCount === 4) {
-            // } else {
-            //     moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0]];
-            // }
-            stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(startHeight))),
-            ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(startHeight - platformThickness))),
-            ];
-            if (temp) {
-                stairShape.tempLines = [
-                    ...moldShape.tempLines,
-                    ...moldShape.tempLines.map(seg => [seg[0] + moldVertexCount, seg[1] + moldVertexCount]),
-                    ...moldShape.tempLines.map(seg => [seg[0], seg[0] + moldVertexCount]),
-                    // [0, 5], [1, 6], [2, 7], [3, 8], [4, 9],
-                ];
-            }
-        } else if (angle > (Math.PI * 3 / 2 + angle1) && angle < (Math.PI * 2 - DirectionAngleTolerance)) {
-            param.platformLength = segment.end.distanceTo(segment.start);
-            let rightConnectPoints = [baseLineStart, start.added(curLeftDir.multiplied(-startWidth / 2))];
-            const baseLineStartDistance = start.distanceTo(baseLineStart);
-            const rightProjectDistance = startWidth / 2 * Math.cos(angle);
-            if (rightProjectDistance < baseLineStartDistance) {
-                // let rightConnectPoints = [baseLineStart, baseLineStart];
-                // if (startWidth <= prevParam.endWidth) {
-                const l2 = startWidth / 2 / Math.cos(angle);
-                if (l2 > baseLineStartDistance) {
-                    const a2 = l2 - baseLineStartDistance;
-                    const c2 = a2 / Math.tan(Math.PI * 2 - angle);
-                    rightConnectPoints = [start.added(prevLeftDir.multiplied(-baseLineStartDistance)), start.added(prevLeftDir.multiplied(-baseLineStartDistance)).added(prevDirNormalized.multiplied(c2))];
-                } else {
-                    rightConnectPoints = [start.added(prevLeftDir.multiplied(-l2))];
+            } else if (DirectionAngleTolerance < angle && angle < (Math.PI / 2 - angle1)) {
+                param.platformLength = segment.end.distanceTo(segment.start);
+    
+                let leftConnectPoints = [start.added(curLeftDir.multiplied(startWidth / 2)), baseLineEnd];
+                const baseLineEndDistance = start.distanceTo(baseLineEnd);
+                const leftProjectDistance = startWidth / 2 * Math.cos(angle);
+                if (leftProjectDistance < baseLineEndDistance) {
+                    const l1 = startWidth / 2 / Math.cos(angle);
+                    if (l1 > baseLineEndDistance) {
+                        const a1 = l1 - baseLineEndDistance;
+                        const c1 = a1 / Math.tan(angle);
+                        leftConnectPoints = [start.added(prevLeftDir.multiplied(baseLineEndDistance)).added(prevDirNormalized.multiplied(c1)), start.added(prevLeftDir.multiplied(baseLineEndDistance))];
+                    } else {
+                        leftConnectPoints = [start.added(prevLeftDir.multiplied(l1))];
+                    }
                 }
-            }
-
-            moldShape.vertices = [
-                start.added(prevLeftDir.multiplied(startWidth / 2 / Math.cos(angle))),
-                ...rightConnectPoints,
-                // start.added(curLeftDir.multiplied(-startWidth / 2)),
-                segment.end.added(curLeftDir.multiplied(-startWidth / 2)),
-                segment.end.added(curLeftDir.multiplied(startWidth / 2)),
-            ];
-            const moldVertexCount = moldShape.vertices.length;
-            moldShape.tempLines = generateTempLinesLoop(moldVertexCount);
-            stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(startHeight))),
-            ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(startHeight - platformThickness))),
-            ];
-            if (temp) {
-                stairShape.tempLines = [
-                    ...moldShape.tempLines,
-                    ...moldShape.tempLines.map(seg => [seg[0] + moldVertexCount, seg[1] + moldVertexCount]),
-                    ...moldShape.tempLines.map(seg => [seg[0], seg[0] + moldVertexCount]),
+                moldShape.vertices = [
+                    // start.added(curLeftDir.multiplied(startWidth / 2)),
+                    ...leftConnectPoints,
+                    start.added(prevLeftDir.multiplied(-startWidth / 2 / Math.cos(angle))),
+                    segment.end.added(curLeftDir.multiplied(-startWidth / 2)),
+                    segment.end.added(curLeftDir.multiplied(startWidth / 2)),
                 ];
+                const moldVertexCount = moldShape.vertices.length;
+                moldShape.tempLines = generateTempLinesLoop(moldVertexCount);
+                // if (moldVertexCount === 4) {
+                // } else {
+                //     moldShape.tempLines = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0]];
+                // }
+                stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(startHeight))),
+                ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(startHeight - platformThickness))),
+                ];
+                if (temp) {
+                    stairShape.tempLines = [
+                        ...moldShape.tempLines,
+                        ...moldShape.tempLines.map(seg => [seg[0] + moldVertexCount, seg[1] + moldVertexCount]),
+                        ...moldShape.tempLines.map(seg => [seg[0], seg[0] + moldVertexCount]),
+                        // [0, 5], [1, 6], [2, 7], [3, 8], [4, 9],
+                    ];
+                }
+            } else if (angle > (Math.PI * 3 / 2 + angle1) && angle < (Math.PI * 2 - DirectionAngleTolerance)) {
+                param.platformLength = segment.end.distanceTo(segment.start);
+                let rightConnectPoints = [baseLineStart, start.added(curLeftDir.multiplied(-startWidth / 2))];
+                const baseLineStartDistance = start.distanceTo(baseLineStart);
+                const rightProjectDistance = startWidth / 2 * Math.cos(angle);
+                if (rightProjectDistance < baseLineStartDistance) {
+                    // let rightConnectPoints = [baseLineStart, baseLineStart];
+                    // if (startWidth <= prevParam.endWidth) {
+                    const l2 = startWidth / 2 / Math.cos(angle);
+                    if (l2 > baseLineStartDistance) {
+                        const a2 = l2 - baseLineStartDistance;
+                        const c2 = a2 / Math.tan(Math.PI * 2 - angle);
+                        rightConnectPoints = [start.added(prevLeftDir.multiplied(-baseLineStartDistance)), start.added(prevLeftDir.multiplied(-baseLineStartDistance)).added(prevDirNormalized.multiplied(c2))];
+                    } else {
+                        rightConnectPoints = [start.added(prevLeftDir.multiplied(-l2))];
+                    }
+                }
+    
+                moldShape.vertices = [
+                    start.added(prevLeftDir.multiplied(startWidth / 2 / Math.cos(angle))),
+                    ...rightConnectPoints,
+                    // start.added(curLeftDir.multiplied(-startWidth / 2)),
+                    segment.end.added(curLeftDir.multiplied(-startWidth / 2)),
+                    segment.end.added(curLeftDir.multiplied(startWidth / 2)),
+                ];
+                const moldVertexCount = moldShape.vertices.length;
+                moldShape.tempLines = generateTempLinesLoop(moldVertexCount);
+                stairShape.vertices = [...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(startHeight))),
+                ...moldShape.vertices.map(p => p.added(DirectionZ.multiplied(startHeight - platformThickness))),
+                ];
+                if (temp) {
+                    stairShape.tempLines = [
+                        ...moldShape.tempLines,
+                        ...moldShape.tempLines.map(seg => [seg[0] + moldVertexCount, seg[1] + moldVertexCount]),
+                        ...moldShape.tempLines.map(seg => [seg[0], seg[0] + moldVertexCount]),
+                    ];
+                }
             }
         }
 

@@ -58,7 +58,7 @@ selection.addObserver({
         } else if (allEntities.length) {
             const editPath = app.getActiveDesign().getEditPath();
             const editModel = drawStairsTool.getEditModel();
-            if (!editModel || (editPath.every(instance => instance.getKey() !== editModel.parent.getKey() && [...editModel.child.values()].every(comp => comp.getKey() !== instance.getKey())))) {
+            if (!editModel || (editPath.every(instance => instance.getKey() !== editModel.parent.instanceKey && [...editModel.child.values()].every(comp => comp.instanceKey !== instance.getKey())))) {
                 drawStairsTool.clearTempShapes();
                 if (activatedCustomTool !== drawStairsTool) {
                     pluginUI.postMessage({ type: MessageType.PropertiesVisible, propertiesVisible: false }, '*');
@@ -86,7 +86,7 @@ function onModelChanged(changes: { isUndoRedo: boolean, modified?: KGroupDefinit
     const deleted = changes.deleted;
     const editModel = drawStairsTool.getEditModel();
     if (deleted?.length && editModel) {
-        if (deleted.some(deleteGroup => editModel.parent.getGroupDefinition()?.getKey() === deleteGroup.getKey())) {
+        if (deleted.some(deleteGroup => editModel.parent.definitionKey === deleteGroup.getKey())) {
             drawStairsTool.clearEditModel();
         }
     }

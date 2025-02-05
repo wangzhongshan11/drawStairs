@@ -12,9 +12,15 @@ const pluginUI = app.getPluginUI();
 const appView = app.getActiveView();
 const toolHelper = app.getToolHelper();
 
+type InstanceData = {
+    instance: KGroupInstance;
+    definitionKey: string;
+    instanceKey: string;
+}
+
 type EditModel = {
-    parent: KGroupInstance;
-    child: Map<number, KGroupInstance>;
+    parent: InstanceData;
+    child: Map<number, InstanceData>;
 }
 
 const DefaultFocusedComponentIndex = -1;
@@ -45,7 +51,7 @@ export class DrawStairsTool implements KTool {
         toolHelper.setExcludeInferenceTypes([]);
         this.clear();
         if (this.editModel) {
-            selection.add([this.editModel.parent]);
+            selection.add([this.editModel.parent.instance]);
         } else {
             pluginUI.postMessage({ type: MessageType.LeaveDrawStairsTool }, '*');
         }
@@ -60,7 +66,7 @@ export class DrawStairsTool implements KTool {
             if (this.segments.length) {
                 const lastSegment = this.segments[this.segments.length - 1];
                 // console.log('lastSegment.startLocked', lastSegment.startLocked);
-
+                lastSegment.param.modelEditing = false;
                 if (lastSegment.startLocked) {
                     lastSegment.end = position;
                     this.drawTempComponent(lastSegment);
@@ -237,53 +243,53 @@ export class DrawStairsTool implements KTool {
         if (this.segments.length) {
             const lastSegment = this.segments[this.segments.length - 1];
             const lastSegmentIndex = lastSegment.param.index;
-            
-            // if (componentIndex !== this.focusedComponentIndex) {
-                const newFocusedSegment = this.segments.find(seg => seg.param.index === componentIndex);
-                if (newFocusedSegment) {
-                    if (this.drawing && !lastSegment.endLocked && componentIndex !== lastSegmentIndex) {
-                        const { param: {type: newFocusedType}, moldShape: {vertices: newFocusedVertices, tempLines: newFocusedTempLines } } = newFocusedSegment;
-                        const { start, moldShape: { vertices }  } = lastSegment;
-                        this.clearPickStartTempShapes(lastSegment);
-                        this.clearTempShapes(lastSegment);
-                        if (newFocusedType === ComponentType.Platform) {
-                            let closestPoint: KPoint3d | undefined;
-                            let minDistance = 0;
-                            newFocusedTempLines.forEach(line => {
-                                const lineSeg3d = GeomLib.createLineSegment3d(newFocusedVertices[line[0]], newFocusedVertices[line[1]]);
-                                const thePoint = lineSeg3d.getClosestPoint(start);
-                                const curDistance = thePoint.distanceTo(start);
-                                if (!closestPoint || curDistance < minDistance) {
-                                    minDistance = curDistance;
-                                    closestPoint = thePoint;
-                                    lastSegment.start = closestPoint;
-                                    lastSegment.baseLineSeg3d = { start: newFocusedVertices[line[0]], end: newFocusedVertices[line[1]] };
-                                }
-                            });
-                            lastSegment.startLocked = false;
-                            lastSegment.circleTangent = undefined;
-                            this.drawPickStartTempShapes(start, lastSegment.start, lastSegment);
-                        } else {
-                            lastSegment.start = newFocusedSegment.end.clone();
-                            lastSegment.startLocked = true;
-                            lastSegment.baseLineSeg3d = { start: vertices[vertices.length - 1], end: vertices[vertices.length - 2] };
-                            lastSegment.circleTangent = undefined;
-                            this.drawTempComponent(lastSegment, false);
-                        }
-                    }
 
-                    if ((this.drawing && componentIndex !== lastSegmentIndex) || !this.drawing) {
-                        this.drawTempComponent(newFocusedSegment, this.drawing);
-                    }
-                }
-                const oldFocusedSegment = this.segments.find(seg => seg.param.index === this.focusedComponentIndex);
-                if (((this.drawing && this.focusedComponentIndex !== lastSegmentIndex) || (!this.drawing && this.focusedComponentIndex !== componentIndex)) && oldFocusedSegment) {
-                    if (this.drawing) {
-                        this.drawTempComponent(oldFocusedSegment, false);
+            // if (componentIndex !== this.focusedComponentIndex) {
+            const newFocusedSegment = this.segments.find(seg => seg.param.index === componentIndex);
+            if (newFocusedSegment) {
+                if (this.drawing && !lastSegment.endLocked && componentIndex !== lastSegmentIndex) {
+                    const { param: { type: newFocusedType }, moldShape: { vertices: newFocusedVertices, tempLines: newFocusedTempLines } } = newFocusedSegment;
+                    const { start, moldShape: { vertices } } = lastSegment;
+                    this.clearPickStartTempShapes(lastSegment);
+                    this.clearTempShapes(lastSegment);
+                    if (newFocusedType === ComponentType.Platform) {
+                        let closestPoint: KPoint3d | undefined;
+                        let minDistance = 0;
+                        newFocusedTempLines.forEach(line => {
+                            const lineSeg3d = GeomLib.createLineSegment3d(newFocusedVertices[line[0]], newFocusedVertices[line[1]]);
+                            const thePoint = lineSeg3d.getClosestPoint(start);
+                            const curDistance = thePoint.distanceTo(start);
+                            if (!closestPoint || curDistance < minDistance) {
+                                minDistance = curDistance;
+                                closestPoint = thePoint;
+                                lastSegment.start = closestPoint;
+                                lastSegment.baseLineSeg3d = { start: newFocusedVertices[line[0]], end: newFocusedVertices[line[1]] };
+                            }
+                        });
+                        lastSegment.startLocked = false;
+                        lastSegment.circleTangent = undefined;
+                        this.drawPickStartTempShapes(start, lastSegment.start, lastSegment);
                     } else {
-                        this.clearTempShapes(oldFocusedSegment);
+                        lastSegment.start = newFocusedSegment.end.clone();
+                        lastSegment.startLocked = true;
+                        lastSegment.baseLineSeg3d = { start: newFocusedVertices[newFocusedVertices.length - 1], end: newFocusedVertices[newFocusedVertices.length - 2] };
+                        lastSegment.circleTangent = undefined;
+                        this.drawTempComponent(lastSegment, false);
                     }
                 }
+
+                if ((this.drawing && componentIndex !== lastSegmentIndex) || !this.drawing) {
+                    this.drawTempComponent(newFocusedSegment, this.drawing);
+                }
+            }
+            const oldFocusedSegment = this.segments.find(seg => seg.param.index === this.focusedComponentIndex);
+            if (((this.drawing && this.focusedComponentIndex !== lastSegmentIndex) || (!this.drawing && this.focusedComponentIndex !== componentIndex)) && oldFocusedSegment) {
+                if (this.drawing) {
+                    this.drawTempComponent(oldFocusedSegment, false);
+                } else {
+                    this.clearTempShapes(oldFocusedSegment);
+                }
+            }
             // }
             this.focusedComponentIndex = componentIndex;
         }
@@ -302,7 +308,7 @@ export class DrawStairsTool implements KTool {
                     const theInstance = this.editModel.child.get(componentIndex);
                     if (theInstance) {
                         this.editModel.child.delete(componentIndex)
-                        design.removeGroupInstance(theInstance);
+                        design.removeGroupInstance(theInstance.instance);
                     }
                 }
                 this.segments.splice(theIndex, 1);
@@ -325,6 +331,7 @@ export class DrawStairsTool implements KTool {
         const lastSegment = this.segments[this.segments.length - 1];
         if (theSegment) {
             const { param: { index } } = theSegment;
+            componentParam.modelEditing = true;
             theSegment.param = componentParam;
             if (this.drawing) {
                 this.drawTempComponent(theSegment, theSegment.param.index !== lastSegment.param.index);
@@ -336,14 +343,14 @@ export class DrawStairsTool implements KTool {
                     const theMeshes = generateMeshes([theSegment]);
                     if (theMeshes.length) {
                         design.startOperation();
-                        let operationSuccess = (await design.activateGroupInstance(this.editModel.parent)).isSuccess;
+                        let operationSuccess = (await design.activateGroupInstance(this.editModel.parent.instance)).isSuccess;
                         if (operationSuccess) {
-                            operationSuccess = operationSuccess && design.removeGroupInstance(theInstance).isSuccess;
+                            operationSuccess = operationSuccess && design.removeGroupInstance(theInstance.instance).isSuccess;
                             if (operationSuccess) {
                                 const newInstance = buildComponentInstance(theSegment);
                                 operationSuccess = operationSuccess && !!newInstance;
                                 if (newInstance) {
-                                    this.editModel.child.set(index, newInstance);
+                                    this.editModel.child.set(index, { instance: newInstance, definitionKey: newInstance.getGroupDefinition()?.getKey() || '', instanceKey: newInstance.getKey() });
                                 }
                             }
                         }
@@ -354,7 +361,7 @@ export class DrawStairsTool implements KTool {
                         } else {
                             design.abortOperation();
                         }
-                        selection.add([this.editModel.parent]);
+                        selection.add([this.editModel.parent.instance]);
                     }
                 }
             }
@@ -376,7 +383,7 @@ export class DrawStairsTool implements KTool {
             design.startOperation();
 
             const newInstances: KGroupInstance[] = [];
-            const editModelChild: Map<number, KGroupInstance> = new Map();
+            const editModelChild: Map<number, InstanceData> = new Map();
             const validSegments: Segment[] = [];
             let operationSuccess = true;
             for (const segment of this.segments) {
@@ -389,7 +396,7 @@ export class DrawStairsTool implements KTool {
                 operationSuccess = operationSuccess && !!newInstance;
                 if (newInstance) {
                     newInstances.push(newInstance);
-                    editModelChild.set(segment.param.index, newInstance);
+                    editModelChild.set(segment.param.index, { instance: newInstance, definitionKey: newInstance.getGroupDefinition()?.getKey() || '', instanceKey: newInstance.getKey() });
                     segment.param.platformLengthLocked = true;
                     segment.param.stepProportional = true;
                     segment.param.widthProportional = true;
@@ -405,7 +412,10 @@ export class DrawStairsTool implements KTool {
                     operationSuccess = operationSuccess && parentDef.setCustomProperty(StairModelKey, StairModelValue).isSuccess;
                     if (operationSuccess) {
                         design.commitOperation();
-                        this.editModel = { parent: parentInstance, child: editModelChild };
+                        this.editModel = {
+                            parent: { instance: parentInstance, definitionKey: parentInstance.getGroupDefinition()?.getKey() || '', instanceKey: parentInstance.getKey() },
+                            child: editModelChild
+                        };
                         this.segments = validSegments;
                         this.drawing = false;
                         this.drawTempComponent(validSegments[0], true);
@@ -424,7 +434,7 @@ export class DrawStairsTool implements KTool {
     }
 
     setModel(groupInstance: KGroupInstance) {
-        if (this.editModel?.parent.getKey() === groupInstance.getKey()) {
+        if (this.editModel?.parent.instanceKey === groupInstance.getKey()) {
             pluginUI.postMessage({ type: MessageType.PropertiesVisible, propertiesVisible: true }, '*');
             if (this.segments.length) {
                 this.focusComponent(this.focusedComponentIndex);
@@ -438,7 +448,10 @@ export class DrawStairsTool implements KTool {
             if (stairModelProperty === StairModelValue) {
                 const segments: Segment[] = [];
                 const subGroupInstances = groupDef.getSubGroupInstances();
-                const editModel: EditModel = { parent: groupInstance, child: new Map() };
+                const editModel: EditModel = {
+                    parent: { instance: groupInstance, definitionKey: groupInstance.getGroupDefinition()?.getKey() || '', instanceKey: groupInstance.getKey() },
+                    child: new Map()
+                };
                 for (const subInstance of subGroupInstances) {
                     const subDef = subInstance.getGroupDefinition();
                     if (subDef) {
@@ -463,7 +476,7 @@ export class DrawStairsTool implements KTool {
                                 // index: componentIndexValue,
                             }
                             segments.push(segment);
-                            editModel.child.set(param.index, subInstance);
+                            editModel.child.set(param.index, { instance: subInstance, definitionKey: subInstance.getGroupDefinition()?.getKey() || '', instanceKey: subInstance.getKey() });
                         }
                         // }
                     }
