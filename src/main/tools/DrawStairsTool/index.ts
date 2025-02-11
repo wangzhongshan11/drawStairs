@@ -249,7 +249,7 @@ export class DrawStairsTool implements KTool {
             if (newFocusedSegment) {
                 if (this.drawing && !lastSegment.endLocked && componentIndex !== lastSegmentIndex) {
                     const { param: { type: newFocusedType }, moldShape: { vertices: newFocusedVertices, tempLines: newFocusedTempLines } } = newFocusedSegment;
-                    const { start, moldShape: { vertices } } = lastSegment;
+                    const { start } = lastSegment;
                     this.clearPickStartTempShapes(lastSegment);
                     this.clearTempShapes(lastSegment);
                     if (newFocusedType === ComponentType.Platform) {

@@ -25,6 +25,7 @@ export enum ComponentParamType {
     Type = "type",
     Upward = "upward",
     PlatformThickness = "platformThickness",
+    Handrail = "handrail",
 }
 
 // interface ParamSettings {
@@ -41,47 +42,31 @@ export enum ComponentType {
     Platform = 2,
 }
 
+export enum RailType {
+    Circle = 0,
+    Rect = 1,
+    Custom = 99,
+}
+
+export enum ColumnType {
+    Circle = 0,
+    Rect = 1,
+    Custom = 99,
+}
+
+export interface HandrailComponentParam {
+    radius?: number;
+    width?: number;
+    height?: number;
+    cornerRadius?: number;
+}
+
 export const ComponentParamSettings = {
-    horizontalStep: {
-        title: "步长",
-        min: 1,
-        max: 100000,
-        step: 10,
-        unit: '长',
-        precision: 0,
-    },
-    verticalStep: {
-        title: "步长",
-        min: 1,
-        max: 100000,
-        step: 10,
-        unit: '高',
-        precision: 0,
-    },
-    startWidth: {
-        title: "宽度",
-        min: 1,
-        max: 100000,
-        step: 50,
-        unit: '起',
-        precision: 0,
-    },
-    endWidth: {
-        title: "宽度",
-        min: 1,
-        max: 100000,
-        step: 50,
-        unit: '终',
-        precision: 0,
-    },
-    platformLength: {
-        title: "长度",
-        min: 100,
-        max: 100000,
-        step: 50,
-        unit: '',
-        precision: 0,
-    },
+    horizontalStep: { title: "步长", min: 1, max: 100000, step: 10, unit: '长', precision: 0, },
+    verticalStep: { title: "步长", min: 1, max: 100000, step: 10, unit: '高', precision: 0, },
+    startWidth: { title: "宽度", min: 1, max: 100000, step: 50, unit: '起', precision: 0, },
+    endWidth: { title: "宽度", min: 1, max: 100000, step: 50, unit: '终', precision: 0, },
+    platformLength: { title: "长度", min: 100, max: 100000, step: 50, unit: '', precision: 0, },
     type: {
         // radioValues: [ComponentType.StraightStair, ComponentType.CircularStair, ComponentType.Platform],
         // texts: ["直阶", "旋转阶梯", "平台"],
@@ -101,14 +86,36 @@ export const ComponentParamSettings = {
             { value: false, text: "向下" },
         ]
     },
-    platformThickness: {
-        title: "厚度",
-        min: 1,
-        max: 100000,
-        step: 10,
-        unit: '',
-        precision: 0,
-    },
+    platformThickness: { title: "厚度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
+    handrail: {
+        height: { title: "高度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
+        rail: {
+            type: {
+                title: "样式",
+                selectOptions: [
+                    { value: RailType.Circle, text: "圆形" },
+                    { value: RailType.Rect, text: "方形" },
+                    { value: RailType.Custom, text: "自定义" },
+                ]
+            },
+        },
+        column: {
+            type: {
+                title: "样式",
+                selectOptions: [
+                    { value: ColumnType.Circle, text: "圆形" },
+                    { value: ColumnType.Rect, text: "方形" },
+                    { value: ColumnType.Custom, text: "自定义" },
+                ]
+            },
+            step: { title: "间隔", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
+        },
+        componentParam: {
+            radius: { title: "半径", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
+            width: { title: "宽度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
+            height: { title: "高度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
+        }
+    }
 }
 
 export function getComponentTitle(componentType: ComponentType) {
@@ -140,7 +147,18 @@ export interface ComponentParam {
     platformLengthLocked?: boolean;
     modelEditing?: boolean;
 
-
+    handrail?: {
+        height: number;
+        rail: {
+            type: RailType;
+            param: HandrailComponentParam;
+        },
+        column: {
+            step: number;
+            type: ColumnType;
+            param: HandrailComponentParam;
+        }
+    }
     // stepType: StepType;
     // cornerType: CornerType;
     // sideBoard?: boolean;
@@ -163,6 +181,19 @@ export const DefaultComponentParam: ComponentParam = {
     stepProportional: true,
     widthProportional: true,
     platformLengthLocked: false,
+
+    handrail: {
+        height: 500,
+        rail: {
+            type: RailType.Circle,
+            param: { radius: 50 },
+        },
+        column: {
+            type: ColumnType.Circle,
+            step: 500,
+            param: { radius: 50 },
+        },
+    }
     // stepType: StepType.Normal,
     // cornerType: CornerType.Rectangle,
 }
