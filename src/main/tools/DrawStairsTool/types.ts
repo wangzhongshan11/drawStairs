@@ -88,6 +88,7 @@ export const ComponentParamSettings = {
     },
     platformThickness: { title: "厚度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
     handrail: {
+        title: '栏杆',
         height: { title: "高度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
         rail: {
             type: {
@@ -128,6 +129,27 @@ export function getComponentTitle(componentType: ComponentType) {
     }
 }
 
+export interface StairParam {
+    horizontalStep: number;
+    verticalStep: number;
+    upward: boolean;
+    platformThickness: number;
+    handrail: {
+        support: boolean;
+        height: number;
+        rail: {
+            type: RailType;
+            param: HandrailComponentParam;
+        },
+        column: {
+            step: number;
+            type: ColumnType;
+            param: HandrailComponentParam;
+        }
+    }
+    stepProportional: boolean,
+}
+
 export interface ComponentParam {
     index: number;
     horizontalStep: number;
@@ -147,42 +169,19 @@ export interface ComponentParam {
     platformLengthLocked?: boolean;
     modelEditing?: boolean;
 
-    handrail?: {
-        height: number;
-        rail: {
-            type: RailType;
-            param: HandrailComponentParam;
-        },
-        column: {
-            step: number;
-            type: ColumnType;
-            param: HandrailComponentParam;
-        }
-    }
     // stepType: StepType;
     // cornerType: CornerType;
     // sideBoard?: boolean;
     // handrail?: HandrailParam;
 }
 
-export const DefaultComponentParam: ComponentParam = {
-    index: 0,
+export const DefaultStairParam: StairParam = {
     horizontalStep: 250,
     verticalStep: 250,
-    startWidth: 1000,
-    endWidth: 1000,
-    offsetWidth: 0,
-    withOffset: false,
-    platformLength: 2000,
-    type: ComponentType.StraightStair,
     upward: true,
     platformThickness: 200,
-
-    stepProportional: true,
-    widthProportional: true,
-    platformLengthLocked: false,
-
     handrail: {
+        support: true,
         height: 500,
         rail: {
             type: RailType.Circle,
@@ -193,7 +192,28 @@ export const DefaultComponentParam: ComponentParam = {
             step: 500,
             param: { radius: 50 },
         },
-    }
+    },
+
+    stepProportional: true,
+}
+
+export const DefaultComponentParam: ComponentParam = {
+    index: 0,
+    horizontalStep: DefaultStairParam.horizontalStep,
+    verticalStep: DefaultStairParam.verticalStep,
+    startWidth: 1000,
+    endWidth: 1000,
+    offsetWidth: 0,
+    withOffset: false,
+    platformLength: 2000,
+    type: ComponentType.StraightStair,
+    upward: DefaultStairParam.upward,
+    platformThickness: DefaultStairParam.platformThickness,
+
+    stepProportional: DefaultStairParam.stepProportional,
+    widthProportional: true,
+    platformLengthLocked: false,
+
     // stepType: StepType.Normal,
     // cornerType: CornerType.Rectangle,
 }

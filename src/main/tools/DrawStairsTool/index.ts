@@ -1,4 +1,4 @@
-import { ComponentType, ComponentParam, Segment, ParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType, StairModelValue, CircleTangentKey } from "./types";
+import { ComponentType, ComponentParam, Segment, ParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType, StairModelValue, CircleTangentKey, StairParam, DefaultStairParam } from "./types";
 import { generateShape } from "./tempMeshUtils";
 import { buildComponentInstance, generateMeshes } from "./meshUtils";
 import { parseLineSeg3d, parseParam, parseStartEnd, parseVector3d } from "./utils";
@@ -30,6 +30,7 @@ export class DrawStairsTool implements KTool {
     private drawing = false;
     private focusedComponentIndex: number = DefaultFocusedComponentIndex;
     private segments: Segment[] = [];
+    private stairParam?: StairParam;
     private editModel?: EditModel;
 
     onToolActive(): void {
@@ -39,7 +40,8 @@ export class DrawStairsTool implements KTool {
         ]);
         const firstSegment: Segment = getEmptySegment();
         firstSegment.startLocked = false;
-        pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...firstSegment.param }, newStair: true }, '*');
+        this.stairParam = DefaultStairParam;
+        pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: [firstSegment.param], stairParam: this.stairParam, newStair: true }, '*');
         this.segments = [firstSegment];
         this.drawing = true;
         this.clearTempShapes();
@@ -324,6 +326,10 @@ export class DrawStairsTool implements KTool {
         }
     }
 
+    async changeStairParam(stairParam: StairParam, changeParams: ComponentParamType[]) {
+
+    }
+
     async changeComponentParam(componentParam: ComponentParam, changeParams: ComponentParamType[]) {
         if (!this.segments.length) return;
 
@@ -419,7 +425,7 @@ export class DrawStairsTool implements KTool {
                         this.segments = validSegments;
                         this.drawing = false;
                         this.drawTempComponent(validSegments[0], true);
-                        pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: this.segments.map(seg => ({ ...seg.param })) }, '*');
+                        pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: this.segments.map(seg => ({ ...seg.param })), stairParam: this.stairParam }, '*');
                         return;
                     }
                 }
@@ -488,7 +494,7 @@ export class DrawStairsTool implements KTool {
                     this.editModel = editModel;
                     // this.drawTempComponent(segments[0], true);
                     this.focusComponent(segments[0].param.index);
-                    pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: this.segments.map(seg => ({ ...seg.param })) }, '*');
+                    pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: this.segments.map(seg => ({ ...seg.param })), stairParam: this.stairParam }, '*');
                 }
             }
         }
@@ -507,6 +513,7 @@ export class DrawStairsTool implements KTool {
         // this.segments = [];
         this.drawing = false;
         this.focusedComponentIndex = DefaultFocusedComponentIndex;
+        this.stairParam = undefined;
         // this.editModel = undefined;
     }
 

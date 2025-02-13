@@ -1,6 +1,8 @@
 export enum MessageType {
     DrawStairViewMounted = 'drawStairViewMounted',
 
+    StairParamChangedByInput = 'stairParamChangedByInput',
+
     ParamChangedByInput = 'paramChangedByInput',
     ParamChangedByDraw = 'paramChangedByDraw',
     ComponentAdded = 'componentAdded',

@@ -1,36 +1,35 @@
 import * as React from 'react'
 import "./index.css";
-import { Select, } from 'antd';
+import { Radio, RadioChangeEvent } from 'antd';
 
 interface Props {
     title: string;
-    value: number | string
-    selectOptions: { value: number | string, text: string }[];
+    value: number | string | boolean
+    radioOptions: { value: number | string | boolean, text: string }[];
     disabled?: boolean;
     onChange?: (value: (string | number)) => void;
 }
 
-export default class SelectProperty extends React.PureComponent<Props> {
+export default class RadioProperty extends React.PureComponent<Props> {
 
-    private onChange = (value: number | string, option: { value: number | string, text: string }) => {
+    private onChange = (e: RadioChangeEvent) => {
         const { onChange } = this.props;
         if (onChange) {
-            onChange(value);
+            onChange(e.target.value);
             this.setState({ inputtingValue: undefined });
         }
     }
 
     render() {
-        const { title, value, selectOptions } = this.props;
+        const { title, value, radioOptions } = this.props;
         return (
-            <div className='select-property-wrapper'>
+            <div className='radio-property-wrapper'>
                 <div className='title'>{title}</div>
-                <Select value={value} defaultValue={value} defaultOpen={false} options={selectOptions} onChange={this.onChange} />
-                {/* <Select.Group defaultValue={value} value={value} onChange={this.onChange} buttonStyle="solid" >
-                    {selectOptions.map((selectOption, index) => {
-                        return 
+                <Radio.Group defaultValue={value} value={value} onChange={this.onChange} buttonStyle="solid" >
+                    {radioOptions.map((radioOption, index) => {
+                        return <Radio.Button value={radioOption.value} key={index}>{radioOption.text}</Radio.Button>
                     })}
-                </Select.Group> */}
+                </Radio.Group>
             </div>
         )
     }

@@ -1,35 +1,36 @@
 import * as React from 'react'
 import "./index.css";
-import { Radio, RadioChangeEvent } from 'antd';
+import { Select, } from 'antd';
 
 interface Props {
     title: string;
-    value: number | string | boolean
-    radioOptions: { value: number | string | boolean, text: string }[];
+    value: number | string
+    selectOptions: { value: number | string, text: string }[];
     disabled?: boolean;
     onChange?: (value: (string | number)) => void;
 }
 
-export default class RadioProperty extends React.PureComponent<Props> {
+export default class SelectProperty extends React.PureComponent<Props> {
 
-    private onChange = (e: RadioChangeEvent) => {
+    private onChange = (value: number | string, option: { value: number | string, text: string }) => {
         const { onChange } = this.props;
         if (onChange) {
-            onChange(e.target.value);
+            onChange(value);
             this.setState({ inputtingValue: undefined });
         }
     }
 
     render() {
-        const { title, value, radioOptions } = this.props;
+        const { title, value, selectOptions } = this.props;
         return (
-            <div className='radio-property-wrapper'>
+            <div className='select-property-wrapper'>
                 <div className='title'>{title}</div>
-                <Radio.Group defaultValue={value} value={value} onChange={this.onChange} buttonStyle="solid" >
-                    {radioOptions.map((radioOption, index) => {
-                        return <Radio.Button value={radioOption.value} key={index}>{radioOption.text}</Radio.Button>
+                <Select value={value} defaultValue={value} defaultOpen={false} options={selectOptions} onChange={this.onChange} />
+                {/* <Select.Group defaultValue={value} value={value} onChange={this.onChange} buttonStyle="solid" >
+                    {selectOptions.map((selectOption, index) => {
+                        return 
                     })}
-                </Radio.Group>
+                </Select.Group> */}
             </div>
         )
     }

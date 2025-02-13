@@ -57,7 +57,7 @@ export default class ToolView extends React.Component<{}, State> {
 
     private onMessage = (event: any) => {
         const messageData = event.data;
-        if (messageData?.type === MessageType.LeaveDrawStairsTool || messageData?.type === MessageType.DrawStairModelSettled) {
+        if (messageData?.type === MessageType.LeaveDrawStairsTool || (messageData?.type === MessageType.DrawStairModelSettled && !messageData.newStair)) {
             this.setState({ activeToolKey: undefined });
         }
     }

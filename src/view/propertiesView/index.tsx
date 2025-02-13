@@ -1,14 +1,19 @@
 import * as React from 'react'
 import "./index.css";
-import { ComponentParam, getComponentTitle } from '../../main/tools/DrawStairsTool/types';
+import { ComponentParam, StairParam, getComponentTitle } from '../../main/tools/DrawStairsTool/types';
 import { ImmutableMap } from './ImmutableMap';
-import { Tabs } from 'antd';
+import { Switch, Tabs } from 'antd';
 import PropertiesContent from './PropertyContent';
 import { MessageType } from '../../main/types';
 import { DeleteOutlined } from '@ant-design/icons';
+import { Collapse } from "antd";
+import StairProperty from './StairProperty';
+import { ItemType } from 'rc-collapse/es/interface';
+
 interface State {
     componentParams: ImmutableMap<number, ComponentParam>;
     componentParam?: ComponentParam;
+    stairParam?: StairParam;
     activeKey: string;
     propertiesVisible: boolean;
 }
@@ -28,22 +33,22 @@ export default class PropertiesView extends React.Component<{}, State> {
         const messageData = event.data;
         const { componentParams, componentParam } = this.state;
         if (messageData.type === MessageType.ParamChangedByDraw) {
-            if (messageData.newStair) {
-                const a = new ImmutableMap(new Map([[messageData.componentParam.index, messageData.componentParam]]));
-                this.setState({
-                    componentParams: a,
-                    componentParam: messageData.componentParam,
-                    activeKey: messageData.componentParam.index.toString(),
-                    propertiesVisible: true,
-                });
-                console.log('newStair');
-            } else {
+            // if (messageData.newStair) {
+            //     const a = new ImmutableMap(new Map([[messageData.componentParam.index, messageData.componentParam]]));
+            //     this.setState({
+            //         componentParams: a,
+            //         componentParam: messageData.componentParam,
+            //         activeKey: messageData.componentParam.index.toString(),
+            //         propertiesVisible: true,
+            //     });
+            //     console.log('newStair');
+            // } else {
                 const newComponentParams = componentParams.set(messageData.componentParam.index, messageData.componentParam);
                 this.setState({
                     componentParams: newComponentParams,
                     componentParam: componentParam ? (messageData.componentParam.index === componentParam.index ? messageData.componentParam : componentParam) : messageData.componentParam,
                 });
-            }
+            // }
         } else if (messageData.type === MessageType.ComponentAdded) {
             const newComponentParams = componentParams.set(messageData.componentParam.index, messageData.componentParam);
             this.setState({
@@ -60,7 +65,7 @@ export default class PropertiesView extends React.Component<{}, State> {
 
                 const theComponentParams = new ImmutableMap(componentParamMap);
                 const componentParam = [...componentParamMap.values()][0];
-                this.setState({ componentParams: theComponentParams, componentParam, activeKey: componentParam.index.toString(), propertiesVisible: true });
+                this.setState({ componentParams: theComponentParams, componentParam, stairParam: messageData.stairParam, activeKey: componentParam.index.toString(), propertiesVisible: true });
             } else {
                 this.setState({ componentParams: new ImmutableMap(), componentParam: undefined, activeKey: '0', propertiesVisible: true });
             }
@@ -101,35 +106,49 @@ export default class PropertiesView extends React.Component<{}, State> {
     }
 
     render() {
-        const { componentParams, componentParam, activeKey, propertiesVisible } = this.state;
-        if (!componentParams.size || !propertiesVisible) {
+        const { componentParams, componentParam, stairParam, activeKey, propertiesVisible } = this.state;
+        if (!componentParams.size || !propertiesVisible || !stairParam) {
             return null;
         }
         // const disabled = !this.state.componentParam;
+        const items: ItemType[] = [
+            {
+                key: 'stair-property',
+                label: '整体参数',
+                children: <StairProperty stairParam={stairParam} />
+            },
+            {
+                key: 'stairs-property',
+                label: '独立参数',
+                children: <div className='stairs-property-wrapper'>
+                    <Tabs
+                        defaultActiveKey={activeKey}
+                        activeKey={activeKey}
+                        tabPosition="left"
+                        className='property-tabs-wrapper'
+                        onChange={this.onTabChange}
+                        // style={{ height: 500 }}
+                        size='small'
+                        type='editable-card'
+                        removeIcon={<DeleteOutlined />}
+                        hideAdd={true}
+                        onEdit={this.onTabsEdit}
+                        items={componentParams.map((componentParam, i) => {
+                            const { index, type } = componentParam;
+                            return {
+                                label: `${getComponentTitle(type)}${index}`,
+                                key: index.toString(),
+                                // children: ,
+                            };
+                        })}
+                    />
+                    <PropertiesContent componentParam={componentParam} />
+                </div>
+            },
+        ];
         return (
             <div className='property-wrapper'>
-                <Tabs
-                    defaultActiveKey={activeKey}
-                    activeKey={activeKey}
-                    tabPosition="left"
-                    className='property-tabs-wrapper'
-                    onChange={this.onTabChange}
-                    // style={{ height: 500 }}
-                    size='small'
-                    type='editable-card'
-                    removeIcon={<DeleteOutlined />}
-                    hideAdd={true}
-                    onEdit={this.onTabsEdit}
-                    items={componentParams.map((componentParam, i) => {
-                        const { index, type } = componentParam;
-                        return {
-                            label: `${getComponentTitle(type)}${index}`,
-                            key: index.toString(),
-                            // children: ,
-                        };
-                    })}
-                />
-                <PropertiesContent componentParam={componentParam} />
+                <Collapse items={items} defaultActiveKey={['stair-property', 'stairs-property']} />
             </div>
         )
     }
