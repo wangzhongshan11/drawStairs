@@ -6,3 +6,15 @@ body {
         height: 600px;
     }
 }
+
+html::-webkit-scrollbar {
+    /* position: absolute; */
+    width: 4px;
+    height: 1px;
+    /* display: none; */
+}
+
+html::-webkit-scrollbar-thumb {
+    height: 1px;
+    background-color: rgba(3,9,17,0.2);
+}

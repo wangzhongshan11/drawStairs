@@ -94,7 +94,7 @@ export default class ToolView extends React.Component<{}, State> {
                     </div>
                 })}
             </div>
-            <Divider style={{ borderColor: 'black' }}>{activeToolKey ? "阶梯参数" : "使用教程"}</Divider>
+            <Divider style={{ borderColor: 'black', margin: '6px 0' }}>{activeToolKey ? "阶梯参数" : "使用教程"}</Divider>
         </>
     }
 }

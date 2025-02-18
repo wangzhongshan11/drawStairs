@@ -5,14 +5,14 @@ import { Select, } from 'antd';
 interface Props {
     title: string;
     value: number | string
-    selectOptions: { value: number | string, text: string }[];
+    selectOptions: { value: number | string, label: string }[];
     disabled?: boolean;
     onChange?: (value: (string | number)) => void;
 }
 
 export default class SelectProperty extends React.PureComponent<Props> {
 
-    private onChange = (value: number | string, option: { value: number | string, text: string }) => {
+    private onChange = (value: number | string, option: { value: number | string, label: string }) => {
         const { onChange } = this.props;
         if (onChange) {
             onChange(value);

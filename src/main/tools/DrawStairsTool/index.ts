@@ -327,7 +327,7 @@ export class DrawStairsTool implements KTool {
     }
 
     async changeStairParam(stairParam: StairParam, changeParams: ComponentParamType[]) {
-
+        this.stairParam = stairParam;
     }
 
     async changeComponentParam(componentParam: ComponentParam, changeParams: ComponentParamType[]) {

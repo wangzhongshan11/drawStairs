@@ -26,6 +26,16 @@ export enum ComponentParamType {
     Upward = "upward",
     PlatformThickness = "platformThickness",
     Handrail = "handrail",
+    HandrailHeight = "handrailHeight",
+    HandrailRailType = "handrailRailType",
+    HandrailRailRadius = "handrailRailRadius",
+    HandrailRailWidth = "handrailRailWidth",
+    HandrailRailHeight = "handrailRailHeight",
+    HandrailColumnType = "handrailColumnType",
+    HandrailColumnStep = "handrailColumnStep",
+    HandrailColumnRadius = "handrailColumnRadius",
+    HandrailColumnWidth = "handrailColumnWidth",
+    HandrailColumnHeight = "handrailColumnHeight",
 }
 
 // interface ParamSettings {
@@ -94,9 +104,9 @@ export const ComponentParamSettings = {
             type: {
                 title: "样式",
                 selectOptions: [
-                    { value: RailType.Circle, text: "圆形" },
-                    { value: RailType.Rect, text: "方形" },
-                    { value: RailType.Custom, text: "自定义" },
+                    { value: RailType.Circle, label: "圆形" },
+                    { value: RailType.Rect, label: "方形" },
+                    { value: RailType.Custom, label: "自定义" },
                 ]
             },
         },
@@ -104,9 +114,9 @@ export const ComponentParamSettings = {
             type: {
                 title: "样式",
                 selectOptions: [
-                    { value: ColumnType.Circle, text: "圆形" },
-                    { value: ColumnType.Rect, text: "方形" },
-                    { value: ColumnType.Custom, text: "自定义" },
+                    { value: ColumnType.Circle, label: "圆形" },
+                    { value: ColumnType.Rect, label: "方形" },
+                    { value: ColumnType.Custom, label: "自定义" },
                 ]
             },
             step: { title: "间隔", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
@@ -132,6 +142,8 @@ export function getComponentTitle(componentType: ComponentType) {
 export interface StairParam {
     horizontalStep: number;
     verticalStep: number;
+    startWidth: number;
+    endWidth: number;
     upward: boolean;
     platformThickness: number;
     handrail: {
@@ -148,6 +160,7 @@ export interface StairParam {
         }
     }
     stepProportional: boolean,
+    widthProportional: boolean,
 }
 
 export interface ComponentParam {
@@ -178,6 +191,8 @@ export interface ComponentParam {
 export const DefaultStairParam: StairParam = {
     horizontalStep: 250,
     verticalStep: 250,
+    startWidth: 1000,
+    endWidth: 1000,
     upward: true,
     platformThickness: 200,
     handrail: {
@@ -195,14 +210,15 @@ export const DefaultStairParam: StairParam = {
     },
 
     stepProportional: true,
+    widthProportional: true,
 }
 
 export const DefaultComponentParam: ComponentParam = {
     index: 0,
     horizontalStep: DefaultStairParam.horizontalStep,
     verticalStep: DefaultStairParam.verticalStep,
-    startWidth: 1000,
-    endWidth: 1000,
+    startWidth: DefaultStairParam.startWidth,
+    endWidth: DefaultStairParam.endWidth,
     offsetWidth: 0,
     withOffset: false,
     platformLength: 2000,

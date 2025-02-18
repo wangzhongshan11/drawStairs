@@ -2,7 +2,7 @@ import * as React from 'react'
 import "./index.css";
 import { ComponentParam, StairParam, getComponentTitle } from '../../main/tools/DrawStairsTool/types';
 import { ImmutableMap } from './ImmutableMap';
-import { Switch, Tabs } from 'antd';
+import { Tabs } from 'antd';
 import PropertiesContent from './PropertyContent';
 import { MessageType } from '../../main/types';
 import { DeleteOutlined } from '@ant-design/icons';
@@ -148,7 +148,9 @@ export default class PropertiesView extends React.Component<{}, State> {
         ];
         return (
             <div className='property-wrapper'>
+                <div className='collapse-wrapper'>
                 <Collapse items={items} defaultActiveKey={['stair-property', 'stairs-property']} />
+                </div>
             </div>
         )
     }

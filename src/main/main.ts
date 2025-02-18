@@ -22,6 +22,10 @@ async function onUIMessage(data: any) {
         } else if (data.type === MessageType.DeActivateDrawStairsTool) {
             // } else if (data.type === 'deActivateStraightStairsTool' || data.type === 'deActivateCircularStairsTool') {
             deActivateDrawStairsTool();
+        } else if (data.type === MessageType.StairParamChangedByInput) {
+            // if (activatedCustomTool === drawStairsTool) {
+            drawStairsTool.changeStairParam(data.stairParam, data.changeParams);
+            // }
         } else if (data.type === MessageType.ParamChangedByInput) {
             // if (activatedCustomTool === drawStairsTool) {
             drawStairsTool.changeComponentParam(data.componentParam, data.changeParams);

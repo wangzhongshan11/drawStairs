@@ -1,9 +1,37 @@
 .property-wrapper {
     display: flex;
+    height: 520px;
+    overflow-y: scroll;
+    border-bottom: 1px solid black;
+    padding-left: 4px;
 
+    .collapse-wrapper {
+        width: 100%;
+    }
 
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        height: 1px;
+        background-color: rgba(3,9,17,0.2);
+    }
+
+    .ant-collapse {
+        width: 100%;
+
+        .ant-collapse-header {
+            padding: 8px 8px;
+        }
+
+        .ant-collapse-content-box {
+            padding: 0!important;
+        }
+    }
+    
     .stair-property-wrapper {
-        padding-left: 3%;
+        padding-left: 2%;
 
         .step-wrapper {
             display: flex;
@@ -36,9 +64,11 @@
     }
 
     .stairs-property-wrapper {
+        display: flex;
+
         .property-tabs-wrapper {
             width: 70px;
-            height: 500px;
+            height: 400px;
 
             .ant-tabs-nav {
                 width: 100%;
