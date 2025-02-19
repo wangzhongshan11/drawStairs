@@ -248,10 +248,11 @@ export interface Segment {
     startHeight: number;
     endHeight: number;
     // anti clockwise
-    baseLineSeg3d?: { start: KPoint3d, end: KPoint3d };
-    baseComponent?: { componentIndex: number, line3dIndex?: number };
+    // baseLineSeg3d?: { start: KPoint3d, end: KPoint3d };
     circleTangent?: KVector3d;
     param: ComponentParam;
+    baseComponent?: { componentIndex?: number, line3dIndex?: number, line3d: { start: KPoint3d, end: KPoint3d } };
+    nextComponents: number[][];
 
     // leftCorner?: KPoint3d;
     // rightCorner?: KPoint3d;

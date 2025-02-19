@@ -393,7 +393,7 @@ function generatePolygonMesh(vertices: KPoint3d[], mesh: KMesh) {
 }
 
 export function buildComponentInstance(segment: Segment, segments: Segment[]) {
-    const { start, end, startHeight, endHeight, baseLineSeg3d, baseComponent, circleTangent, param, mesh } = segment;
+    const { start, end, startHeight, endHeight, baseComponent, circleTangent, param, mesh } = segment;
     const design = app.getActiveDesign();
 
     let operationSuccess = true;
@@ -416,11 +416,12 @@ export function buildComponentInstance(segment: Segment, segments: Segment[]) {
                 const startEndString = stringifyStartEnd(GeomLib.createPoint3d(start.x, start.y, startHeight), GeomLib.createPoint3d(end.x, end.y, endHeight));
                 operationSuccess = operationSuccess && groupDef.setCustomProperty(ParamKey, paramString).isSuccess;
                 operationSuccess = operationSuccess && groupDef.setCustomProperty(StartEndKey, startEndString).isSuccess;
-                if (baseLineSeg3d) {
-                    const BaseLineString = stringifyStartEnd(baseLineSeg3d.start, baseLineSeg3d.end);
-                    operationSuccess = operationSuccess && groupDef.setCustomProperty(BaseLineSeg3dKey, BaseLineString).isSuccess;
-                }
+                // if (baseLineSeg3d) {
+                // }
                 if (baseComponent) {
+                    const BaseLineString = stringifyStartEnd(baseComponent.line3d.start, baseComponent.line3d.end);
+                    operationSuccess = operationSuccess && groupDef.setCustomProperty(BaseLineSeg3dKey, BaseLineString).isSuccess;
+                    
                     const baseSegment = getSegmentByIndex(segments, baseComponent.componentIndex);
                     if (baseSegment) {
                         const baseComponentString = stringifyBaseComponent(baseSegment, baseComponent.line3dIndex);
@@ -439,6 +440,9 @@ export function buildComponentInstance(segment: Segment, segments: Segment[]) {
     return undefined;
 }
 
-export function getSegmentByIndex(segments: Segment[], index: number) {
+export function getSegmentByIndex(segments: Segment[], index?: number) {
+    if (index === undefined) {
+        return undefined;
+    }
     return segments.find(segment => segment.param.index === index);
 }

@@ -17,7 +17,7 @@ export function generateShape(segment: Segment, temp: boolean = true) {
 }
 
 function generateCircularStairShape(segment: Segment, temp: boolean = true) {
-    const { start, end, stairShape, moldShape, cornerShape, cornerMoldShape, startHeight, baseLineSeg3d, circleTangent, param } = segment;
+    const { start, end, stairShape, moldShape, cornerShape, cornerMoldShape, startHeight, baseComponent, circleTangent, param } = segment;
     const { startWidth, endWidth, horizontalStep, verticalStep, upward, platformThickness } = param;
 
     if (circleTangent) {
@@ -280,7 +280,8 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
             }
         }
 
-        if (baseLineSeg3d) {
+        if (baseComponent) {
+            const baseLineSeg3d = baseComponent.line3d;
             const baseLineDir = baseLineSeg3d.end.subtracted(baseLineSeg3d.start).normalized();
             const angle = circleTangent.angle(baseLineDir);
             if (angle < Math.PI / 2) {
@@ -307,7 +308,7 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
 }
 
 function generateStraightStairShape(segment: Segment, temp: boolean = true) {
-    const { start, end, stairShape, moldShape, cornerShape, cornerMoldShape, startHeight, baseLineSeg3d, param } = segment;
+    const { start, end, stairShape, moldShape, cornerShape, cornerMoldShape, startHeight, baseComponent, param } = segment;
     const { startWidth, endWidth, horizontalStep, verticalStep, upward, platformThickness } = param;
     stairShape.vertices = [];
     stairShape.tempLines = [];
@@ -333,7 +334,8 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
         return;
     }
 
-    if (baseLineSeg3d) {
+    if (baseComponent) {
+        const baseLineSeg3d = baseComponent.line3d;
         const baseLineDir = baseLineSeg3d.end.subtracted(baseLineSeg3d.start).normalized();
         const angle = horizontalFrontDir.angle(baseLineDir);
         const deltaAngle = Math.abs(angle - Math.PI / 2);
@@ -546,7 +548,7 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
 }
 
 function generatePlatformShape(segment: Segment, temp: boolean = true) {
-    const { start, startHeight, baseLineSeg3d, stairShape, moldShape, cornerShape, cornerMoldShape, param } = segment;
+    const { start, startHeight, baseComponent, stairShape, moldShape, cornerShape, cornerMoldShape, param } = segment;
     const { startWidth, offsetWidth, withOffset, platformThickness, platformLength, platformLengthLocked, modelEditing } = param;
 
     const curDir = segment.end.subtracted(start);
@@ -566,7 +568,8 @@ function generatePlatformShape(segment: Segment, temp: boolean = true) {
         param.withOffset = false;
     }
 
-    if (baseLineSeg3d) {
+    if (baseComponent) {
+        const baseLineSeg3d = baseComponent.line3d;
         const { start: baseLineStart, end: baseLineEnd } = baseLineSeg3d;
         const baseLineDir = baseLineEnd.subtracted(baseLineStart).normalized();
 
