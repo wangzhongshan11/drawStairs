@@ -1,5 +1,5 @@
-import { BaseLineSeg3dKey, CircleTangentKey, ComponentType, ParamKey, Segment, StartEndKey } from "./types";
-import { stringifyParam, stringifyPoint3d, stringifyStartEnd } from "./utils";
+import { BaseComponentKey, BaseLineSeg3dKey, CircleTangentKey, ComponentType, ParamKey, Segment, StartEndKey } from "./types";
+import { stringifyBaseComponent, stringifyParam, stringifyPoint3d, stringifyStartEnd } from "./utils";
 
 export function generateMeshes(segments: Segment[]): KMesh[] {
     const meshes: KMesh[] = [];
@@ -392,8 +392,8 @@ function generatePolygonMesh(vertices: KPoint3d[], mesh: KMesh) {
     }
 }
 
-export function buildComponentInstance(segment: Segment) {
-    const { start, end, startHeight, endHeight, baseLineSeg3d, circleTangent, param, mesh } = segment;
+export function buildComponentInstance(segment: Segment, segments: Segment[]) {
+    const { start, end, startHeight, endHeight, baseLineSeg3d, baseComponent, circleTangent, param, mesh } = segment;
     const design = app.getActiveDesign();
 
     let operationSuccess = true;
@@ -420,6 +420,14 @@ export function buildComponentInstance(segment: Segment) {
                     const BaseLineString = stringifyStartEnd(baseLineSeg3d.start, baseLineSeg3d.end);
                     operationSuccess = operationSuccess && groupDef.setCustomProperty(BaseLineSeg3dKey, BaseLineString).isSuccess;
                 }
+                if (baseComponent) {
+                    const baseSegment = getSegmentByIndex(segments, baseComponent.componentIndex);
+                    if (baseSegment) {
+                        const baseComponentString = stringifyBaseComponent(baseSegment, baseComponent.line3dIndex);
+                        operationSuccess = operationSuccess && groupDef.setCustomProperty(BaseComponentKey, baseComponentString).isSuccess;
+
+                    }
+                }
                 if (circleTangent) {
                     const tangentString = stringifyPoint3d(circleTangent);
                     operationSuccess = operationSuccess && groupDef.setCustomProperty(CircleTangentKey, tangentString).isSuccess;
@@ -429,4 +437,8 @@ export function buildComponentInstance(segment: Segment) {
         }
     }
     return undefined;
+}
+
+export function getSegmentByIndex(segments: Segment[], index: number) {
+    return segments.find(segment => segment.param.index === index);
 }

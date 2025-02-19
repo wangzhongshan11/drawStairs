@@ -1,4 +1,4 @@
-import { ComponentParam, CoordDelimiter, DefaultComponentParam, Delimiter } from "./types";
+import { BaseLine3dDelimiter, ComponentParam, CoordDelimiter, DefaultComponentParam, Delimiter, Segment } from "./types";
 
 export function isKArchFace(entity: KEntity | KArchFace | undefined | null): entity is KArchFace {
     return !!entity && (entity.getType() === KArchFaceType.NonPlanar || entity.getType() === KArchFaceType.Planar);
@@ -132,5 +132,26 @@ export function parseVector3d(value: string) {
     if (items.length === 3) {
         const vector = GeomLib.createVector3d(parseFloat(items[0]), parseFloat(items[1]), parseFloat(items[2]));
         return vector;
+    }
+}
+
+export function stringifyBaseComponent(baseSegment: Segment, line3dIndex?: number) {
+    let value: string = '';
+    value += `${baseSegment.param.index}`;
+    if (line3dIndex !== undefined) {
+        value += `${CoordDelimiter}${line3dIndex}`;
+    }
+    return value;
+}
+
+export function parseBaseComponent(value: string) {
+    const items = value.split(BaseLine3dDelimiter);
+    if (items.length > 0) {
+        const baseComponentIndex = parseInt(items[0]);
+        let line3dIndex: number | undefined;
+        if (items.length === 2) {
+            line3dIndex = parseInt(items[1]);
+        }
+        return { componentIndex: baseComponentIndex, line3dIndex };
     }
 }

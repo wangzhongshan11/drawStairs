@@ -8,10 +8,12 @@ export const ParamKey = 'DSParam';
 export const ComponentIndexKey = 'Ind';
 export const StartEndKey = 'SToE';
 export const BaseLineSeg3dKey = 'BaseLine';
+export const BaseComponentKey = 'BaseComponent';
 export const CircleTangentKey = 'CircleTangent';
 
 export const Delimiter = '&';
 export const CoordDelimiter = ',';
+export const BaseLine3dDelimiter = '_';
 
 export enum ComponentParamType {
     HorizontalStep = "horizontalStep",
@@ -247,6 +249,7 @@ export interface Segment {
     endHeight: number;
     // anti clockwise
     baseLineSeg3d?: { start: KPoint3d, end: KPoint3d };
+    baseComponent?: { componentIndex: number, line3dIndex?: number };
     circleTangent?: KVector3d;
     param: ComponentParam;
 
@@ -265,83 +268,6 @@ export interface Segment {
 
     mesh?: KMesh;
 }
-
-// export enum StairType {
-//     Straight = 0,
-//     Circular = 1,
-// }
-// export interface PlatformParam {
-//     startWidth: number;
-//     endWidth: number;
-//     // length: number;
-// }
-
-// export const DefaultPlatformParam: PlatformParam = {
-//     startWidth: 1000,
-//     endWidth: 1000,
-//     // length: 1000,
-// }
-// export enum StepType {
-//     Normal = 0,
-//     Open = 1,
-//     Grounding = 2,
-// }
-
-// export enum CornerType {
-//     None = 0,
-//     Rectangle = 1,
-//     Arc = 2,
-// }
-
-// export interface HandrailParam {
-//     height: number;
-//     railRadius: number;
-//     railSegment: number;
-//     pillarRadius: number;
-//     pillarSegment: number;
-// }
-
-// export const DefaultHandrailParam: HandrailParam = {
-//     height: 200,
-//     railRadius: 20,
-//     railSegment: 6,
-//     pillarRadius: 20,
-//     pillarSegment: 6,
-// }
-
-// export type PointLike = KPoint3d;
-// {
-//     x: number;
-//     y: number;
-//     z: number;
-// }
-
-
-
-// export interface PartShape {
-//     // 每种stepType不同的vertices排列
-//     main: Shape,
-//     // stair和corner部分vertices排列不同
-//     sideBoard: Shape,
-//     handrail: {
-//         rails: {
-//             segment: number;
-//             // 内外两条
-//             cylinders: Shape[],
-//         },
-//         pillars: {
-//             segment: number,
-//             // 很多条
-//             cylinders: Shape[],
-//         }
-//     }
-// }
-
-// export interface StairShape {
-//     stair: { stepCount: number; shape: PartShape },
-//     corner: PartShape,
-// }
-
 
 export const enum Axis {
     X = 'X',
