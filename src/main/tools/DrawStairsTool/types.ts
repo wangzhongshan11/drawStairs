@@ -161,8 +161,8 @@ export interface StairParam {
             param: HandrailComponentParam;
         }
     }
-    stepProportional: boolean,
-    widthProportional: boolean,
+    stepProportional?: boolean,
+    widthProportional?: boolean,
 }
 
 export interface ComponentParam {
