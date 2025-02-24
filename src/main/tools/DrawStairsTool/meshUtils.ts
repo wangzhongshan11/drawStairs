@@ -421,7 +421,7 @@ export function buildComponentInstance(segment: Segment, segments: Segment[]) {
                 if (baseComponent) {
                     const BaseLineString = stringifyStartEnd(baseComponent.line3d.start, baseComponent.line3d.end);
                     operationSuccess = operationSuccess && groupDef.setCustomProperty(BaseLineSeg3dKey, BaseLineString).isSuccess;
-                    
+
                     const baseSegment = getSegmentByIndex(segments, baseComponent.componentIndex);
                     if (baseSegment) {
                         const baseComponentString = stringifyBaseComponent(baseSegment, baseComponent.line3dIndex);
@@ -453,6 +453,52 @@ export function buildSegmentRelations(segments: Segment[]) {
         const baseSegment = getSegmentByIndex(segments, baseComponent?.componentIndex);
         if (baseSegment && baseComponent?.line3dIndex !== undefined) {
             baseSegment.nextComponents[baseComponent.line3dIndex].push(segment.param.index);
+        }
+    }
+}
+
+export function getNextComponents(segment: Segment, segments: Segment[]) {
+    const { nextComponents } = segment;
+
+    const nextSegments: Segment[] = [];
+    for (const nextComponentIndexes of nextComponents) {
+        for (const nextComponentIndex of nextComponentIndexes) {
+            const nextSegment = getSegmentByIndex(segments, nextComponentIndex);
+            if (nextSegment) {
+                nextSegments.push(nextSegment);
+            }
+        }
+    }
+    return nextSegments;
+}
+
+export function changeStairUpward(startSegment: Segment, segments: Segment[], upward: boolean, bulkChange: boolean) {
+    if (segments.length) {
+        let current: { segment: Segment, verticalDelta: number }[] = [{ segment: startSegment, verticalDelta: 0 }];
+        const unVisited: Set<Segment> = new Set(segments);
+        while (current.length) {
+            let next: { segment: Segment, verticalDelta: number }[] = [];
+            for (const { segment, verticalDelta } of current) {
+                const { startHeight, endHeight } = segment;
+                const endDelta = segment.param.upward === upward ? 0 : 2 * (startHeight - endHeight);
+                segment.startHeight += verticalDelta;
+                segment.endHeight += verticalDelta + endDelta;
+                segment.param.upward = upward;
+                unVisited.delete(segment);
+
+                const nextSegments = getNextComponents(segment, segments);
+                if (nextSegments.length) {
+                    next.push(...nextSegments.map(seg => ({ segment: seg, verticalDelta: verticalDelta + endDelta })));
+                }
+            }
+            current = next;
+
+            if (!current.length) {
+                if (bulkChange && unVisited.size) {
+                    const theSegment = [...unVisited.values()][0];
+                    current = [{ segment: theSegment, verticalDelta: theSegment.startHeight > 0 === upward ? 0 : (theSegment.startHeight * - 2) }];
+                }
+            }
         }
     }
 }
