@@ -1,5 +1,5 @@
 import { AngleTolerance, DirectionAngleTolerance, DirectionZ, dummyPoint3d, LengthTolerance, StepCountLimit } from "./consts";
-import { ComponentType, Segment } from "./types";
+import { ComponentType, Segment, StairParam } from "./types";
 
 export function generateShape(segment: Segment, temp: boolean = true) {
     const { param: { type }, circleTangent } = segment;
@@ -763,6 +763,38 @@ function generatePlatformShape(segment: Segment, temp: boolean = true) {
                 [0, 4], [1, 5], [2, 6], [3, 7],
             ];
         }
+    }
+}
+
+function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
+    if (segments.length) {
+        const { handrail: {support, height, rail, column} } = stairParam;
+        let current: { segment: Segment, left: boolean, start: boolean }[] = [{ segment: segments[0], left: true, start: true }];
+                const unVisited: Set<Segment> = new Set(segments);
+                while (current.length) {
+                    let next: { segment: Segment, left: boolean, start: boolean }[] = [];
+                    for (const { segment, left, start } of current) {
+                        const { startHeight, endHeight } = segment;
+                        const endDelta = segment.param.upward === upward ? 0 : 2 * (startHeight - endHeight);
+                        segment.startHeight += verticalDelta;
+                        segment.endHeight += verticalDelta + endDelta;
+                        segment.param.upward = upward;
+                        unVisited.delete(segment);
+        
+                        const nextSegments = getNextComponents(segment, segments);
+                        if (nextSegments.length) {
+                            next.push(...nextSegments.map(seg => ({ segment: seg, verticalDelta: verticalDelta + endDelta })));
+                        }
+                    }
+                    current = next;
+        
+                    if (!current.length) {
+                        if (bulkChange && unVisited.size) {
+                            const theSegment = [...unVisited.values()][0];
+                            current = [{ segment: theSegment, verticalDelta: theSegment.startHeight > 0 === upward ? 0 : (theSegment.startHeight * - 2) }];
+                        }
+                    }
+                }
     }
 }
 

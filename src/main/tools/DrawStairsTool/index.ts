@@ -1,4 +1,4 @@
-import { ComponentType, ComponentParam, Segment, ParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType, StairModelValue, CircleTangentKey, StairParam, DefaultStairParam, BaseComponentKey } from "./types";
+import { ComponentType, ComponentParam, Segment, ParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType, StairModelValue, CircleTangentKey, StairParam, DefaultStairParam, BaseComponentKey, Handrail } from "./types";
 import { generateShape } from "./tempMeshUtils";
 import { buildComponentInstance, buildSegmentRelations, changeStairUpward, generateMeshes, getSegmentByIndex } from "./meshUtils";
 import { parseBaseComponent, parseLineSeg3d, parseParam, parseStartEnd, parseVector3d } from "./utils";
@@ -30,6 +30,7 @@ export class DrawStairsTool implements KTool {
     private drawing = false;
     private focusedComponentIndex: number = DefaultFocusedComponentIndex;
     private segments: Segment[] = [];
+    private handrails?: Handrail[];
     private stairParam?: StairParam;
     private editModel?: EditModel;
 
@@ -612,6 +613,7 @@ export class DrawStairsTool implements KTool {
     clearEditModel() {
         this.editModel = undefined;
         this.segments = [];
+        this.handrails = undefined;
         this.focusedComponentIndex = DefaultFocusedComponentIndex;
         pluginUI.postMessage({ type: MessageType.DrawStairModelSettled }, '*');
     }

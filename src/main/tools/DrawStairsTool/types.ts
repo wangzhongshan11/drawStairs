@@ -270,6 +270,11 @@ export interface Segment {
     mesh?: KMesh;
 }
 
+export interface Handrail {
+    rail: KPoint3d[];
+    columns: KPoint3d[][];
+}
+
 export const enum Axis {
     X = 'X',
     XMinus = '-X',
