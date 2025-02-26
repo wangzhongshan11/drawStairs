@@ -155,3 +155,7 @@ export function parseBaseComponent(value: string) {
         return { componentIndex: baseComponentIndex, line3dIndex };
     }
 }
+
+export function isEqual(a: number, b: number, tolerance: number = 1) {
+    return Math.abs(a - b) <= tolerance;
+}
