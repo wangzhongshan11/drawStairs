@@ -854,25 +854,27 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                             start: false,
                         });
 
-                    } else if (line3dInd < moldTempLines.length) {
-                        visited.get(segment)?.line3dIndexes.add(line3dInd);
+                    } else {
+                        let nextLine3dInd = (line3dInd + 1) % moldTempLines.length;
+                        const visitedLine3dIndexes = visited.get(segment)?.line3dIndexes;
+                        visitedLine3dIndexes?.add(line3dInd);
+                        if (visitedLine3dIndexes?.has(nextLine3dInd)) {
+                            // end of this patch
 
+                            const lastBottomPoint = ep.added(DirectionZ.multiplied(startHeight));
+                            handrail.columns.push([
+                                lastBottomPoint,
+                                lastBottomPoint.added(DirectionZ.multiplied(height)),
+                            ]);
+                        } else {
+                            // end of this line3d
                             next.push({
                                 segment,
-                                line3dInd: line3dInd + 1,
+                                line3dInd: nextLine3dInd,
                                 left: true,
                                 start: false,
                             });
-                        
-                    } else {
-                        // end of this patch
-                        visited.get(segment)?.line3dIndexes.add(line3dInd);
-
-                        const lastBottomPoint = ep.added(DirectionZ.multiplied(startHeight));
-                        handrail.columns.push([
-                            lastBottomPoint,
-                            lastBottomPoint.added(DirectionZ.multiplied(height)),
-                        ]);
+                        }
                     }
 
                 } else {
