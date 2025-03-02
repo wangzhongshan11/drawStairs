@@ -1,6 +1,6 @@
 import { AngleTolerance, DirectionAngleTolerance, DirectionZ, dummyPoint3d, LengthTolerance, StepCountLimit } from "./consts";
 import { getSegmentByIndex } from "./meshUtils";
-import { ComponentType, Handrail, Segment, StairParam } from "./types";
+import { ComponentType, Handrail, PlatformDirectionType, Segment, StairParam } from "./types";
 import { isEqual } from "./utils";
 
 export function generateShape(segment: Segment, temp: boolean = true) {
@@ -23,7 +23,6 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
     const { startWidth, endWidth, horizontalStep, verticalStep, upward, platformThickness } = param;
 
     if (circleTangent) {
-        const verticalFrontDir = DirectionZ;
         const tangentLeftDir = DirectionZ.cross(circleTangent).normalized();
         const startEndDir = end.subtracted(start).normalized();
         const startEndDistance = start.distanceTo(end);
@@ -82,8 +81,8 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
             const curHalfWidth = (startWidth + (endWidth - startWidth) * (i * horizontalStepAngle) / arcAngle) / 2 * (isLeftArc ? -1 : 1);
             const curLeftMoldPt = circleCenter.added(curRadiusDir.multiplied(radius + curHalfWidth));
             const curRightMoldPt = circleCenter.added(curRadiusDir.multiplied(radius - curHalfWidth));
-            const curLeftPt = curLeftMoldPt.added(DirectionZ.multiplied(startHeight)).added(verticalFrontDir.multiplied(i * stepHeight));
-            const curRightPt = curRightMoldPt.added(DirectionZ.multiplied(startHeight)).added(verticalFrontDir.multiplied(i * stepHeight));
+            const curLeftPt = curLeftMoldPt.added(DirectionZ.multiplied(startHeight + i * stepHeight));
+            const curRightPt = curRightMoldPt.added(DirectionZ.multiplied(startHeight + i * stepHeight));
             moldVertices.push(curLeftMoldPt, curRightMoldPt);
             moldTempLines.push(
                 [2 * i, 1 + 2 * i],
@@ -97,12 +96,12 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
             const nextHalfWidth = (startWidth + (endWidth - startWidth) * ((i + 1) * horizontalStepAngle) / arcAngle) / 2 * (isLeftArc ? -1 : 1);
             const nextLeftMoldPt = circleCenter.added(nextRadiusDir.multiplied(radius + nextHalfWidth));
             const nextRightMoldPt = circleCenter.added(nextRadiusDir.multiplied(radius - nextHalfWidth));
-            const nextLeftPt = nextLeftMoldPt.added(DirectionZ.multiplied(startHeight)).added(verticalFrontDir.multiplied(i * stepHeight));
-            const nextRightPt = nextRightMoldPt.added(DirectionZ.multiplied(startHeight)).added(verticalFrontDir.multiplied(i * stepHeight));
+            const nextLeftPt = nextLeftMoldPt.added(DirectionZ.multiplied(startHeight + i * stepHeight));
+            const nextRightPt = nextRightMoldPt.added(DirectionZ.multiplied(startHeight + i * stepHeight));
             if (upward) {
                 vertices.push(
-                    curLeftPt.added(verticalFrontDir.multiplied(stepHeight)),
-                    curRightPt.added(verticalFrontDir.multiplied(stepHeight)),
+                    curLeftPt.added(DirectionZ.multiplied(stepHeight)),
+                    curRightPt.added(DirectionZ.multiplied(stepHeight)),
                 );
             } else {
                 vertices.push(nextLeftPt, nextRightPt);
@@ -126,7 +125,7 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
                 // if (upward) {
                 // } else {
                 // }
-                vertices.push(nextLeftPt.added(verticalFrontDir.multiplied(stepHeight)), nextRightPt.added(verticalFrontDir.multiplied(stepHeight)));
+                vertices.push(nextLeftPt.added(DirectionZ.multiplied(stepHeight)), nextRightPt.added(DirectionZ.multiplied(stepHeight)));
                 if (temp) {
                     tempLines.push([4 * (stepCount - 1), 1 + 4 * (stepCount - 1)]);
                 }
@@ -138,8 +137,8 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
         const lastHalfWidth = isLeftArc ? -endWidth / 2 : endWidth / 2;
         const lastLeftMoldPt = circleCenter.added(lastRadiusDir.multiplied(radius + lastHalfWidth));
         const lastRightMoldPt = circleCenter.added(lastRadiusDir.multiplied(radius - lastHalfWidth));
-        const lastLeftPt = lastLeftMoldPt.added(DirectionZ.multiplied(startHeight)).added(verticalFrontDir.multiplied(stepCount * stepHeight));
-        const lastRightPt = lastRightMoldPt.added(DirectionZ.multiplied(startHeight)).added(verticalFrontDir.multiplied(stepCount * stepHeight));
+        const lastLeftPt = lastLeftMoldPt.added(DirectionZ.multiplied(startHeight + stepCount * stepHeight));
+        const lastRightPt = lastRightMoldPt.added(DirectionZ.multiplied(startHeight + stepCount * stepHeight));
         if (stepCount === 1) {
             moldVertices.push(leftPt, rightPt);
             moldTempLines.push(
@@ -164,8 +163,8 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
             }
             if (lastHorizontalAngle >= AngleTolerance || lastHorizontalAngle === 0) {
                 vertices.push(
-                    vertices[vertices.length - 2].added(verticalFrontDir.multiplied(verticalStep)),
-                    vertices[vertices.length - 1].added(verticalFrontDir.multiplied(verticalStep))
+                    vertices[vertices.length - 2].added(DirectionZ.multiplied(verticalStep)),
+                    vertices[vertices.length - 1].added(DirectionZ.multiplied(verticalStep))
                 );
                 vertices.push(lastLeftPt, lastRightPt);
                 if (temp) {
@@ -189,8 +188,8 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
 
             if (lastHorizontalAngle >= AngleTolerance || lastHorizontalAngle === 0) {
                 vertices.push(
-                    lastLeftPt.added(verticalFrontDir.multiplied(-stepHeight)),
-                    lastRightPt.added(verticalFrontDir.multiplied(-stepHeight)),
+                    lastLeftPt.added(DirectionZ.multiplied(-stepHeight)),
+                    lastRightPt.added(DirectionZ.multiplied(-stepHeight)),
                 );
                 vertices.push(lastLeftPt, lastRightPt);
                 if (temp) {
@@ -216,8 +215,8 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
             const actualLastStepLength = lastHorizontalAngle < AngleTolerance ? horizontalStepAngle : lastHorizontalAngle;
             if (upward) {
                 vertices.push(
-                    vertices[vertices.length - 2].added(verticalFrontDir.multiplied(-stepHeight - (1 - actualLastStepLength / horizontalStepAngle) * stepHeight)),
-                    vertices[vertices.length - 1].added(verticalFrontDir.multiplied(-stepHeight - (1 - actualLastStepLength / horizontalStepAngle) * stepHeight)),
+                    vertices[vertices.length - 2].added(DirectionZ.multiplied(-stepHeight - (1 - actualLastStepLength / horizontalStepAngle) * stepHeight)),
+                    vertices[vertices.length - 1].added(DirectionZ.multiplied(-stepHeight - (1 - actualLastStepLength / horizontalStepAngle) * stepHeight)),
                 );
                 for (let j = stepCount - (lastHorizontalAngle >= AngleTolerance ? 1 : 2); j > 0; j--) {
                     const vInd = j * 4;
@@ -234,12 +233,12 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
                             );
                         }
                     }
-                    vertices.push(vertices[vInd].added(verticalFrontDir.multiplied(-stepHeight)), vertices[vInd + 1].added(verticalFrontDir.multiplied(-stepHeight)));
+                    vertices.push(vertices[vInd].added(DirectionZ.multiplied(-stepHeight)), vertices[vInd + 1].added(DirectionZ.multiplied(-stepHeight)));
                 }
             } else {
                 vertices.push(
-                    vertices[vertices.length - 6].added(verticalFrontDir.multiplied(stepHeight)),
-                    vertices[vertices.length - 5].added(verticalFrontDir.multiplied(stepHeight)),
+                    vertices[vertices.length - 6].added(DirectionZ.multiplied(stepHeight)),
+                    vertices[vertices.length - 5].added(DirectionZ.multiplied(stepHeight)),
                 );
                 for (let j = stepCount - (lastHorizontalAngle >= AngleTolerance ? 1 : 2); j >= 0; j--) {
                     const vInd = j * 4;
@@ -256,7 +255,7 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
                             );
                         }
                     }
-                    vertices.push(vertices[vInd].added(verticalFrontDir.multiplied(stepHeight)), vertices[vInd + 1].added(verticalFrontDir.multiplied(stepHeight)));
+                    vertices.push(vertices[vInd].added(DirectionZ.multiplied(stepHeight)), vertices[vInd + 1].added(DirectionZ.multiplied(stepHeight)));
                 }
             }
         } else {
@@ -271,13 +270,13 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
             }
             if (upward) {
                 vertices.push(
-                    vertices[vertices.length - 2].added(verticalFrontDir.multiplied(-stepHeight)),
-                    vertices[vertices.length - 1].added(verticalFrontDir.multiplied(-stepHeight)),
+                    vertices[vertices.length - 2].added(DirectionZ.multiplied(-stepHeight)),
+                    vertices[vertices.length - 1].added(DirectionZ.multiplied(-stepHeight)),
                 );
             } else {
                 vertices.push(
-                    vertices[0].added(verticalFrontDir.multiplied(stepHeight)),
-                    vertices[1].added(verticalFrontDir.multiplied(stepHeight)),
+                    vertices[0].added(DirectionZ.multiplied(stepHeight)),
+                    vertices[1].added(DirectionZ.multiplied(stepHeight)),
                 );
             }
         }
@@ -295,8 +294,8 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
             }
             cornerMoldShape.tempLines = [[0, 1], [1, 2], [2, 0]];
             cornerShape.vertices = [
-                ...cornerMoldShape.vertices.map(v => v.added(verticalFrontDir.multiplied(startHeight))),
-                ...cornerMoldShape.vertices.map(v => v.added(verticalFrontDir.multiplied(startHeight - platformThickness))),
+                ...cornerMoldShape.vertices.map(v => v.added(DirectionZ.multiplied(startHeight))),
+                ...cornerMoldShape.vertices.map(v => v.added(DirectionZ.multiplied(startHeight - platformThickness))),
             ];
             if (temp) {
                 cornerShape.tempLines = [
@@ -323,7 +322,6 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
     const { vertices, tempLines } = stairShape;
     const { vertices: moldVertices, tempLines: moldTempLines } = moldShape;
 
-    const verticalFrontDir = DirectionZ;
     let horizontalFrontDir = end.subtracted(start).normalized();
     let horizontalDistance = start.distanceTo(end);
     let horizontalLeftDir = DirectionZ.cross(horizontalFrontDir);
@@ -355,8 +353,8 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
             }
             cornerMoldShape.tempLines = [[0, 1], [1, 2], [2, 0]];
             cornerShape.vertices = [
-                ...cornerMoldShape.vertices.map(v => v.added(verticalFrontDir.multiplied(startHeight))),
-                ...cornerMoldShape.vertices.map(v => v.added(verticalFrontDir.multiplied(startHeight - platformThickness))),
+                ...cornerMoldShape.vertices.map(v => v.added(DirectionZ.multiplied(startHeight))),
+                ...cornerMoldShape.vertices.map(v => v.added(DirectionZ.multiplied(startHeight - platformThickness))),
             ];
             if (temp) {
                 cornerShape.tempLines = [
@@ -378,8 +376,8 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
     for (let i = 0; i < stepCount - 1; i++) {
         const curLeftMoldPt = leftPt.added(horizontalFrontDir.multiplied(i * horizontalStep)).added(horizontalLeftDir.multiplied(i * widthDelta));
         const curRightMoldPt = rightPt.added(horizontalFrontDir.multiplied(i * horizontalStep)).added(horizontalLeftDir.multiplied(-i * widthDelta));
-        const curLeftPt = curLeftMoldPt.added(DirectionZ.multiplied(startHeight)).added(verticalFrontDir.multiplied(i * stepHeight));
-        const curRightPt = curRightMoldPt.added(DirectionZ.multiplied(startHeight)).added(verticalFrontDir.multiplied(i * stepHeight));
+        const curLeftPt = curLeftMoldPt.added(DirectionZ.multiplied(startHeight + i * stepHeight));
+        const curRightPt = curRightMoldPt.added(DirectionZ.multiplied(startHeight + i * stepHeight));
         moldVertices.push(curLeftMoldPt, curRightMoldPt);
         moldTempLines.push(
             [2 * i, 1 + 2 * i],
@@ -389,8 +387,8 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
         vertices.push(curLeftPt, curRightPt);
         if (upward) {
             vertices.push(
-                curLeftPt.added(verticalFrontDir.multiplied(stepHeight)),
-                curRightPt.added(verticalFrontDir.multiplied(stepHeight)),
+                curLeftPt.added(DirectionZ.multiplied(stepHeight)),
+                curRightPt.added(DirectionZ.multiplied(stepHeight)),
             );
         } else {
             vertices.push(
@@ -440,8 +438,8 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
         }
         if (lastStepLength > LengthTolerance || lastStepLength === 0) {
             vertices.push(
-                vertices[vertices.length - 2].added(verticalFrontDir.multiplied(stepHeight)),
-                vertices[vertices.length - 1].added(verticalFrontDir.multiplied(stepHeight))
+                vertices[vertices.length - 2].added(DirectionZ.multiplied(stepHeight)),
+                vertices[vertices.length - 1].added(DirectionZ.multiplied(stepHeight))
             );
             vertices.push(
                 vertices[vertices.length - 2].added(horizontalLeftDir.multiplied(lastStepLength / horizontalStep * widthDelta)).added(horizontalFrontDir.multiplied(lastStepLength)),
@@ -461,8 +459,8 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
         }
     } else {
         vertices.push(
-            stepCount > 1 ? vertices[vertices.length - 2].added(verticalFrontDir.multiplied(stepHeight)) : leftPt,
-            stepCount > 1 ? vertices[vertices.length - 1].added(verticalFrontDir.multiplied(stepHeight)) : rightPt,
+            stepCount > 1 ? vertices[vertices.length - 2].added(DirectionZ.multiplied(stepHeight)) : leftPt,
+            stepCount > 1 ? vertices[vertices.length - 1].added(DirectionZ.multiplied(stepHeight)) : rightPt,
         );
         if (temp) {
             tempLines.push(
@@ -475,8 +473,8 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
                 vertices[vertices.length - 1].added(horizontalLeftDir.multiplied(-lastStepLength / horizontalStep * widthDelta)).added(horizontalFrontDir.multiplied(lastStepLength))
             );
             vertices.push(
-                vertices[vertices.length - 2].added(verticalFrontDir.multiplied(stepHeight)),
-                vertices[vertices.length - 1].added(verticalFrontDir.multiplied(stepHeight)),
+                vertices[vertices.length - 2].added(DirectionZ.multiplied(stepHeight)),
+                vertices[vertices.length - 1].added(DirectionZ.multiplied(stepHeight)),
             );
             if (temp) {
                 tempLines.push(
@@ -507,8 +505,8 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
         const actualLastStepLength = lastStepLength < LengthTolerance ? horizontalStep : lastStepLength;
         if (upward) {
             vertices.push(
-                vertices[vertices.length - 2].added(verticalFrontDir.multiplied(-stepHeight - (1 - actualLastStepLength / horizontalStep) * stepHeight)),
-                vertices[vertices.length - 1].added(verticalFrontDir.multiplied(-stepHeight - (1 - actualLastStepLength / horizontalStep) * stepHeight)),
+                vertices[vertices.length - 2].added(DirectionZ.multiplied(-stepHeight - (1 - actualLastStepLength / horizontalStep) * stepHeight)),
+                vertices[vertices.length - 1].added(DirectionZ.multiplied(-stepHeight - (1 - actualLastStepLength / horizontalStep) * stepHeight)),
             );
             vertices.push(
                 vertices[0].added(horizontalFrontDir.multiplied(horizontalStep)),
@@ -520,8 +518,8 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
                 vertices[vertices.length - 1].added(horizontalFrontDir.multiplied(-actualLastStepLength)),
             );
             vertices.push(
-                vertices[0].added(verticalFrontDir.multiplied(stepHeight)),
-                vertices[1].added(verticalFrontDir.multiplied(stepHeight)),
+                vertices[0].added(DirectionZ.multiplied(stepHeight)),
+                vertices[1].added(DirectionZ.multiplied(stepHeight)),
             );
         }
     } else {
@@ -536,13 +534,13 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
         }
         if (upward) {
             vertices.push(
-                vertices[vertices.length - 2].added(verticalFrontDir.multiplied(-stepHeight)),
-                vertices[vertices.length - 1].added(verticalFrontDir.multiplied(-stepHeight)),
+                vertices[vertices.length - 2].added(DirectionZ.multiplied(-stepHeight)),
+                vertices[vertices.length - 1].added(DirectionZ.multiplied(-stepHeight)),
             );
         } else {
             vertices.push(
-                vertices[0].added(verticalFrontDir.multiplied(stepHeight)),
-                vertices[1].added(verticalFrontDir.multiplied(stepHeight)),
+                vertices[0].added(DirectionZ.multiplied(stepHeight)),
+                vertices[1].added(DirectionZ.multiplied(stepHeight)),
             );
         }
     }
@@ -586,6 +584,7 @@ function generatePlatformShape(segment: Segment, temp: boolean = true) {
 
 
         if ((angle >= Math.PI && angle <= (Math.PI * 3 / 2 + angle1)) || (modelEditing && withOffset && offsetWidth >= 0)) {
+            segment.platformDirectionType = PlatformDirectionType.Left;
             param.platformLength = frontLength;
             const frontEnd = segment.start.added(prevDirNormalized.multiplied(frontLength));
             segment.end = frontEnd;
@@ -615,6 +614,7 @@ function generatePlatformShape(segment: Segment, temp: boolean = true) {
                 ];
             }
         } else if ((angle < Math.PI && angle >= (Math.PI / 2 - angle1)) || (modelEditing && withOffset && offsetWidth < 0)) {
+            segment.platformDirectionType = PlatformDirectionType.Right;
             param.platformLength = frontLength;
             const rightLength = withOffset && modelEditing ? (-offsetWidth + startWidth / 2) : -curDir.dot(prevLeftDir);
             const frontEnd1 = segment.start.added(prevDirNormalized.multiplied(frontLength));
@@ -646,6 +646,7 @@ function generatePlatformShape(segment: Segment, temp: boolean = true) {
         } else {
             param.offsetWidth = 0;
             if (angle <= DirectionAngleTolerance || angle >= (Math.PI * 2 - DirectionAngleTolerance)) {
+                segment.platformDirectionType = PlatformDirectionType.Front;
                 segment.end = segment.start.added(prevDirNormalized.multiplied(frontLength));
                 param.platformLength = frontLength;
                 moldShape.vertices = [
@@ -666,6 +667,7 @@ function generatePlatformShape(segment: Segment, temp: boolean = true) {
                     ];
                 }
             } else if (DirectionAngleTolerance < angle && angle < (Math.PI / 2 - angle1)) {
+                segment.platformDirectionType = PlatformDirectionType.RightFront;
                 param.platformLength = segment.end.distanceTo(segment.start);
 
                 let leftConnectPoints = [start.added(curLeftDir.multiplied(startWidth / 2)), baseLineEnd];
@@ -706,6 +708,7 @@ function generatePlatformShape(segment: Segment, temp: boolean = true) {
                     ];
                 }
             } else if (angle > (Math.PI * 3 / 2 + angle1) && angle < (Math.PI * 2 - DirectionAngleTolerance)) {
+                segment.platformDirectionType = PlatformDirectionType.LeftFront;
                 param.platformLength = segment.end.distanceTo(segment.start);
                 let rightConnectPoints = [baseLineStart, start.added(curLeftDir.multiplied(-startWidth / 2))];
                 const baseLineStartDistance = start.distanceTo(baseLineStart);
@@ -779,42 +782,45 @@ type TempObject = {
 function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
     if (segments.length) {
         const handrails: Handrail[] = [];
-        const { handrail: { support, height, rail, column: {step} } } = stairParam;
+        const { handrail: { support, height, rail, column: { step, param: columnParam } } } = stairParam;
         const visited: Map<Segment, { left: boolean, right: boolean, line3dIndexes: Set<number> }> = new Map();
         for (const segment of segments) {
             visited.set(segment, { left: false, right: false, line3dIndexes: new Set() });
         }
-        let current: TempObject[] = [{ 
-            segment: segments[0], 
-            line3dInd: 0, 
-            left: true, 
+        let current: TempObject[] = [{
+            segment: segments[0],
+            line3dInd: 0,
+            left: false,
             start: true,
-         }];
+        }];
         const unVisited: Set<Segment> = new Set(segments);
         let handrail: Handrail = { rail: [], columns: [] };
         while (current.length) {
             let next: TempObject[] = [];
-            for (const { segment, line3dInd, startPoint, left, start } of current) {
+            for (const { segment: currentSegment, line3dInd, startPoint, left } of current) {
                 const {
-                    param: { type },
+                    param: { index, type, startWidth, endWidth, horizontalStep, verticalStep, upward },
+                    start,
+                    end,
                     startHeight,
                     endHeight,
                     stairShape,
-                    moldShape: { vertices: moldVertices, tempLines: moldTempLines },
+                    moldShape: { vertices: moldVertices, tempLines: moldTempLines, stepCount },
                     cornerShape,
                     nextComponents,
-                } = segment;
+                    baseComponent,
+                    circleTangent,
+                } = currentSegment;
+                const stepHeight = upward ? verticalStep : -verticalStep;
+                const offsetLength = Math.max(columnParam.height || 0, columnParam.width || 0, columnParam.radius || 0);
 
+                const line3d = moldTempLines[line3dInd];
+                let sp = startPoint || moldVertices[line3d[0]];
+                let ep = moldVertices[line3d[1]];
+                let lastLength = sp.distanceTo(ep);
                 if (type === ComponentType.Platform) {
 
-                    const line3d = moldTempLines[line3dInd];
-                    const sp = startPoint || moldVertices[line3d[0]];
-                    const ep = moldVertices[line3d[1]];
-                    const lastLength = sp.distanceTo(ep);
                     // const nextSegmentIndexes = nextComponents[line3dInd];
-
-                    const nextSegments = [];
-                    let nextPoint = ep;
                     let nearestSegment: { segment: Segment, distance: number } | undefined;
                     for (const nextSegmentIndex of nextComponents[line3dInd]) {
                         const nextSegment = getSegmentByIndex(segments, nextSegmentIndex);
@@ -823,74 +829,246 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                             const ds = start.distanceTo(sp);
                             const de = start.distanceTo(ep);
 
-                            if (isEqual(ds + de, lastLength)) {
+                            if (isEqual(ds + de, lastLength) && !visited.get(nextSegment)?.right) {
                                 if (!nearestSegment || nearestSegment.distance > ds) {
                                     nearestSegment = { segment: nextSegment, distance: ds };
                                 }
                             }
                         }
                     }
-                    const lastDistance = nearestSegment ? nearestSegment.distance : lastLength;
+                    let lastDistance = nearestSegment ? nearestSegment.distance - nearestSegment.segment.param.startWidth / 2 : lastLength;
                     const line3dDir = ep.subtracted(sp).normalized();
+                    const offsetDir = DirectionZ.cross(line3dDir);
                     // push rail
-                    handrail.rail.push(sp.added(DirectionZ.multiplied(startHeight)));
+                    handrail.rail.push(sp.added(DirectionZ.multiplied(startHeight)).added(offsetDir.multiplied(offsetLength)));
                     // push columns
                     let tempDistance = 0;
                     while (tempDistance < lastDistance) {
-                        const bottomPoint = sp.added(line3dDir.multiplied(tempDistance)).added(DirectionZ.multiplied(startHeight));
+                        const bottomPoint = sp.added(line3dDir.multiplied(tempDistance)).added(DirectionZ.multiplied(startHeight)).added(offsetDir.multiplied(offsetLength));
                         handrail.columns.push([
-                            bottomPoint, 
+                            bottomPoint,
                             bottomPoint.added(DirectionZ.multiplied(height)),
                         ]);
                         tempDistance += step;
                     }
 
+                    let nextLine3dInd = (line3dInd + 1) % moldTempLines.length;
+                    const visitedLine3dIndexes = visited.get(currentSegment)?.line3dIndexes;
                     if (nearestSegment) {
-                        nextPoint = nearestSegment.segment.start.added(line3dDir.multiplied(-nearestSegment.segment.param.startWidth / 2));
-                        next.push({
-                            segment: nearestSegment.segment,
-                            line3dInd: 0,
-                            left: true,
-                            start: false,
-                        });
+                        ep = nearestSegment.segment.start.added(line3dDir.multiplied(-nearestSegment.segment.param.startWidth / 2));
+                        lastLength = sp.distanceTo(ep);
 
-                    } else {
-                        let nextLine3dInd = (line3dInd + 1) % moldTempLines.length;
-                        const visitedLine3dIndexes = visited.get(segment)?.line3dIndexes;
-                        visitedLine3dIndexes?.add(line3dInd);
-                        if (visitedLine3dIndexes?.has(nextLine3dInd)) {
-                            // end of this patch
-
-                            const lastBottomPoint = ep.added(DirectionZ.multiplied(startHeight));
+                        // push rail
+                        handrail.rail.push(ep.added(DirectionZ.multiplied(startHeight)).added(offsetDir.multiplied(offsetLength)));
+                        if (tempDistance - step < lastDistance) {
+                            const lastBottomPoint = sp.added(line3dDir.multiplied(lastDistance)).added(DirectionZ.multiplied(startHeight)).added(offsetDir.multiplied(offsetLength));
                             handrail.columns.push([
                                 lastBottomPoint,
                                 lastBottomPoint.added(DirectionZ.multiplied(height)),
                             ]);
-                        } else {
+                        }
+
+                        next.push({
+                            segment: nearestSegment.segment,
+                            line3dInd: nearestSegment.segment.param.type === ComponentType.Platform ?
+                                (nearestSegment.segment.platformDirectionType === PlatformDirectionType.RightFront ? 1 : 0) : 0,
+                            left: false,
+                            start: false,
+                        });
+                    } else {
+                        if (!visitedLine3dIndexes?.has(line3dInd) || !visitedLine3dIndexes?.has(nextLine3dInd)) {
+                            //  else {
                             // end of this line3d
                             next.push({
-                                segment,
+                                segment: currentSegment,
                                 line3dInd: nextLine3dInd,
-                                left: true,
+                                left: false,
                                 start: false,
                             });
+                        } else {
+                            const baseSegment = getSegmentByIndex(segments, baseComponent?.componentIndex);
+                            const visitedNearestSegment = baseSegment ? visited.get(baseSegment) : undefined;
+                            if (baseSegment && baseSegment.nextComponents.some(nextInds => nextInds.find(ind => ind === index))) {
+                                if ((visitedNearestSegment?.right && !visitedNearestSegment.left)) {
+                                    next.push({
+                                        segment: baseSegment,
+                                        line3dInd: 0,
+                                        left: true,
+                                        start: false,
+                                    });
+                                }
+                            } else if (!nextComponents.length) {
+                                // end of this patch
+                                // push rail
+                                handrail.rail.push(ep.added(DirectionZ.multiplied(startHeight)).added(offsetDir.multiplied(offsetLength)));
+                                if (tempDistance - step < lastDistance) {
+                                    const lastBottomPoint = sp.added(line3dDir.multiplied(lastDistance)).added(DirectionZ.multiplied(startHeight)).added(offsetDir.multiplied(offsetLength));
+                                    handrail.columns.push([
+                                        lastBottomPoint,
+                                        lastBottomPoint.added(DirectionZ.multiplied(height)),
+                                    ]);
+                                }
+
+                                handrails.push(handrail);
+                                handrail = { rail: [], columns: [] };
+                            }
+                        } else {
+                            // }
+                        }
+                        visitedLine3dIndexes?.add(line3dInd);
+                    }
+                } else {
+                    const stairRail: KPoint3d[] = [];
+                    const stairColumns: KPoint3d[][] = [];
+
+                    const frontDir = end.subtracted(start).normalized();
+                    const leftDir = DirectionZ.cross(frontDir);
+                    sp = start.added(leftDir.multiplied(startWidth / 2 * (left ? 1 : -1)));
+                    ep = end.added(leftDir.multiplied(endWidth / 2 * (left ? 1 : -1)));
+                    // const reasonableStep = Math.ceil(step / horizontalStep) * horizontalStep;
+                    const reasonableStepCount = Math.ceil(step / horizontalStep);
+                    lastLength = sp.distanceTo(ep);
+                    // push rail
+                    stairRail.push(sp.added(DirectionZ.multiplied(startHeight)).added(leftDir.multiplied(offsetLength)));
+                    let tempStepCount = 0;
+
+                    if (type === ComponentType.StraightStair) {
+                        // push columns
+                        // let tempDistance = horizontalStep / 2;
+                        while (tempStepCount < stepCount) {
+                            const curStepDistance = (tempStepCount + 0.5) * horizontalStep;
+                            const bottomPoint = sp.added(frontDir.multiplied(curStepDistance)).added(DirectionZ.multiplied(startHeight)).added(leftDir.multiplied(left ? offsetLength : -offsetLength));
+                            stairColumns.push([
+                                bottomPoint,
+                                bottomPoint.added(DirectionZ.multiplied(height)),
+                            ]);
+                            // const tempStepCount = Math.floor(tempDistance / horizontalStep);
+
+                            // tempDistance += reasonableStep;
+                            tempStepCount += reasonableStepCount;
+                        }
+                        if (tempStepCount - reasonableStepCount < stepCount - 1) {
+                            stairRail.push(sp.added(DirectionZ.multiplied(endHeight)).added(leftDir.multiplied(offsetLength)));
+                            const prevTotalStepLength = (stepCount - 1) * horizontalStep;
+                            const lastStepLength = lastLength - prevTotalStepLength;
+                            const lastBottomPoint = sp.added(frontDir.multiplied(prevTotalStepLength + lastStepLength / 2)).added(DirectionZ.multiplied(startHeight)).added(leftDir.multiplied(left ? offsetLength : -offsetLength));
+                            stairColumns.push([
+                                lastBottomPoint,
+                                lastBottomPoint.added(DirectionZ.multiplied(height)),
+                            ]);
+                        }
+                    } else if (circleTangent) {
+                        const tangentLeftDir = DirectionZ.cross(circleTangent).normalized();
+                        const startEndDir = end.subtracted(start).normalized();
+                        const startEndDistance = start.distanceTo(end);
+                        const maxWidth = Math.max(startWidth, endWidth);
+
+                        const endAngle = startEndDir.angleTo(circleTangent, DirectionZ);
+                        const isLeftArc = endAngle > Math.PI;
+                        const endComplementaryAngle = isLeftArc ? Math.abs(endAngle - Math.PI / 2 - Math.PI) : Math.abs(endAngle - Math.PI / 2);
+                        const halfChord = startEndDistance / 2;
+                        const radius = halfChord / Math.cos(endComplementaryAngle);
+                        const innerRadius = radius - maxWidth / 2;
+                        if (radius < maxWidth / 2 * 1.2 || innerRadius < horizontalStep / 2 / 0.8) {
+                            return;
+                        }
+                        const horizontalStepAngle = Math.asin(horizontalStep / 2 / innerRadius) * 2;
+                        const circleNormal = isLeftArc ? DirectionZ : DirectionZ.reversed();
+                        const circleCenter = start.added(tangentLeftDir.multiplied(isLeftArc ? radius : -radius));
+                        // const circle = GeomLib.createCircle3dByCenterNormalRadius(circleCenter, circleNormal, radius);
+                        const arc = GeomLib.createArc3dByCenterNormalRadius(circleCenter, circleNormal, radius, start, end);
+                        const arcAngle = arc.arcAngle;
+                        // const stepCount = Math.ceil(arcAngle / horizontalStepAngle);
+                        const lastHorizontalAngle = arcAngle - horizontalStepAngle * (stepCount - 1);
+                        const validStepCount = (lastHorizontalAngle === 0 || lastHorizontalAngle > AngleTolerance) ? stepCount : stepCount - 1;
+                        if (horizontalStepAngle >= arcAngle || horizontalStepAngle >= Math.PI / 2 || validStepCount >= StepCountLimit || validStepCount < 1) {
+                            return;
+                        }
+                        const startRadiusDir = isLeftArc ? tangentLeftDir.reversed() : tangentLeftDir;
+
+                        // push columns
+                        while (tempStepCount < stepCount) {
+                            const curRotateAngle = horizontalStepAngle * tempStepCount;
+                            const nextRotateAngle = horizontalStepAngle * tempStepCount + (tempStepCount === stepCount - 1 ? lastHorizontalAngle : horizontalStepAngle),
+                            const curRotateMatrix = GeomLib.createRotateMatrix4(horizontalStepAngle * tempStepCount, circleNormal, dummyPoint3d);
+
+                            const nextRotateMatrix = GeomLib.createRotateMatrix4(nextRotateAngle, circleNormal, dummyPoint3d);
+                            const curRadiusDir = startRadiusDir.appliedMatrix4(curRotateMatrix);
+                            const nextRadiusDir = startRadiusDir.appliedMatrix4(nextRotateMatrix);
+                            const curHalfWidth = (startWidth + (endWidth - startWidth) * (curRotateAngle) / arcAngle) / 2 * (isLeftArc ? -1 : 1);
+                            const nextHalfWidth = (startWidth + (endWidth - startWidth) * (nextRotateAngle) / arcAngle) / 2 * (isLeftArc ? -1 : 1);
+                            const curLeftMoldPt = circleCenter.added(curRadiusDir.multiplied(radius + curHalfWidth));
+                            const curRightMoldPt = circleCenter.added(curRadiusDir.multiplied(radius - curHalfWidth));
+                            const nextLeftMoldPt = circleCenter.added(nextRadiusDir.multiplied(radius + nextHalfWidth));
+                            const nextRightMoldPt = circleCenter.added(nextRadiusDir.multiplied(radius - nextHalfWidth));
+                            const curStepLeftFrontDir = nextLeftMoldPt.subtracted(curLeftMoldPt).multiplied(0.5);
+                            const curStepRightFrontDir = nextRightMoldPt.subtracted(curRightMoldPt).multiplied(0.5);
+                            const curStepLeftDir = DirectionZ.cross(curStepLeftFrontDir).normalized();
+                            const curStepRightDir = DirectionZ.cross(curStepRightFrontDir).normalized();
+                            const curLeftBottomPt = curLeftMoldPt.added(DirectionZ.multiplied(startHeight + tempStepCount * stepHeight)).added(curStepLeftDir.multiplied(-offsetLength));
+                            const curRightBottomPt = curRightMoldPt.added(DirectionZ.multiplied(startHeight + tempStepCount * stepHeight)).added(curStepRightDir.multiplied(offsetLength));
+                            const curLeftBottomMidPt = curLeftBottomPt.added(curStepLeftFrontDir);
+                            const curRightBottomMidPt = curRightBottomPt.added(curStepRightFrontDir);
+
+                            // const bottomPoint = sp.added(frontDir.multiplied(tempDistance)).added(DirectionZ.multiplied(startHeight));
+                            if (tempStepCount > 0) {
+                                if (left) {
+                                    stairRail.push(curLeftBottomPt.added(DirectionZ.multiplied(height)));
+                                } else {
+                                    stairRail.push(curRightBottomPt.added(DirectionZ.multiplied(height)));
+                                }
+
+                                if (tempStepCount === stepCount - 1) {
+                                    if (left) {
+                                        stairRail.push(curLeftBottomMidPt.added(curStepLeftFrontDir).added(DirectionZ.multiplied(height)));
+                                    } else {
+                                        stairRail.push(curRightBottomMidPt.added(curStepRightFrontDir).added(DirectionZ.multiplied(height)));
+                                    }
+
+                                    if (tempStepCount % reasonableStepCount !== 0) {
+                                        stairColumns.push([
+                                            left ? curLeftBottomMidPt : curRightBottomMidPt,
+                                            (left ? curLeftBottomMidPt : curRightBottomMidPt).added(DirectionZ.multiplied(height)),
+                                        ]);
+                                    }
+                                }
+                            }
+
+                            if (tempStepCount % reasonableStepCount === 0) {
+                                stairColumns.push([
+                                    left ? curLeftBottomMidPt : curRightBottomMidPt,
+                                    (left ? curLeftBottomMidPt : curRightBottomMidPt).added(DirectionZ.multiplied(height)),
+                                ]);
+                            }
+
+                            tempStepCount += 1;
                         }
                     }
 
-                } else {
+                    if (left) {
+                        handrail.rail.push(...stairRail.reverse());
+                        handrail.columns.push(...stairColumns.reverse());
+                    } else {
+                        handrail.rail.push(...stairRail);
+                        handrail.columns.push(...stairColumns);
+                    }
 
+                    if (baseComponent?.componentIndex === undefined) {
+                        handrails.push(handrail);
+                        handrail = { rail: [], columns: [] };
+                    }
                 }
-                const { startHeight, endHeight } = segment;
-                const endDelta = segment.param.upward === upward ? 0 : 2 * (startHeight - endHeight);
-                segment.startHeight += verticalDelta;
-                segment.endHeight += verticalDelta + endDelta;
-                segment.param.upward = upward;
-                unVisited.delete(segment);
+                // const { startHeight, endHeight } = segment;
+                // const endDelta = segment.param.upward === upward ? 0 : 2 * (startHeight - endHeight);
+                // segment.startHeight += verticalDelta;
+                // segment.endHeight += verticalDelta + endDelta;
+                // segment.param.upward = upward;
+                // unVisited.delete(segment);
 
-                const nextSegments = getNextComponents(segment, segments);
-                if (nextSegments.length) {
-                    next.push(...nextSegments.map(seg => ({ segment: seg, verticalDelta: verticalDelta + endDelta })));
-                }
+                // const nextSegments = getNextComponents(segment, segments);
+                // if (nextSegments.length) {
+                //     next.push(...nextSegments.map(seg => ({ segment: seg, verticalDelta: verticalDelta + endDelta })));
+                // }
             }
             current = next;
 

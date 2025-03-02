@@ -171,7 +171,7 @@ export interface ComponentParam {
     verticalStep: number;
     startWidth: number;
     endWidth: number;
-    // left is true
+    // left is positive
     offsetWidth: number;
     withOffset: boolean;
     platformLength: number;
@@ -242,6 +242,15 @@ export interface Shape {
     // [[1, 2], [2, 3]]
     tempLines: number[][];
 }
+
+export enum PlatformDirectionType {
+    Front = 0,
+    RightFront = 1,
+    Right = 2,
+    Left = 3,
+    LeftFront = 4,
+}
+
 export interface Segment {
     start: KPoint3d;
     end: KPoint3d;
@@ -263,6 +272,7 @@ export interface Segment {
     moldShape: Shape;
     cornerShape: Shape;
     cornerMoldShape: Shape;
+    platformDirectionType?: PlatformDirectionType;
 
     tempShapeId?: string[];
     pickStartTempShapeId?: string;
