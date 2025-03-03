@@ -789,7 +789,7 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
         }
         let current: TempObject[] = [{
             segment: segments[0],
-            line3dInd: 0,
+            line3dInd: segments[0].param.type === ComponentType.Platform ? (segments[0].platformDirectionType === PlatformDirectionType.RightFront ? 1 : 0) : 0,
             left: false,
             start: true,
         }];
@@ -804,14 +804,15 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                     end,
                     startHeight,
                     endHeight,
-                    stairShape,
                     moldShape: { vertices: moldVertices, tempLines: moldTempLines, stepCount },
-                    cornerShape,
                     nextComponents,
                     baseComponent,
                     circleTangent,
                     platformDirectionType,
                 } = currentSegment;
+
+                unVisited.delete(currentSegment)
+
                 const stepHeight = upward ? verticalStep : -verticalStep;
                 const offsetLength = Math.max(columnParam.height || 0, columnParam.width || 0, columnParam.radius || 0);
 
@@ -819,13 +820,15 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                 let sp = startPoint || moldVertices[line3d[0]];
                 let ep = moldVertices[line3d[1]];
                 let lastLength = sp.distanceTo(ep);
+                let nextStartPoint = left ? sp : ep;
+
                 const baseSegment = getSegmentByIndex(segments, baseComponent?.componentIndex);
                 let siblingSegmentInds = baseSegment?.nextComponents[baseComponent?.line3dIndex || 0];
                 let nextSiblingSegment = getSegmentByIndex(segments, siblingSegmentInds?.find(ind => {
                     const visitedSibling = visited.get(ind);
                     return !visitedSibling;
                 }));
-                const visitedBaseSegment = baseSegment ? visited.get(baseSegment.param.index) : undefined;
+                // const visitedBaseSegment = baseSegment ? visited.get(baseSegment.param.index) : undefined;
                 if (type === ComponentType.Platform) {
                     const line3dDir = ep.subtracted(sp).normalized();
                     const offsetDir = DirectionZ.cross(line3dDir);
@@ -858,9 +861,11 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                         // lastLength = sp.distanceTo(ep);
                         lastDistance = nearestSegment.distance - nearestSegment.segment.param.startWidth / 2;
                     } else if (isEntrance && hasEntranceSegment && baseSegment) {
-                        ep = baseSegment.end.added(line3dDir.multiplied(-baseSegment.param.endWidth / 2));
+                        ep = baseSegment.end.added(line3dDir.multiplied(baseSegment.param.endWidth / 2));
                         lastDistance = baseSegment.end.distanceTo(sp) - baseSegment.param.endWidth / 2;
                     }
+                    nextStartPoint = ep;
+
                     // push rail
                     handrail.rail.push(sp.added(DirectionZ.multiplied(startHeight)).added(offsetDir.multiplied(offsetLength)));
                     // push columns
@@ -893,12 +898,13 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                                 (nearestSegment.segment.platformDirectionType === PlatformDirectionType.RightFront ? 1 : 0) : 0,
                             left: false,
                             start: false,
+                            startPoint: nextStartPoint,
                         });
                     } else {
                         if (isEntrance) {
                             if (baseSegment && hasEntranceSegment && baseComponent?.line3dIndex !== undefined) {
                                 // siblingSegmentInds = baseSegment.nextComponents[baseComponent.line3dIndex];
-                                if (nextSiblingSegment) {
+                                if (nextSiblingSegment && baseSegment.param.type !== ComponentType.Platform) {
                                     next.push({
                                         segment: nextSiblingSegment,
                                         line3dInd: nextSiblingSegment.param.type === ComponentType.Platform ?
@@ -907,15 +913,14 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                                         start: false,
                                     });
                                 } else {
-
-                                    if ((visitedBaseSegment?.right && !visitedBaseSegment.left)) {
-                                        next.push({
-                                            segment: baseSegment,
-                                            line3dInd: 0,
-                                            left: true,
-                                            start: false,
-                                        });
-                                    }
+                                    // if ((visitedBaseSegment?.right && !visitedBaseSegment.left)) {
+                                    next.push({
+                                        segment: baseSegment,
+                                        line3dInd: baseSegment.param.type === ComponentType.Platform ? baseComponent?.line3dIndex : 0,
+                                        left: true,
+                                        start: false,
+                                    });
+                                    // }
                                 }
                             } else if (!nextComponents.length) {
                                 // end of this patch, the patch are start with platform
@@ -941,6 +946,8 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                     const leftDir = DirectionZ.cross(frontDir);
                     sp = start.added(leftDir.multiplied(startWidth / 2 * (left ? 1 : -1)));
                     ep = end.added(leftDir.multiplied(endWidth / 2 * (left ? 1 : -1)));
+                    nextStartPoint = left ? sp : ep;
+
                     // const reasonableStep = Math.ceil(step / horizontalStep) * horizontalStep;
                     const reasonableStepCount = Math.ceil(step / horizontalStep);
                     lastLength = sp.distanceTo(ep);
@@ -985,9 +992,9 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                         const halfChord = startEndDistance / 2;
                         const radius = halfChord / Math.cos(endComplementaryAngle);
                         const innerRadius = radius - maxWidth / 2;
-                        if (radius < maxWidth / 2 * 1.2 || innerRadius < horizontalStep / 2 / 0.8) {
-                            return;
-                        }
+                        // if (radius < maxWidth / 2 * 1.2 || innerRadius < horizontalStep / 2 / 0.8) {
+                        //     return;
+                        // }
                         const horizontalStepAngle = Math.asin(horizontalStep / 2 / innerRadius) * 2;
                         const circleNormal = isLeftArc ? DirectionZ : DirectionZ.reversed();
                         const circleCenter = start.added(tangentLeftDir.multiplied(isLeftArc ? radius : -radius));
@@ -996,10 +1003,10 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                         const arcAngle = arc.arcAngle;
                         // const stepCount = Math.ceil(arcAngle / horizontalStepAngle);
                         const lastHorizontalAngle = arcAngle - horizontalStepAngle * (stepCount - 1);
-                        const validStepCount = (lastHorizontalAngle === 0 || lastHorizontalAngle > AngleTolerance) ? stepCount : stepCount - 1;
-                        if (horizontalStepAngle >= arcAngle || horizontalStepAngle >= Math.PI / 2 || validStepCount >= StepCountLimit || validStepCount < 1) {
-                            return;
-                        }
+                        // const validStepCount = (lastHorizontalAngle === 0 || lastHorizontalAngle > AngleTolerance) ? stepCount : stepCount - 1;
+                        // if (horizontalStepAngle >= arcAngle || horizontalStepAngle >= Math.PI / 2 || validStepCount >= StepCountLimit || validStepCount < 1) {
+                        //     return;
+                        // }
                         const startRadiusDir = isLeftArc ? tangentLeftDir.reversed() : tangentLeftDir;
 
                         // push columns
@@ -1039,6 +1046,7 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                                         stairRail.push(curLeftBottomMidPt.added(curStepLeftFrontDir).added(DirectionZ.multiplied(height)));
                                     } else {
                                         stairRail.push(curRightBottomMidPt.added(curStepRightFrontDir).added(DirectionZ.multiplied(height)));
+                                        nextStartPoint = curRightMoldPt;
                                     }
 
                                     if (tempStepCount % reasonableStepCount !== 0) {
@@ -1061,41 +1069,6 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                         }
                     }
 
-                    for (const nextSegmentIndex of nextComponents[line3dInd]) {
-                        const nextSegment = getSegmentByIndex(segments, nextSegmentIndex);
-                        if (nextSegment && !visited.get(nextSegment.param.index)?.right) {
-                            nextSiblingSegment = nextSegment;
-                        }
-                    }
-
-                    if (left) {
-
-                    } else {
-                        if (nextSiblingSegment) {
-                            next.push({
-                                segment: nextSiblingSegment,
-                                line3dInd: nextSiblingSegment.param.type === ComponentType.Platform ?
-                                    (nextSiblingSegment.platformDirectionType === PlatformDirectionType.RightFront ? 1 : 0) : 0,
-                                left: false,
-                                start: false,
-                            });
-                        } else {
-                            if (baseComponent?.componentIndex === undefined ) {
-                                handrails.push(handrail);
-                                handrail = { rail: [], columns: [] };
-                            } else {
-                                if (baseSegment && (visitedBaseSegment?.right && !visitedBaseSegment.left)) {
-                                    next.push({
-                                        segment: baseSegment,
-                                        line3dInd: 0,
-                                        left: true,
-                                        start: false,
-                                    });
-                                }
-                            }
-                        }
-                    }
-
                     if (left) {
                         handrail.rail.push(...stairRail.reverse());
                         handrail.columns.push(...stairColumns.reverse());
@@ -1104,6 +1077,58 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
                         handrail.columns.push(...stairColumns);
                     }
 
+                    let stairNextSegment: Segment | undefined;
+                    for (const nextSegmentIndex of nextComponents[line3dInd]) {
+                        const nextSegment = getSegmentByIndex(segments, nextSegmentIndex);
+                        if (nextSegment && !visited.get(nextSegment.param.index)) {
+                            stairNextSegment = nextSegment;
+                        }
+                    }
+
+                    if (left) {
+                        if (nextSiblingSegment && baseSegment && baseSegment.param.type !== ComponentType.Platform) {
+                            next.push({
+                                segment: nextSiblingSegment,
+                                line3dInd: nextSiblingSegment.param.type === ComponentType.Platform ?
+                                    (nextSiblingSegment.platformDirectionType === PlatformDirectionType.RightFront ? 1 : 0) : 0,
+                                left: false,
+                                start: false,
+                                startPoint: nextStartPoint,
+                            });
+                        } else {
+                            if (baseSegment) {
+                                // if (baseSegment && (visitedBaseSegment?.right && !visitedBaseSegment.left)) {
+                                next.push({
+                                    segment: baseSegment,
+                                    line3dInd: baseSegment.param.type === ComponentType.Platform ? baseComponent?.line3dIndex || 0 : 0,
+                                    left: true,
+                                    start: false,
+                                    startPoint: nextStartPoint,
+                                });
+                            } else {
+                                // end the patch which is start with currentSegment
+                                handrails.push(handrail);
+                                handrail = { rail: [], columns: [] };
+                            }
+                        }
+                    } else if (stairNextSegment) {
+                        next.push({
+                            segment: stairNextSegment,
+                            line3dInd: stairNextSegment.param.type === ComponentType.Platform ?
+                                (stairNextSegment.platformDirectionType === PlatformDirectionType.RightFront ? 1 : 0) : 0,
+                            left: false,
+                            start: false,
+                            startPoint: nextStartPoint,
+                        });
+                    } else if (!left) {
+                        next.push({
+                            segment: currentSegment,
+                            line3dInd: 0,
+                            left: true,
+                            start: false,
+                            startPoint: nextStartPoint,
+                        });
+                    }
                 }
                 // const { startHeight, endHeight } = segment;
                 // const endDelta = segment.param.upward === upward ? 0 : 2 * (startHeight - endHeight);
@@ -1120,9 +1145,14 @@ function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
             current = next;
 
             if (!current.length) {
-                if (bulkChange && unVisited.size) {
+                if (unVisited.size) {
                     const theSegment = [...unVisited.values()][0];
-                    current = [{ segment: theSegment, verticalDelta: theSegment.startHeight > 0 === upward ? 0 : (theSegment.startHeight * - 2) }];
+                    current = [{
+                        segment: theSegment,
+                        line3dInd: theSegment.param.type === ComponentType.Platform ? (theSegment.platformDirectionType === PlatformDirectionType.RightFront ? 1 : 0) : 0,
+                        left: false,
+                        start: true,
+                    }];
                 }
             }
         }
