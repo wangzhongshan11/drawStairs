@@ -15,7 +15,7 @@
 
     &::-webkit-scrollbar-thumb {
         height: 1px;
-        background-color: rgba(3,9,17,0.2);
+        background-color: rgba(3, 9, 17, 0.2);
     }
 
     .ant-collapse {
@@ -26,37 +26,30 @@
         }
 
         .ant-collapse-content-box {
-            padding: 0!important;
+            padding: 0 !important;
         }
     }
-    
-    .stair-property-wrapper {
+
+    .handrail-property-wrapper {
         padding-left: 2%;
 
-        .step-wrapper {
-            display: flex;
-            justify-content: flex-start;
-        }
+        .handrail-property {
+            .rail-property {
+                .rail-param-property {
+                    padding-left: 40%;
 
-        .handrail-property-wrapper {
-            .handrail-property {
-                .rail-property {
-                    .rail-param-property {
-                        padding-left: 40%;
-
-                        .rect-param {
-                            display: flex;
-                        }
+                    .rect-param {
+                        display: flex;
                     }
                 }
+            }
 
-                .column-property {
-                    .column-param-property {
-                        padding-left: 40%;
+            .column-property {
+                .column-param-property {
+                    padding-left: 40%;
 
-                        .rect-param {
-                            display: flex;
-                        }
+                    .rect-param {
+                        display: flex;
                     }
                 }
             }
@@ -111,18 +104,26 @@
         .properties-content-wrapper {
             padding-left: 3%;
 
-            .start-end-width-wrapper {
-                display: flex;
-                justify-content: flex-start;
+            .separate-properties {
+                height: 150px;
+
+                .start-end-width-wrapper {
+                    display: flex;
+                    justify-content: flex-start;
+                }
+
+                .platform-length-wrapper {
+                    display: flex;
+                    justify-content: flex-start;
+
+                    .lock-button {
+                        margin-left: 10px;
+                    }
+                }
             }
 
-            .platform-length-wrapper {
-                display: flex;
-                justify-content: flex-start;
-
-                .lock-button {
-                    margin-left: 10px;
-                }
+            .overall-properties {
+                height: 150px;
             }
 
             .lock-button {

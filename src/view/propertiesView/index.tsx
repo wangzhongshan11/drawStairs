@@ -7,7 +7,7 @@ import PropertiesContent from './PropertyContent';
 import { MessageType } from '../../main/types';
 import { DeleteOutlined } from '@ant-design/icons';
 import { Collapse } from "antd";
-import StairProperty from './StairProperty';
+import HandrailProperty from './HandrailProperty';
 import { ItemType } from 'rc-collapse/es/interface';
 
 interface State {
@@ -43,11 +43,11 @@ export default class PropertiesView extends React.Component<{}, State> {
             //     });
             //     console.log('newStair');
             // } else {
-                const newComponentParams = componentParams.set(messageData.componentParam.index, messageData.componentParam);
-                this.setState({
-                    componentParams: newComponentParams,
-                    componentParam: componentParam ? (messageData.componentParam.index === componentParam.index ? messageData.componentParam : componentParam) : messageData.componentParam,
-                });
+            const newComponentParams = componentParams.set(messageData.componentParam.index, messageData.componentParam);
+            this.setState({
+                componentParams: newComponentParams,
+                componentParam: componentParam ? (messageData.componentParam.index === componentParam.index ? messageData.componentParam : componentParam) : messageData.componentParam,
+            });
             // }
         } else if (messageData.type === MessageType.ComponentAdded) {
             const newComponentParams = componentParams.set(messageData.componentParam.index, messageData.componentParam);
@@ -113,11 +113,6 @@ export default class PropertiesView extends React.Component<{}, State> {
         // const disabled = !this.state.componentParam;
         const items: ItemType[] = [
             {
-                key: 'stair-property',
-                label: '整体参数',
-                children: <StairProperty stairParam={stairParam} />
-            },
-            {
                 key: 'stairs-property',
                 label: '独立参数',
                 children: <div className='stairs-property-wrapper'>
@@ -142,14 +137,19 @@ export default class PropertiesView extends React.Component<{}, State> {
                             };
                         })}
                     />
-                    <PropertiesContent componentParam={componentParam} />
+                    <PropertiesContent componentParam={componentParam} stairParam={stairParam} />
                 </div>
+            },
+            {
+                key: 'handrail-property',
+                label: '栏杆参数',
+                children: <HandrailProperty stairParam={stairParam} />
             },
         ];
         return (
             <div className='property-wrapper'>
                 <div className='collapse-wrapper'>
-                <Collapse items={items} defaultActiveKey={['stair-property', 'stairs-property']} />
+                    <Collapse items={items} defaultActiveKey={['stairs-property', 'handrail-property']} />
                 </div>
             </div>
         )

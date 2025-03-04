@@ -142,9 +142,9 @@ export class DrawStairsTool implements KTool {
                             // lastSegment.baseLineSeg3d = { start: vertices[0], end: vertices[1] };
                             lastSegment.baseComponent = { line3d: { start: vertices[0], end: vertices[1] } };
                         } else {
-                            const baseComponent = getSegmentByIndex(this.segments, lastSegment.baseComponent.componentIndex);
-                            if (baseComponent && lastSegment.baseComponent?.line3dIndex !== undefined) {
-                                baseComponent.nextComponents[lastSegment.baseComponent.line3dIndex].push(lastParam.index);
+                            const baseSegment = getSegmentByIndex(this.segments, lastSegment.baseComponent.componentIndex);
+                            if (baseSegment && lastSegment.baseComponent?.line3dIndex !== undefined) {
+                                baseSegment.nextComponents[lastSegment.baseComponent.line3dIndex].push(lastParam.index);
                             }
                         }
                         // nextSegment.baseLineSeg3d = { start: vertices[vertices.length - 1], end: vertices[vertices.length - 2] };
@@ -284,10 +284,12 @@ export class DrawStairsTool implements KTool {
                         });
                         lastSegment.startLocked = false;
                         lastSegment.circleTangent = undefined;
+                        lastSegment.startHeight = newFocusedSegment.endHeight;
                         this.drawPickStartTempShapes(start, lastSegment.start, lastSegment);
-                    } else {
+                    } else if (!newFocusedSegment.nextComponents[0].length) {
                         lastSegment.start = newFocusedSegment.end.clone();
                         lastSegment.startLocked = true;
+                        lastSegment.startHeight = newFocusedSegment.endHeight;
                         // lastSegment.baseLineSeg3d = { start: newFocusedVertices[newFocusedVertices.length - 1], end: newFocusedVertices[newFocusedVertices.length - 2] };
                         lastSegment.baseComponent = { componentIndex: newFocusedSegment.param.index, line3dIndex: 0, line3d: { start: newFocusedVertices[newFocusedVertices.length - 1], end: newFocusedVertices[newFocusedVertices.length - 2] } };
                         lastSegment.circleTangent = undefined;
