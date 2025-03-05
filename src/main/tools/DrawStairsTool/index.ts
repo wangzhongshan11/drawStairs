@@ -1,6 +1,6 @@
 import { ComponentType, ComponentParam, Segment, ParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType, StairModelValue, CircleTangentKey, StairParam, DefaultStairParam, BaseComponentKey, Handrail } from "./types";
 import { generateHandrailShape, generateShape } from "./tempMeshUtils";
-import { buildComponentInstance, buildSegmentRelations, changeStairUpward, generateMeshes, getSegmentByIndex } from "./meshUtils";
+import { buildComponentInstance, buildHandrailInstance, buildSegmentRelations, changeStairUpward, generateMeshes, getSegmentByIndex } from "./meshUtils";
 import { parseBaseComponent, parseLineSeg3d, parseParam, parseStartEnd, parseVector3d } from "./utils";
 import { getEmptySegment } from "./consts";
 import { deActivateDrawStairsTool } from "../../../main/main";
@@ -21,6 +21,7 @@ type InstanceData = {
 type EditModel = {
     parent: InstanceData;
     child: Map<number, InstanceData>;
+    handrail?: InstanceData;
 }
 
 const DefaultFocusedComponentIndex = -1;
@@ -31,7 +32,7 @@ export class DrawStairsTool implements KTool {
     private focusedComponentIndex: number = DefaultFocusedComponentIndex;
     private segments: Segment[] = [];
     private handrailCollection?: { handrails: Handrail[], tempShapeId?: string[]; };
-    private stairParam?: StairParam;
+    private stairParam: StairParam = DefaultStairParam;
     private editModel?: EditModel;
 
     onToolActive(): void {
@@ -41,7 +42,7 @@ export class DrawStairsTool implements KTool {
         ]);
         const firstSegment: Segment = getEmptySegment();
         firstSegment.startLocked = false;
-        this.stairParam = DefaultStairParam;
+        // this.stairParam = DefaultStairParam;
         pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: [firstSegment.param], stairParam: this.stairParam, newStair: true }, '*');
         this.segments = [firstSegment];
         this.drawing = true;
@@ -256,7 +257,7 @@ export class DrawStairsTool implements KTool {
         const handrails = this.handrailCollection?.handrails;
         const tempLinePoints: KPoint3d[][] = [];
         if (this.handrailCollection && handrails?.length) {
-            for (const {rail, columns} of handrails) {
+            for (const { rail, columns } of handrails) {
                 for (let i = 0; i < rail.length - 1; i++) {
                     const railPoint = rail[i];
                     const railNextPoint = rail[i + 1];
@@ -459,6 +460,40 @@ export class DrawStairsTool implements KTool {
                     }
                 }
                 if (!this.drawing && this.editModel) {
+                    if (this.handrailCollection?.handrails.length) {
+                        const handrailInstance = await buildHandrailInstance(this.stairParam, this.handrailCollection?.handrails);
+                        operationSuccess = operationSuccess && handrailInstance !== undefined;
+
+                        if (handrailInstance) {
+                            this.editModel.handrail = { instance: handrailInstance, definitionKey: handrailInstance.getGroupDefinition()?.getKey() || '', instanceKey: handrailInstance.getKey() };
+                        }
+                    }
+
+                    operationSuccess = operationSuccess && (await design.deactivateGroupInstance()).isSuccess;
+                    if (operationSuccess) {
+                        design.commitOperation();
+                    } else {
+                        design.abortOperation();
+                    }
+                    selection.add([this.editModel.parent.instance]);
+                } else if (this.drawing) {
+                    this.drawHandrails();
+                }
+            }
+        } else if (changeParams.length === 1 && changeParams[0].startsWith(ComponentParamType.Handrail)) {
+            if (this.drawing) {
+                this.drawHandrails();
+            } else if (this.editModel) {
+                if (this.handrailCollection?.handrails.length) {
+                    let operationSuccess = true;
+                    design.startOperation();
+                    operationSuccess = operationSuccess && (await design.activateGroupInstance(this.editModel.parent.instance)).isSuccess;
+                    const handrailInstance = await buildHandrailInstance(this.stairParam, this.handrailCollection?.handrails);
+                    operationSuccess = operationSuccess && handrailInstance !== undefined;
+
+                    if (handrailInstance) {
+                        this.editModel.handrail = { instance: handrailInstance, definitionKey: handrailInstance.getGroupDefinition()?.getKey() || '', instanceKey: handrailInstance.getKey() };
+                    }
                     operationSuccess = operationSuccess && (await design.deactivateGroupInstance()).isSuccess;
                     if (operationSuccess) {
                         design.commitOperation();
@@ -468,14 +503,6 @@ export class DrawStairsTool implements KTool {
                     selection.add([this.editModel.parent.instance]);
                 }
             }
-        } else if (changeParams.length === 1 && changeParams[0].startsWith(ComponentParamType.Handrail)) {
-            if (this.drawing) {
-                this.drawHandrails();
-            } else {
-                
-            }
-            // const Segments = this.segments.filter(seg => seg.param.type !== ComponentType.Platform);
-
         }
     }
 
@@ -509,6 +536,14 @@ export class DrawStairsTool implements KTool {
                                 }
                             }
                         }
+                        if (this.handrailCollection?.handrails.length) {
+                            const handrailInstance = await buildHandrailInstance(this.stairParam, this.handrailCollection?.handrails);
+                            operationSuccess = operationSuccess && handrailInstance !== undefined;
+                            if (handrailInstance) {
+                                this.editModel.handrail = { instance: handrailInstance, definitionKey: handrailInstance.getGroupDefinition()?.getKey() || '', instanceKey: handrailInstance.getKey() };
+                            }
+                        }
+
                         operationSuccess = operationSuccess && (await design.deactivateGroupInstance()).isSuccess;
 
                         if (operationSuccess) {
@@ -532,7 +567,7 @@ export class DrawStairsTool implements KTool {
     //     this.changeComponentParam(this.componentParam, [ComponentParamType.Type]);
     // }
 
-    private tryCommit() {
+    private async tryCommit() {
         const meshes = generateMeshes(this.segments);
         if (meshes.length) {
             design.startOperation();
@@ -559,6 +594,17 @@ export class DrawStairsTool implements KTool {
                     validSegments.push(segment);
                 }
             }
+
+            let handrailInstanceData: InstanceData | undefined;
+            if (this.handrailCollection?.handrails.length) {
+                const handrailInstance = await buildHandrailInstance(this.stairParam, this.handrailCollection?.handrails);
+                operationSuccess = operationSuccess && handrailInstance !== undefined;
+
+                if (handrailInstance) {
+                    newInstances.push(handrailInstance);
+                    handrailInstanceData = { instance: handrailInstance, definitionKey: handrailInstance.getGroupDefinition()?.getKey() || '', instanceKey: handrailInstance.getKey() };
+                }
+            }
             if (newInstances.length) {
                 const parentInstance = design.makeGroup([], newInstances, [])?.addedInstance;
                 operationSuccess = operationSuccess && !!parentInstance;
@@ -569,7 +615,8 @@ export class DrawStairsTool implements KTool {
                         design.commitOperation();
                         this.editModel = {
                             parent: { instance: parentInstance, definitionKey: parentInstance.getGroupDefinition()?.getKey() || '', instanceKey: parentInstance.getKey() },
-                            child: editModelChild
+                            child: editModelChild,
+                            handrail: handrailInstanceData,
                         };
                         this.segments = validSegments;
                         this.drawing = false;
@@ -665,13 +712,14 @@ export class DrawStairsTool implements KTool {
         // this.segments = [];
         this.drawing = false;
         this.focusedComponentIndex = DefaultFocusedComponentIndex;
-        this.stairParam = undefined;
+        this.stairParam = DefaultStairParam;
         // this.editModel = undefined;
     }
 
     onRButtonUp(event: KMouseEvent, inferenceResult?: KInferenceResult): void {
-        this.tryCommit();
-        deActivateDrawStairsTool();
+        this.tryCommit().then(() => {
+            deActivateDrawStairsTool();
+        });
     }
     onLButtonDbClick(event: KMouseEvent, inferenceResult?: KInferenceResult): void {
         ;
@@ -692,7 +740,7 @@ export class DrawStairsTool implements KTool {
     }
 
     private generateHandrailShape() {
-        if (this.stairParam && this.segments.length) {
+        if (this.segments.length) {
             const handrails = generateHandrailShape(this.stairParam, this.segments);
             this.handrailCollection = { handrails: handrails || [] };
         }

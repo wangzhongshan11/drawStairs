@@ -1,6 +1,7 @@
 
 export const StairModelKey = 'DrawStairsModel';
 export const StairModelValue = '1';
+export const HandrailModelKey = 'Handrail';
 // export const StairKey = 'DSStair';
 // export const PlatformKey = 'DSPlatform';
 export const ParamKey = 'DSParam';
@@ -100,11 +101,11 @@ export const ComponentParamSettings = {
     },
     platformThickness: { title: "厚度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
     handrail: {
-        title: '栏杆',
-        height: { title: "高度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
+        title: '启用栏杆',
+        height: { title: "扶手高度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
         rail: {
             type: {
-                title: "样式",
+                title: "扶手样式",
                 selectOptions: [
                     { value: RailType.Circle, label: "圆形" },
                     { value: RailType.Rect, label: "方形" },
@@ -114,14 +115,14 @@ export const ComponentParamSettings = {
         },
         column: {
             type: {
-                title: "样式",
+                title: "柱子样式",
                 selectOptions: [
                     { value: ColumnType.Circle, label: "圆形" },
                     { value: ColumnType.Rect, label: "方形" },
                     { value: ColumnType.Custom, label: "自定义" },
                 ]
             },
-            step: { title: "间隔", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
+            step: { title: "柱子间隔", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
         },
         componentParam: {
             radius: { title: "半径", min: 1, max: 100000, step: 10, unit: '', precision: 0, },

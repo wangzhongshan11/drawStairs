@@ -36,6 +36,7 @@
         .handrail-property {
             .rail-property {
                 .rail-param-property {
+                    display: flex;
                     padding-left: 40%;
 
                     .rect-param {
@@ -46,6 +47,7 @@
 
             .column-property {
                 .column-param-property {
+                    display: flex;
                     padding-left: 40%;
 
                     .rect-param {

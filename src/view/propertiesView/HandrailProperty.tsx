@@ -181,7 +181,7 @@ export default class PropertiesContent extends React.Component<Props, State> {
                                 />
                             }
                             {column.type === ColumnType.Rect && column.param.width !== undefined && column.param.height !== undefined &&
-                                <div className='column-param'>
+                                <div className='rect-param'>
                                     <InputNumberProperty
                                         title={ComponentParamSettings[ComponentParamType.Handrail].componentParam.width.title}
                                         unit={ComponentParamSettings[ComponentParamType.Handrail].componentParam.width.unit}

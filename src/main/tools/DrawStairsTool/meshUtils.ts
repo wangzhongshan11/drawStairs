@@ -1,5 +1,5 @@
 import { DirectionZ } from "./consts";
-import { BaseComponentKey, BaseLineSeg3dKey, CircleTangentKey, ColumnType, ComponentType, DefaultStairParam, Handrail, ParamKey, RailType, Segment, StairParam, StartEndKey } from "./types";
+import { BaseComponentKey, BaseLineSeg3dKey, CircleTangentKey, ColumnType, ComponentType, DefaultStairParam, Handrail, HandrailModelKey, ParamKey, RailType, Segment, StairModelValue, StairParam, StartEndKey } from "./types";
 import { stringifyBaseComponent, stringifyParam, stringifyPoint3d, stringifyStartEnd } from "./utils";
 
 export function generateMeshes(segments: Segment[]): KMesh[] {
@@ -442,14 +442,17 @@ export function buildComponentInstance(segment: Segment, segments: Segment[]) {
 }
 
 export async function buildHandrailInstance(stairParam: StairParam, handrails: Handrail[]) {
-    const { handrail: { height, rail: { type: railType, param: railParam }, column: { type: columnType, step, param: columnParam } } } = stairParam;
+    const { handrail: { support, height, rail: { type: railType, param: railParam }, column: { type: columnType, param: columnParam } } } = stairParam;
+    if (!support) {
+        return 0;
+    }
     let railFace: KFace | undefined;
     if (railType === RailType.Circle) {
         railFace = drawCircle(railParam.radius || DefaultStairParam.horizontalStep / 5);
     } else if (railType === RailType.Rect) {
         railFace = drawRect(railParam.width || DefaultStairParam.horizontalStep / 5, railParam.height || DefaultStairParam.horizontalStep / 5);
     } else {
-        return undefined;
+        return 0;
     }
     const railLoop = railFace?.getOuterLoop();
     if (!railFace || !railLoop) {
@@ -462,7 +465,7 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
     } else if (columnType === ColumnType.Rect) {
         columnFace = drawRect(columnParam.width || DefaultStairParam.horizontalStep / 10, columnParam.height || DefaultStairParam.horizontalStep / 10, 100);
     } else {
-        return undefined;
+        return 0;
     }
     const columnLoop = columnFace?.getOuterLoop();
     if (!columnFace || !columnLoop) {
@@ -546,8 +549,11 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
         return undefined;
     }
 
-    handrailDefinition.setCustomProperty();
-
+    const setPropertyRes = handrailDefinition.setCustomProperty(HandrailModelKey, StairModelValue);
+    if (!setPropertyRes.isSuccess) {
+        return undefined;
+    }
+    return handrailInstance;
 }
 
 export function drawCircle(radius: number, z: number = 0) {
