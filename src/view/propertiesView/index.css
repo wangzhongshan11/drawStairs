@@ -124,6 +124,7 @@
 
             .overall-properties {
                 height: 150px;
+                color: gray;
             }
 
             .lock-button {

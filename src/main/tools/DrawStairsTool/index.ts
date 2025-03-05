@@ -1,5 +1,5 @@
 import { ComponentType, ComponentParam, Segment, ParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType, StairModelValue, CircleTangentKey, StairParam, DefaultStairParam, BaseComponentKey, Handrail } from "./types";
-import { generateShape } from "./tempMeshUtils";
+import { generateHandrailShape, generateShape } from "./tempMeshUtils";
 import { buildComponentInstance, buildSegmentRelations, changeStairUpward, generateMeshes, getSegmentByIndex } from "./meshUtils";
 import { parseBaseComponent, parseLineSeg3d, parseParam, parseStartEnd, parseVector3d } from "./utils";
 import { getEmptySegment } from "./consts";
@@ -30,7 +30,7 @@ export class DrawStairsTool implements KTool {
     private drawing = false;
     private focusedComponentIndex: number = DefaultFocusedComponentIndex;
     private segments: Segment[] = [];
-    private handrails?: Handrail[];
+    private handrailCollection?: { handrails: Handrail[], tempShapeId?: string[]; };
     private stairParam?: StairParam;
     private editModel?: EditModel;
 
@@ -72,7 +72,7 @@ export class DrawStairsTool implements KTool {
                 lastSegment.param.modelEditing = false;
                 if (lastSegment.startLocked) {
                     lastSegment.end = position;
-                    this.drawTempComponent(lastSegment);
+                    this.drawTempComponent(lastSegment, false, true);
                 } else {
                     if (this.segments.length > 1) {
                         const prevSegment = this.focusedComponentIndex === lastSegment.param.index ? this.segments[this.segments.length - 2] : getSegmentByIndex(this.segments, this.focusedComponentIndex);
@@ -160,7 +160,7 @@ export class DrawStairsTool implements KTool {
                         if (this.focusedComponentIndex !== lastParam.index) {
                             const focusedSegment = getSegmentByIndex(this.segments, this.focusedComponentIndex);
                             if (focusedSegment) {
-                                this.drawTempComponent(focusedSegment, false);
+                                this.drawTempComponent(focusedSegment);
                             }
                         }
                         this.focusedComponentIndex = nextSegment.param.index;
@@ -193,9 +193,9 @@ export class DrawStairsTool implements KTool {
         }
     }
 
-    private drawTempComponent(theSegment: Segment, focused: boolean = false) {
+    private drawTempComponent(theSegment: Segment, focused: boolean = false, drawHandrail: boolean = false) {
         if (theSegment.startLocked) {
-            generateShape(theSegment, this.drawing);
+            this.generateSegmentShape(theSegment, this.drawing);
             const {
                 stairShape: { vertices: stairVertices, tempLines: stairTempLines },
                 moldShape: { vertices: moldVertices, tempLines: moldTempLines },
@@ -239,6 +239,34 @@ export class DrawStairsTool implements KTool {
                         theSegment.tempShapeId = [...moldTempShapeId.ids];
                     }
                 }
+            }
+
+            if (drawHandrail) {
+                this.drawHandrails();
+            }
+        }
+    }
+
+    private drawHandrails() {
+        const prevHandrailTempShapeIds = this.handrailCollection?.tempShapeId;
+        this.generateHandrailShape();
+        if (prevHandrailTempShapeIds?.length) {
+            appView.clearTemporaryShapesByIds(prevHandrailTempShapeIds);
+        }
+        const handrails = this.handrailCollection?.handrails;
+        const tempLinePoints: KPoint3d[][] = [];
+        if (this.handrailCollection && handrails?.length) {
+            for (const {rail, columns} of handrails) {
+                for (let i = 0; i < rail.length - 1; i++) {
+                    const railPoint = rail[i];
+                    const railNextPoint = rail[i + 1];
+                    tempLinePoints.push([railPoint, railNextPoint]);
+                }
+                tempLinePoints.push(...columns);
+            }
+            const handrailTempShapeIds = appView.drawPolylines(tempLinePoints, { color: { r: 0, g: 0, b: 255 }, depthTest: true });
+            if (handrailTempShapeIds?.ids) {
+                this.handrailCollection.tempShapeId = handrailTempShapeIds.ids;
             }
         }
     }
@@ -286,14 +314,20 @@ export class DrawStairsTool implements KTool {
                         lastSegment.circleTangent = undefined;
                         lastSegment.startHeight = newFocusedSegment.endHeight;
                         this.drawPickStartTempShapes(start, lastSegment.start, lastSegment);
-                    } else if (!newFocusedSegment.nextComponents[0].length) {
-                        lastSegment.start = newFocusedSegment.end.clone();
-                        lastSegment.startLocked = true;
-                        lastSegment.startHeight = newFocusedSegment.endHeight;
-                        // lastSegment.baseLineSeg3d = { start: newFocusedVertices[newFocusedVertices.length - 1], end: newFocusedVertices[newFocusedVertices.length - 2] };
-                        lastSegment.baseComponent = { componentIndex: newFocusedSegment.param.index, line3dIndex: 0, line3d: { start: newFocusedVertices[newFocusedVertices.length - 1], end: newFocusedVertices[newFocusedVertices.length - 2] } };
-                        lastSegment.circleTangent = undefined;
-                        this.drawTempComponent(lastSegment, false);
+                    } else {
+                        if (!newFocusedSegment.nextComponents[0].length) {
+                            lastSegment.start = newFocusedSegment.end.clone();
+                            lastSegment.startLocked = true;
+                            lastSegment.startHeight = newFocusedSegment.endHeight;
+                            // lastSegment.baseLineSeg3d = { start: newFocusedVertices[newFocusedVertices.length - 1], end: newFocusedVertices[newFocusedVertices.length - 2] };
+                            lastSegment.baseComponent = { componentIndex: newFocusedSegment.param.index, line3dIndex: 0, line3d: { start: newFocusedVertices[newFocusedVertices.length - 1], end: newFocusedVertices[newFocusedVertices.length - 2] } };
+                            lastSegment.circleTangent = undefined;
+                            this.drawTempComponent(lastSegment, false, true);
+                        }
+                        // else {
+                        //     lastSegment.startLocked = false;
+                        //     lastSegment.circleTangent = undefined;
+                        // }
                     }
                 }
 
@@ -304,7 +338,7 @@ export class DrawStairsTool implements KTool {
             const oldFocusedSegment = getSegmentByIndex(this.segments, this.focusedComponentIndex);
             if (((this.drawing && this.focusedComponentIndex !== lastSegmentIndex) || (!this.drawing && this.focusedComponentIndex !== componentIndex)) && oldFocusedSegment) {
                 if (this.drawing) {
-                    this.drawTempComponent(oldFocusedSegment, false);
+                    this.drawTempComponent(oldFocusedSegment);
                 } else {
                     this.clearTempShapes(oldFocusedSegment);
                 }
@@ -323,6 +357,7 @@ export class DrawStairsTool implements KTool {
                     if (theSegment.tempShapeId?.length) {
                         appView.clearTemporaryShapesByIds(theSegment.tempShapeId);
                     }
+                    this.drawHandrails();
                 } else if (this.editModel) {
                     const theInstance = this.editModel.child.get(componentIndex);
                     if (theInstance) {
@@ -404,7 +439,7 @@ export class DrawStairsTool implements KTool {
 
                         const theInstance = this.editModel.child.get(index);
                         if (theInstance) {
-                            generateShape(reGenerateSegment);
+                            this.generateSegmentShape(reGenerateSegment);
                             const theMeshes = generateMeshes([reGenerateSegment]);
                             if (theMeshes.length) {
                                 if (operationSuccess) {
@@ -434,7 +469,11 @@ export class DrawStairsTool implements KTool {
                 }
             }
         } else if (changeParams.length === 1 && changeParams[0].startsWith(ComponentParamType.Handrail)) {
-            
+            if (this.drawing) {
+                this.drawHandrails();
+            } else {
+                
+            }
             // const Segments = this.segments.filter(seg => seg.param.type !== ComponentType.Platform);
 
         }
@@ -450,12 +489,12 @@ export class DrawStairsTool implements KTool {
             componentParam.modelEditing = true;
             theSegment.param = componentParam;
             if (this.drawing) {
-                this.drawTempComponent(theSegment, theSegment.param.index !== lastSegment.param.index);
+                this.drawTempComponent(theSegment, theSegment.param.index !== lastSegment.param.index, true);
             } else if (this.editModel) {
                 // selection.clear();
                 const theInstance = this.editModel.child.get(index);
                 if (theInstance) {
-                    generateShape(theSegment);
+                    this.generateSegmentShape(theSegment);
                     const theMeshes = generateMeshes([theSegment]);
                     if (theMeshes.length) {
                         design.startOperation();
@@ -615,7 +654,7 @@ export class DrawStairsTool implements KTool {
     clearEditModel() {
         this.editModel = undefined;
         this.segments = [];
-        this.handrails = undefined;
+        this.handrailCollection = undefined;
         this.focusedComponentIndex = DefaultFocusedComponentIndex;
         pluginUI.postMessage({ type: MessageType.DrawStairModelSettled }, '*');
     }
@@ -645,6 +684,18 @@ export class DrawStairsTool implements KTool {
     }
     onKeyUp(event: KKeyBoardEvent): void {
         ;
+    }
+
+    private generateSegmentShape(segment: Segment, temp: boolean = true) {
+        generateShape(segment, temp);
+        // this.generateHandrailShape();
+    }
+
+    private generateHandrailShape() {
+        if (this.stairParam && this.segments.length) {
+            const handrails = generateHandrailShape(this.stairParam, this.segments);
+            this.handrailCollection = { handrails: handrails || [] };
+        }
     }
 }
 
