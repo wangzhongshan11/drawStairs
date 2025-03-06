@@ -25,7 +25,7 @@ export default class RadioProperty extends React.PureComponent<Props> {
         return (
             <div className='radio-property-wrapper'>
                 <div className='title'>{title}</div>
-                <Radio.Group defaultValue={value} value={value} onChange={this.onChange} buttonStyle="solid" size='middle'>
+                <Radio.Group defaultValue={value} value={value} onChange={this.onChange} buttonStyle="solid" size='small' >
                     {radioOptions.map((radioOption, index) => {
                         return <Radio.Button value={radioOption.value} key={index}>{radioOption.text}</Radio.Button>
                     })}

@@ -148,9 +148,7 @@ export default class PropertiesView extends React.Component<{}, State> {
         ];
         return (
             <div className='property-wrapper'>
-                <div className='collapse-wrapper'>
-                    <Collapse items={items} defaultActiveKey={['stairs-property', 'handrail-property']} />
-                </div>
+                <Collapse items={items} defaultActiveKey={['stairs-property', 'handrail-property']} />
             </div>
         )
     }

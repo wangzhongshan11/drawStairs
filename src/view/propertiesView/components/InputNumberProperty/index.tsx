@@ -61,6 +61,7 @@ export default class InputNumberProperty extends React.PureComponent<Props, Stat
                         min={min}
                         max={max}
                         step={step}
+                        size='small'
                         // formatter={(value) => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                         // parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as unknown as number}
                         onChange={this.onChange.bind(this)}

@@ -134,9 +134,9 @@ export const ComponentParamSettings = {
 
 export function getComponentTitle(componentType: ComponentType) {
     if (componentType === ComponentType.StraightStair) {
-        return '直';
+        return '阶';
     } else if (componentType === ComponentType.CircularStair) {
-        return '旋';
+        return '阶';
     } else {
         return '台';
     }

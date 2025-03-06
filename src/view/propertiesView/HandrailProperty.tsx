@@ -155,17 +155,6 @@ export default class PropertiesContent extends React.Component<Props, State> {
                             selectOptions={ComponentParamSettings[ComponentParamType.Handrail].column.type.selectOptions}
                             onChange={this.getOnChange(ComponentParamType.HandrailColumnType).bind(this)}
                         />
-                        <InputNumberProperty
-                            title={ComponentParamSettings[ComponentParamType.Handrail].column.step.title}
-                            unit={ComponentParamSettings[ComponentParamType.Handrail].column.step.unit}
-                            value={column.step}
-                            precision={ComponentParamSettings[ComponentParamType.Handrail].column.step.precision}
-                            min={ComponentParamSettings[ComponentParamType.Handrail].column.step.min}
-                            max={ComponentParamSettings[ComponentParamType.Handrail].column.step.max}
-                            step={ComponentParamSettings[ComponentParamType.Handrail].column.step.step}
-                            // disabled={disabled}
-                            onChange={this.getOnChange(ComponentParamType.HandrailColumnStep).bind(this)}
-                        />
                         <div className='column-param-property'>
                             {column.type === ColumnType.Circle && column.param.radius !== undefined &&
                                 <InputNumberProperty
@@ -208,6 +197,18 @@ export default class PropertiesContent extends React.Component<Props, State> {
                             }
                         </div>
                     </div>
+
+                    <InputNumberProperty
+                        title={ComponentParamSettings[ComponentParamType.Handrail].column.step.title}
+                        unit={ComponentParamSettings[ComponentParamType.Handrail].column.step.unit}
+                        value={column.step}
+                        precision={ComponentParamSettings[ComponentParamType.Handrail].column.step.precision}
+                        min={ComponentParamSettings[ComponentParamType.Handrail].column.step.min}
+                        max={ComponentParamSettings[ComponentParamType.Handrail].column.step.max}
+                        step={ComponentParamSettings[ComponentParamType.Handrail].column.step.step}
+                        // disabled={disabled}
+                        onChange={this.getOnChange(ComponentParamType.HandrailColumnStep).bind(this)}
+                    />
                 </div>}
             </div>
         )

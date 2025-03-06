@@ -1,8 +1,8 @@
 .tools-wrapper {
     width: 80%;
-    height: 40px;
+    height: 36px;
     /* padding: 0 8%; */
-    /* margin: 10px 0 15px 0; */
+    margin: 10px 0 0 10px;
     display: flex;
     justify-content: flex-start;
     align-items: center;

@@ -90,6 +90,7 @@ export default class InputNumberPropertyArray extends React.PureComponent<Props,
                                 max={max[index]}
                                 step={step[index]}
                                 disabled={disabled}
+                                size='small'
                                 // formatter={(value) => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                                 // parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as unknown as number}
                                 onChange={this.getOnChange(index).bind(this)}

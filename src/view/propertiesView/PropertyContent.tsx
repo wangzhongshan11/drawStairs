@@ -272,10 +272,10 @@ export default class PropertiesContent extends React.Component<Props, State> {
                         onChange={this.getOnChange(ComponentParamType.Type).bind(this)}
                     />}
                 </div>
-                <Divider style={{ borderColor: 'gray', margin: '6px 0', color: 'gray' }} >整体参数</Divider>
+                <Divider className='property-divider' >整体参数</Divider>
                 <div className='overall-properties'>
                     {type !== ComponentType.Platform &&
-                        <div className='step-wrapper'>
+                        <div className='start-end-width-wrapper'>
                             <InputNumberPropertyArray
                                 title={ComponentParamSettings[ComponentParamType.HorizontalStep].title}
                                 units={[ComponentParamSettings[ComponentParamType.HorizontalStep].unit, ComponentParamSettings[ComponentParamType.VerticalStep].unit]}
@@ -294,7 +294,7 @@ export default class PropertiesContent extends React.Component<Props, State> {
                                     <UnlockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} />
                             }
                         </div>}
-                    {type !== ComponentType.Platform && <div className='step-wrapper'>
+                    {type !== ComponentType.Platform && <div className='start-end-width-wrapper'>
                         <InputNumberPropertyArray
                             title={ComponentParamSettings[ComponentParamType.StartWidth].title}
                             units={[ComponentParamSettings[ComponentParamType.StartWidth].unit, ComponentParamSettings[ComponentParamType.EndWidth].unit]}

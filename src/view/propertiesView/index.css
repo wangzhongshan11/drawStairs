@@ -5,10 +5,6 @@
     border-bottom: 1px solid black;
     padding-left: 4px;
 
-    .collapse-wrapper {
-        width: 100%;
-    }
-
     &::-webkit-scrollbar {
         width: 4px;
     }
@@ -18,11 +14,19 @@
         background-color: rgba(3, 9, 17, 0.2);
     }
 
+    .property-divider {
+        border-color: gray;
+        margin: 2px 0;
+        color: gray;
+        font-size: 12px;
+        height: 15px;
+    }
+
     .ant-collapse {
         width: 100%;
 
         .ant-collapse-header {
-            padding: 8px 8px;
+            padding: 5px 5px;
         }
 
         .ant-collapse-content-box {
@@ -30,40 +34,13 @@
         }
     }
 
-    .handrail-property-wrapper {
-        padding-left: 2%;
-
-        .handrail-property {
-            .rail-property {
-                .rail-param-property {
-                    display: flex;
-                    padding-left: 40%;
-
-                    .rect-param {
-                        display: flex;
-                    }
-                }
-            }
-
-            .column-property {
-                .column-param-property {
-                    display: flex;
-                    padding-left: 40%;
-
-                    .rect-param {
-                        display: flex;
-                    }
-                }
-            }
-        }
-    }
-
     .stairs-property-wrapper {
         display: flex;
+        height: 330px;
 
         .property-tabs-wrapper {
-            width: 70px;
-            height: 400px;
+            width: 16%;
+            height: 98%;
 
             .ant-tabs-nav {
                 width: 100%;
@@ -72,6 +49,8 @@
                     .ant-tabs-tab {
                         padding: 8px 6px !important;
                         margin: 0 !important;
+                        border-radius: 0;
+                        font-size: 12px;
 
                         .ant-tabs-tab-btn {
                             width: 100%;
@@ -105,14 +84,16 @@
 
         .properties-content-wrapper {
             padding-left: 3%;
+            width: 78%;
+
+            .start-end-width-wrapper {
+                display: flex;
+                justify-content: flex-start;
+            }
 
             .separate-properties {
-                height: 150px;
-
-                .start-end-width-wrapper {
-                    display: flex;
-                    justify-content: flex-start;
-                }
+                height: 180px;
+                margin-top: 3px;
 
                 .platform-length-wrapper {
                     display: flex;
@@ -125,13 +106,55 @@
             }
 
             .overall-properties {
-                height: 150px;
+                height: 200px;
                 color: gray;
             }
 
             .lock-button {
                 svg:hover {
-                    background-color: rgb(228, 226, 222);
+                    /* background-color: rgb(228, 226, 222); */
+                    fill: blue;
+                }
+            }
+        }
+    }
+
+    .handrail-property-wrapper {
+        padding-left: 2%;
+        height: 200px;
+
+        .handrail-property {
+            .rail-property {
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+
+                .rail-param-property {
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-start;
+                    margin-left: 8px;
+
+                    .rect-param {
+                        display: flex;
+                    }
+                }
+            }
+
+            .column-property {
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+
+                .column-param-property {
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-start;
+                    margin-left: 8px;
+
+                    .rect-param {
+                        display: flex;
+                    }
                 }
             }
         }

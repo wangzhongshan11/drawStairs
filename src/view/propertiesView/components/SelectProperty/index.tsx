@@ -25,7 +25,7 @@ export default class SelectProperty extends React.PureComponent<Props> {
         return (
             <div className='select-property-wrapper'>
                 <div className='title'>{title}</div>
-                <Select value={value} defaultValue={value} defaultOpen={false} options={selectOptions} onChange={this.onChange} />
+                <Select value={value} defaultValue={value} defaultOpen={false} options={selectOptions} onChange={this.onChange} size='small' />
                 {/* <Select.Group defaultValue={value} value={value} onChange={this.onChange} buttonStyle="solid" >
                     {selectOptions.map((selectOption, index) => {
                         return 

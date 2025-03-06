@@ -1,6 +1,7 @@
 import * as React from 'react'
 import "./index.css";
 import { Switch } from 'antd';
+// import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
 
 interface Props {
     title: string;
@@ -22,7 +23,13 @@ export default class SwitchProperty extends React.PureComponent<Props> {
         return (
             <div className='switch-property-wrapper'>
                 <div className='title'>{title}</div>
-                <Switch checked={checked} onChange={this.onChange} />
+                <Switch
+                    checked={checked}
+                    size='small'
+                    onChange={this.onChange}
+                    // checkedChildren={<CheckOutlined />}
+                    // unCheckedChildren={<CloseOutlined />}
+                />
             </div>
         )
     }
