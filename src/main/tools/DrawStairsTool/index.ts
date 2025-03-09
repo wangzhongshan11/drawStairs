@@ -94,6 +94,10 @@ export class DrawStairsTool implements KTool {
                                     lastSegment.baseComponent = { componentIndex: prevSegment.param.index, line3dIndex: index, line3d: { start: vertices[line[0]], end: vertices[line[1]] } };
                                 }
                             });
+                            // const prevSegment = getSegmentByIndex(this.segments, lastSegment.baseComponent.componentIndex);
+                            if (lastSegment.baseComponent?.line3dIndex !== undefined) {
+                                prevSegment.nextComponents[lastSegment.baseComponent.line3dIndex].add(lastSegment.param.index);
+                            }
                             this.drawPickStartTempShapes(position, lastSegment.start, lastSegment);
                         }
                     } else {
@@ -145,10 +149,13 @@ export class DrawStairsTool implements KTool {
                         } else {
                             const baseSegment = getSegmentByIndex(this.segments, lastSegment.baseComponent.componentIndex);
                             if (baseSegment && lastSegment.baseComponent?.line3dIndex !== undefined) {
-                                baseSegment.nextComponents[lastSegment.baseComponent.line3dIndex].push(lastParam.index);
+                                baseSegment.nextComponents[lastSegment.baseComponent.line3dIndex].add(lastParam.index);
                             }
                         }
                         // nextSegment.baseLineSeg3d = { start: vertices[vertices.length - 1], end: vertices[vertices.length - 2] };
+                        if (nextSegment.startLocked) {
+                            nextSegment.nextComponents[0].add(nextSegment.param.index);
+                        }
                         nextSegment.baseComponent = {
                             componentIndex: lastParam.index,
                             line3dIndex: lastParam.type === ComponentType.Platform ? tempLines.length - 1 : 0,
@@ -265,7 +272,7 @@ export class DrawStairsTool implements KTool {
                 }
                 tempLinePoints.push(...columns);
             }
-            const handrailTempShapeIds = appView.drawPolylines(tempLinePoints, { color: { r: 0, g: 0, b: 255 }, depthTest: false });
+            const handrailTempShapeIds = appView.drawPolylines(tempLinePoints, { color: { r: 0, g: 0, b: 255 }, depthTest: false, pattern: KLinePattern.Dash });
             if (handrailTempShapeIds?.ids) {
                 this.handrailCollection.tempShapeId = handrailTempShapeIds.ids;
             }
@@ -290,6 +297,7 @@ export class DrawStairsTool implements KTool {
 
             // if (componentIndex !== this.focusedComponentIndex) {
             const newFocusedSegment = getSegmentByIndex(this.segments, componentIndex);
+            const oldFocusedSegment = getSegmentByIndex(this.segments, this.focusedComponentIndex);
             if (newFocusedSegment) {
                 if (this.drawing && !lastSegment.endLocked && componentIndex !== lastSegmentIndex) {
                     const { param: { type: newFocusedType }, moldShape: { vertices: newFocusedVertices, tempLines: newFocusedTempLines } } = newFocusedSegment;
@@ -297,6 +305,10 @@ export class DrawStairsTool implements KTool {
                     this.clearPickStartTempShapes(lastSegment);
                     this.clearTempShapes(lastSegment);
                     if (newFocusedType === ComponentType.Platform) {
+                        if (oldFocusedSegment && oldFocusedSegment !== newFocusedSegment) {
+                            oldFocusedSegment.nextComponents.forEach(inds => inds.delete(lastSegment.param.index));
+                        }
+
                         let closestPoint: KPoint3d | undefined;
                         let minDistance = 0;
                         newFocusedTempLines.forEach((line, index) => {
@@ -311,12 +323,15 @@ export class DrawStairsTool implements KTool {
                                 lastSegment.baseComponent = { componentIndex: newFocusedSegment.param.index, line3dIndex: index, line3d: { start: newFocusedVertices[line[0]], end: newFocusedVertices[line[1]] } };
                             }
                         });
+                        if (lastSegment.baseComponent?.line3dIndex !== undefined) {
+                            newFocusedSegment.nextComponents[lastSegment.baseComponent.line3dIndex].add(lastSegment.param.index);
+                        }
                         lastSegment.startLocked = false;
                         lastSegment.circleTangent = undefined;
                         lastSegment.startHeight = newFocusedSegment.endHeight;
                         this.drawPickStartTempShapes(start, lastSegment.start, lastSegment);
                     } else {
-                        if (!newFocusedSegment.nextComponents[0].length) {
+                        if (!newFocusedSegment.nextComponents[0].size) {
                             lastSegment.start = newFocusedSegment.end.clone();
                             lastSegment.startLocked = true;
                             lastSegment.startHeight = newFocusedSegment.endHeight;
@@ -336,7 +351,6 @@ export class DrawStairsTool implements KTool {
                     this.drawTempComponent(newFocusedSegment, this.drawing);
                 }
             }
-            const oldFocusedSegment = getSegmentByIndex(this.segments, this.focusedComponentIndex);
             if (((this.drawing && this.focusedComponentIndex !== lastSegmentIndex) || (!this.drawing && this.focusedComponentIndex !== componentIndex)) && oldFocusedSegment) {
                 if (this.drawing) {
                     this.drawTempComponent(oldFocusedSegment);
@@ -372,15 +386,15 @@ export class DrawStairsTool implements KTool {
                 const baseComponent = theSegment.baseComponent;
                 const baseSegment = getSegmentByIndex(this.segments, baseComponent?.componentIndex);
                 if (baseSegment && baseComponent?.line3dIndex !== undefined) {
-                    const theInd = baseSegment.nextComponents[baseComponent.line3dIndex].findIndex(i => i === theSegment.param.index);
-                    if (theInd > -1) {
-                        baseSegment.nextComponents[baseComponent.line3dIndex].splice(theInd, 1);
-                    }
+                    // const theInd = baseSegment.nextComponents[baseComponent.line3dIndex].findIndex(i => i === theSegment.param.index);
+                    // if (theInd > -1) {
+                    baseSegment.nextComponents[baseComponent.line3dIndex].delete(theSegment.param.index);
+                    // }
                 }
                 const nextComponents = theSegment.nextComponents;
-                for (const nextSegments of nextComponents) {
-                    if (nextSegments.length) {
-                        for (const nextSegInd of nextSegments) {
+                for (const nextSegmentInds of nextComponents) {
+                    if (nextSegmentInds.size) {
+                        for (const nextSegInd of nextSegmentInds) {
                             const nextSegment = getSegmentByIndex(this.segments, nextSegInd);
                             if (nextSegment && nextSegment.baseComponent) {
                                 nextSegment.baseComponent.componentIndex = undefined;

@@ -638,7 +638,7 @@ export function buildSegmentRelations(segments: Segment[]) {
         const baseComponent = segment.baseComponent;
         const baseSegment = getSegmentByIndex(segments, baseComponent?.componentIndex);
         if (baseSegment && baseComponent?.line3dIndex !== undefined) {
-            baseSegment.nextComponents[baseComponent.line3dIndex].push(segment.param.index);
+            baseSegment.nextComponents[baseComponent.line3dIndex].add(segment.param.index);
         }
     }
 }

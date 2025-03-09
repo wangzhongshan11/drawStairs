@@ -225,7 +225,7 @@ export const DefaultComponentParam: ComponentParam = {
     offsetWidth: 0,
     withOffset: false,
     platformLength: 2000,
-    type: ComponentType.StraightStair,
+    type: ComponentType.Platform,
     upward: DefaultStairParam.upward,
     platformThickness: DefaultStairParam.platformThickness,
 
@@ -262,7 +262,7 @@ export interface Segment {
     circleTangent?: KVector3d;
     param: ComponentParam;
     baseComponent?: { componentIndex?: number, line3dIndex?: number, line3d: { start: KPoint3d, end: KPoint3d } };
-    nextComponents: number[][];
+    nextComponents: Set<number>[];
 
     // leftCorner?: KPoint3d;
     // rightCorner?: KPoint3d;

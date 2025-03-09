@@ -40,7 +40,7 @@ export function getEmptySegment(): Segment {
             vertices: [],
             tempLines: [],
         },
-        nextComponents: Array.from({ length: 6 }, _ => []),
+        nextComponents: Array.from({ length: 6 }, _ => new Set()),
         param: { ...DefaultComponentParam },
     }
 }
