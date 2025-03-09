@@ -107,8 +107,6 @@ export default class PropertiesContent extends React.Component<Props, State> {
         }
     }
 
-
-
     private getOnChangeOverall = (componentParamType: ComponentParamType) => {
         return (value: number | string) => {
             const { stairParam } = this.state;

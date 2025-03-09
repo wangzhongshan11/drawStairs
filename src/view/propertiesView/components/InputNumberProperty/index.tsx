@@ -11,6 +11,7 @@ interface Props {
     max: number;
     step: number;
     disabled?: boolean;
+    className?: string;
     onChange?: (value: number) => void;
 }
 
@@ -47,14 +48,14 @@ export default class InputNumberProperty extends React.PureComponent<Props, Stat
     }
 
     render() {
-        const { title, precision, min, max, step } = this.props;
+        const { title, precision, min, max, step, className } = this.props;
         const { inputtingValue } = this.state;
         return (
             <div className='inputNumber-property-wrapper'>
                 <div className='title'>{title}</div>
                 <Space>
                     <InputNumber<number>
-                        className="input"
+                        className={`input ${className || ''}`}
                         value={inputtingValue}
                         // defaultValue={1000}
                         precision={precision}

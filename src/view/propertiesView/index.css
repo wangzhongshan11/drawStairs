@@ -1,8 +1,8 @@
 .property-wrapper {
     display: flex;
-    height: 520px;
+    height: 550px;
     overflow-y: scroll;
-    border-bottom: 1px solid black;
+    /* border-bottom: 1px solid black; */
     padding-left: 4px;
 
     &::-webkit-scrollbar {
@@ -36,7 +36,7 @@
 
     .stairs-property-wrapper {
         display: flex;
-        height: 330px;
+        height: 260px;
 
         .property-tabs-wrapper {
             width: 16%;
@@ -92,7 +92,7 @@
             }
 
             .separate-properties {
-                height: 180px;
+                height: 135px;
                 margin-top: 3px;
 
                 .platform-length-wrapper {
@@ -106,7 +106,7 @@
             }
 
             .overall-properties {
-                height: 200px;
+                height: 95px;
                 color: gray;
             }
 
@@ -121,7 +121,7 @@
 
     .handrail-property-wrapper {
         padding-left: 2%;
-        height: 200px;
+        height: 220px;
 
         .handrail-property {
             .rail-property {
@@ -129,11 +129,21 @@
                 align-items: center;
                 justify-content: flex-start;
 
+                .rail-title {
+                    font-size: 13px;
+                }
+
+                .title {
+                    min-width: 10px;
+                    font-size: 12px;
+                    margin:0 5px;
+                }
+
                 .rail-param-property {
                     display: flex;
                     align-items: center;
                     justify-content: flex-start;
-                    margin-left: 8px;
+                    /* margin-left: 8px; */
 
                     .rect-param {
                         display: flex;
@@ -145,16 +155,34 @@
                 display: flex;
                 align-items: center;
                 justify-content: flex-start;
+                .column-title {
+                    font-size: 13px;
+                }
+                .title {
+                    min-width: 10px;
+                    font-size: 12px;
+                    margin:0 5px;
+                }
 
                 .column-param-property {
                     display: flex;
                     align-items: center;
                     justify-content: flex-start;
-                    margin-left: 8px;
+                    /* margin-left: 8px; */
 
                     .rect-param {
                         display: flex;
                     }
+                }
+            }
+
+            .column-step-property {
+                margin-left: 39px;
+
+                .title {
+                    min-width: 10px;
+                    font-size: 12px;
+                    margin:0 5px;
                 }
             }
         }

@@ -9,7 +9,7 @@
     "build": "npx webpack --mode=production"
   },
   "devDependencies": {
-    "@kudashi/kds-api": "latest",
+    "@kudashi/kds-api": "2.13.30",
     "@kudashi/kds-inline-chunk-html-plugin": "latest",
     "@webpack-cli/serve": "^1.2.1",
     "clean-webpack-plugin": "^3.0.0",

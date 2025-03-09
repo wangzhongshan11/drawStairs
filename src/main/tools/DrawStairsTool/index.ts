@@ -265,7 +265,7 @@ export class DrawStairsTool implements KTool {
                 }
                 tempLinePoints.push(...columns);
             }
-            const handrailTempShapeIds = appView.drawPolylines(tempLinePoints, { color: { r: 0, g: 0, b: 255 }, depthTest: true });
+            const handrailTempShapeIds = appView.drawPolylines(tempLinePoints, { color: { r: 0, g: 0, b: 255 }, depthTest: false });
             if (handrailTempShapeIds?.ids) {
                 this.handrailCollection.tempShapeId = handrailTempShapeIds.ids;
             }
@@ -595,16 +595,16 @@ export class DrawStairsTool implements KTool {
                 }
             }
 
-            let handrailInstanceData: InstanceData | undefined;
-            if (this.handrailCollection?.handrails.length) {
-                const handrailInstance = await buildHandrailInstance(this.stairParam, this.handrailCollection?.handrails);
-                operationSuccess = operationSuccess && handrailInstance !== undefined;
+            // let handrailInstanceData: InstanceData | undefined;
+            // if (this.handrailCollection?.handrails.length) {
+            //     const handrailInstance = await buildHandrailInstance(this.stairParam, this.handrailCollection?.handrails);
+            //     operationSuccess = operationSuccess && handrailInstance !== undefined;
 
-                if (handrailInstance) {
-                    newInstances.push(handrailInstance);
-                    handrailInstanceData = { instance: handrailInstance, definitionKey: handrailInstance.getGroupDefinition()?.getKey() || '', instanceKey: handrailInstance.getKey() };
-                }
-            }
+            //     if (handrailInstance) {
+            //         newInstances.push(handrailInstance);
+            //         handrailInstanceData = { instance: handrailInstance, definitionKey: handrailInstance.getGroupDefinition()?.getKey() || '', instanceKey: handrailInstance.getKey() };
+            //     }
+            // }
             if (newInstances.length) {
                 const parentInstance = design.makeGroup([], newInstances, [])?.addedInstance;
                 operationSuccess = operationSuccess && !!parentInstance;
@@ -616,7 +616,7 @@ export class DrawStairsTool implements KTool {
                         this.editModel = {
                             parent: { instance: parentInstance, definitionKey: parentInstance.getGroupDefinition()?.getKey() || '', instanceKey: parentInstance.getKey() },
                             child: editModelChild,
-                            handrail: handrailInstanceData,
+                            // handrail: handrailInstanceData,
                         };
                         this.segments = validSegments;
                         this.drawing = false;

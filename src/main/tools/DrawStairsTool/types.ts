@@ -102,27 +102,27 @@ export const ComponentParamSettings = {
     platformThickness: { title: "厚度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
     handrail: {
         title: '启用栏杆',
-        height: { title: "扶手高度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
+        height: { title: "高度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
         rail: {
             type: {
-                title: "扶手样式",
+                title: "样式",
                 selectOptions: [
                     { value: RailType.Circle, label: "圆形" },
                     { value: RailType.Rect, label: "方形" },
-                    { value: RailType.Custom, label: "自定义" },
+                    { value: RailType.Custom, label: "拾取" },
                 ]
             },
         },
         column: {
             type: {
-                title: "柱子样式",
+                title: "样式",
                 selectOptions: [
                     { value: ColumnType.Circle, label: "圆形" },
                     { value: ColumnType.Rect, label: "方形" },
-                    { value: ColumnType.Custom, label: "自定义" },
+                    { value: ColumnType.Custom, label: "拾取" },
                 ]
             },
-            step: { title: "柱子间隔", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
+            step: { title: "间隔", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
         },
         componentParam: {
             radius: { title: "半径", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
@@ -203,12 +203,12 @@ export const DefaultStairParam: StairParam = {
         height: 500,
         rail: {
             type: RailType.Circle,
-            param: { radius: 50 },
+            param: { radius: 50, width: 50, height: 50, },
         },
         column: {
             type: ColumnType.Circle,
             step: 500,
-            param: { radius: 50 },
+            param: { radius: 25, width: 25, height: 25, },
         },
     },
 

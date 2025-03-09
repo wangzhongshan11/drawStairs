@@ -809,9 +809,15 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                     baseComponent,
                     circleTangent,
                     platformDirectionType,
+                    startLocked,
+                    
                 } = currentSegment;
 
                 unVisited.delete(currentSegment)
+
+                if ((!startLocked && type !== ComponentType.CircularStair) || (!circleTangent && type === ComponentType.CircularStair)) {
+                    continue;
+                }
 
                 const stepHeight = upward ? verticalStep : -verticalStep;
                 const offsetLength = Math.max(columnParam.height || 0, columnParam.width || 0, columnParam.radius || 0);
@@ -901,7 +907,7 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                     // spToEpDir = ep.subtracted(sp).normalized();
 
                     // push rail
-                    handrail.rail.push(sp.added(DirectionZ.multiplied(startHeight)).added(offsetDir.multiplied(offsetLength)));
+                    handrail.rail.push(sp.added(DirectionZ.multiplied(startHeight + height)).added(offsetDir.multiplied(offsetLength)));
                     // push columns
                     let tempDistance = 0;
                     while (tempDistance < lastDistance) {
@@ -915,7 +921,7 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
 
                     if (pushEnd && (nearestSegment || isEntrance)) {
                         // push rail
-                        handrail.rail.push(ep.added(DirectionZ.multiplied(startHeight)).added(offsetDir.multiplied(offsetLength)));
+                        handrail.rail.push(ep.added(DirectionZ.multiplied(startHeight + height)).added(offsetDir.multiplied(offsetLength)));
                         if (tempDistance - step < lastDistance) {
                             const lastBottomPoint = sp.added(spToEpDir.multiplied(lastDistance)).added(DirectionZ.multiplied(startHeight)).added(offsetDir.multiplied(offsetLength));
                             handrail.columns.push([
@@ -959,7 +965,7 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                                     });
                                     // }
                                 }
-                            } else if (!nextComponents.length) {
+                            } else {
                                 // end of this patch, the patch are start with platform
                                 handrails.push(handrail);
                                 handrail = { rail: [], columns: [] };
@@ -991,15 +997,16 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                     const reasonableStepCount = Math.ceil(step / horizontalStep);
                     lastLength = sp.distanceTo(ep);
                     // push rail
-                    stairRail.push(sp.added(DirectionZ.multiplied(startHeight)).added(leftDir.multiplied(offsetLength)));
+                    stairRail.push(sp.added(DirectionZ.multiplied(startHeight + height + (upward ? 1 : 0) * stepHeight)).added(leftDir.multiplied(offsetLength)));
                     let tempStepCount = 0;
 
                     if (type === ComponentType.StraightStair) {
                         // push columns
                         // let tempDistance = horizontalStep / 2;
                         while (tempStepCount < stepCount) {
-                            const curStepDistance = (tempStepCount + 0.5) * horizontalStep;
-                            const bottomPoint = sp.added(frontDir.multiplied(curStepDistance)).added(DirectionZ.multiplied(startHeight)).added(leftDir.multiplied(left ? offsetLength : -offsetLength));
+                            const curHorStepDistance = (tempStepCount + 0.5) * horizontalStep;
+                            const curVerStepDistance = (tempStepCount + (upward ? 1 : 0)) * stepHeight;
+                            const bottomPoint = sp.added(frontDir.multiplied(curHorStepDistance)).added(DirectionZ.multiplied(startHeight + curVerStepDistance)).added(leftDir.multiplied(left ? -offsetLength : offsetLength));
                             stairColumns.push([
                                 bottomPoint,
                                 bottomPoint.added(DirectionZ.multiplied(height)),
@@ -1010,10 +1017,10 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                             tempStepCount += reasonableStepCount;
                         }
                         if (tempStepCount - reasonableStepCount < stepCount - 1) {
-                            stairRail.push(sp.added(DirectionZ.multiplied(endHeight)).added(leftDir.multiplied(offsetLength)));
+                            stairRail.push(ep.added(DirectionZ.multiplied(endHeight + height)).added(leftDir.multiplied(offsetLength)));
                             const prevTotalStepLength = (stepCount - 1) * horizontalStep;
                             const lastStepLength = lastLength - prevTotalStepLength;
-                            const lastBottomPoint = sp.added(frontDir.multiplied(prevTotalStepLength + lastStepLength / 2)).added(DirectionZ.multiplied(startHeight)).added(leftDir.multiplied(left ? offsetLength : -offsetLength));
+                            const lastBottomPoint = sp.added(frontDir.multiplied(prevTotalStepLength + lastStepLength / 2)).added(DirectionZ.multiplied(endHeight)).added(leftDir.multiplied(left ? offsetLength : -offsetLength));
                             stairColumns.push([
                                 lastBottomPoint,
                                 lastBottomPoint.added(DirectionZ.multiplied(height)),
@@ -1069,8 +1076,8 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                             const curStepRightFrontDir = nextRightMoldPt.subtracted(curRightMoldPt).multiplied(0.5);
                             const curStepLeftDir = DirectionZ.cross(curStepLeftFrontDir).normalized();
                             const curStepRightDir = DirectionZ.cross(curStepRightFrontDir).normalized();
-                            const curLeftBottomPt = curLeftMoldPt.added(DirectionZ.multiplied(startHeight + tempStepCount * stepHeight)).added(curStepLeftDir.multiplied(-offsetLength));
-                            const curRightBottomPt = curRightMoldPt.added(DirectionZ.multiplied(startHeight + tempStepCount * stepHeight)).added(curStepRightDir.multiplied(offsetLength));
+                            const curLeftBottomPt = curLeftMoldPt.added(DirectionZ.multiplied(startHeight + (tempStepCount + (upward ? 1 : 0)) * stepHeight)).added(curStepLeftDir.multiplied(-offsetLength));
+                            const curRightBottomPt = curRightMoldPt.added(DirectionZ.multiplied(startHeight + (tempStepCount + (upward ? 1 : 0)) * stepHeight)).added(curStepRightDir.multiplied(offsetLength));
                             const curLeftBottomMidPt = curLeftBottomPt.added(curStepLeftFrontDir);
                             const curRightBottomMidPt = curRightBottomPt.added(curStepRightFrontDir);
 

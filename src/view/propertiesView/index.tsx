@@ -1,6 +1,6 @@
 import * as React from 'react'
 import "./index.css";
-import { ComponentParam, StairParam, getComponentTitle } from '../../main/tools/DrawStairsTool/types';
+import { ColumnType, ComponentParam, ComponentParamType, RailType, StairParam, getComponentTitle } from '../../main/tools/DrawStairsTool/types';
 import { ImmutableMap } from './ImmutableMap';
 import { Tabs } from 'antd';
 import PropertiesContent from './PropertyContent';
@@ -105,6 +105,65 @@ export default class PropertiesView extends React.Component<{}, State> {
         }
     }
 
+
+
+
+    private getOnHandrailChange = (componentParamType: ComponentParamType) => {
+        return (value: number | string) => {
+            const { stairParam } = this.state;
+            if (stairParam) {
+                if (componentParamType.startsWith(ComponentParamType.Handrail)) {
+                    const { handrail } = stairParam;
+                    const newHandrail = {
+                        support: handrail.support,
+                        height: handrail.height,
+                        rail: {
+                            type: handrail.rail.type,
+                            param: { ...handrail.rail.param },
+                        },
+                        column: {
+                            type: handrail.column.type,
+                            step: handrail.column.step,
+                            param: { ...handrail.column.param },
+                        }
+                    }
+                    switch (componentParamType) {
+                        case ComponentParamType.HandrailHeight: newHandrail.height = value as number; break;
+                        case ComponentParamType.HandrailRailType: newHandrail.rail.type = value as RailType; break;
+                        case ComponentParamType.HandrailRailRadius: newHandrail.rail.param.radius = value as number; break;
+                        case ComponentParamType.HandrailRailWidth: newHandrail.rail.param.width = value as number; break;
+                        case ComponentParamType.HandrailRailHeight: newHandrail.rail.param.height = value as number; break;
+                        case ComponentParamType.HandrailColumnType: newHandrail.column.type = value as ColumnType; break;
+                        case ComponentParamType.HandrailColumnStep: newHandrail.column.step = value as number; break;
+                        case ComponentParamType.HandrailColumnRadius: newHandrail.column.param.radius = value as number; break;
+                        case ComponentParamType.HandrailColumnWidth: newHandrail.column.param.width = value as number; break;
+                        case ComponentParamType.HandrailColumnHeight: newHandrail.column.param.height = value as number; break;
+                        default: break;
+                    }
+                    stairParam.handrail = newHandrail;
+                } else {
+                    (stairParam as any)[componentParamType] = value;
+                }
+                window.parent.postMessage({ type: MessageType.StairParamChangedByInput, stairParam, changeParams: [componentParamType] }, '*');
+                this.setState({ stairParam: { ...stairParam } });
+            }
+        }
+    }
+
+    private getOnHandrailSwitchChange = (componentParamType: ComponentParamType) => {
+        return (checked: boolean) => {
+            const { stairParam } = this.state;
+            if (stairParam) {
+                if (componentParamType === ComponentParamType.Handrail) {
+                    stairParam.handrail.support = checked;
+                }
+                stairParam.handrail = { ...stairParam.handrail };
+                window.parent.postMessage({ type: MessageType.StairParamChangedByInput, stairParam, changeParams: [componentParamType] }, '*');
+                this.setState({ stairParam: { ...stairParam } });
+            }
+        }
+    }
+
     render() {
         const { componentParams, componentParam, stairParam, activeKey, propertiesVisible } = this.state;
         if (!componentParams.size || !propertiesVisible || !stairParam) {
@@ -114,7 +173,7 @@ export default class PropertiesView extends React.Component<{}, State> {
         const items: ItemType[] = [
             {
                 key: 'stairs-property',
-                label: '独立参数',
+                label: '阶梯参数',
                 children: <div className='stairs-property-wrapper'>
                     <Tabs
                         defaultActiveKey={activeKey}
@@ -143,7 +202,7 @@ export default class PropertiesView extends React.Component<{}, State> {
             {
                 key: 'handrail-property',
                 label: '栏杆参数',
-                children: <HandrailProperty stairParam={stairParam} />
+                children: <HandrailProperty stairParam={stairParam} getOnHandrailChange={this.getOnHandrailChange} getOnHandrailSwitchChange={this.getOnHandrailSwitchChange} />
             },
         ];
         return (
