@@ -46,7 +46,7 @@ function generateCircularStairMesh(segment: Segment) {
             [i * 4 + 1, i * 4 + 3, i * 4 + 2],
             [i * 4 + 2, i * 4 + 3, i * 4 + 4],
             [i * 4 + 3, i * 4 + 5, i * 4 + 4],
-            // side faces
+            // side faces (up)
             [i * 4, i * 4 + 2, (i + 1) * 4],
             [i * 4 + 1, (i + 1) * 4 + 1, i * 4 + 3],
         );
@@ -61,7 +61,7 @@ function generateCircularStairMesh(segment: Segment) {
         if (upward) {
             const bottomFrontLeftIndex = 4 * stepCount + 2 + 2 * (stepCount - i - 1);
             stairMesh.triangleIndices.push(
-                // side middle faces
+                // side faces (middle)
                 [i * 4, (i + 1) * 4, bottomFrontLeftIndex],
                 [(i + 1) * 4 + 1, i * 4 + 1, bottomFrontLeftIndex + 1],
             );
@@ -73,7 +73,7 @@ function generateCircularStairMesh(segment: Segment) {
             }
             if (i > 0) {
                 stairMesh.triangleIndices.push(
-                    // side bottom faces
+                    // side faces (bottom)
                     [i * 4, bottomFrontLeftIndex, bottomFrontLeftIndex + 2],
                     [bottomFrontLeftIndex + 1, i * 4 + 1, bottomFrontLeftIndex + 3],
                     // bottom faces
@@ -99,7 +99,7 @@ function generateCircularStairMesh(segment: Segment) {
         } else {
             const bottomBackLeftIndex = 4 * stepCount + 2 + 2 * (stepCount - i - 1);
             stairMesh.triangleIndices.push(
-                // side middle faces
+                // side faces (middle)
                 [i * 4, (i + 1) * 4, bottomBackLeftIndex],
                 [(i + 1) * 4 + 1, i * 4 + 1, bottomBackLeftIndex + 1],
                 // bottom faces
@@ -116,7 +116,7 @@ function generateCircularStairMesh(segment: Segment) {
                 );
 
                 stairMesh.triangleIndices.push(
-                    // side bottom faces
+                    // side faces (bottom)
                     [(i + 1) * 4, bottomBackLeftIndex - 2, bottomBackLeftIndex],
                     [bottomBackLeftIndex - 1, (i + 1) * 4 + 1, bottomBackLeftIndex + 1],
                 );
