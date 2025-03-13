@@ -80,6 +80,11 @@ export class DrawStairsTool implements KTool {
                         // must be true
                         if (prevSegment?.param.type === ComponentType.Platform) {
                             const { moldShape: { vertices, tempLines } } = prevSegment;
+
+                            if (lastSegment.baseComponent?.line3dIndex !== undefined) {
+                                prevSegment.nextComponents.forEach(inds => inds.delete(lastSegment.param.index));
+                            }
+
                             let closestPoint: KPoint3d | undefined;
                             let minDistance = 0;
                             tempLines.forEach((line, index) => {
@@ -154,7 +159,7 @@ export class DrawStairsTool implements KTool {
                         }
                         // nextSegment.baseLineSeg3d = { start: vertices[vertices.length - 1], end: vertices[vertices.length - 2] };
                         if (nextSegment.startLocked) {
-                            nextSegment.nextComponents[0].add(nextSegment.param.index);
+                            lastSegment.nextComponents[0].add(nextSegment.param.index);
                         }
                         nextSegment.baseComponent = {
                             componentIndex: lastParam.index,
@@ -309,6 +314,9 @@ export class DrawStairsTool implements KTool {
                             oldFocusedSegment.nextComponents.forEach(inds => inds.delete(lastSegment.param.index));
                         }
 
+                        if (lastSegment.baseComponent?.line3dIndex !== undefined) {
+                            newFocusedSegment.nextComponents.forEach(inds => inds.delete(lastSegment.param.index));
+                        }
                         let closestPoint: KPoint3d | undefined;
                         let minDistance = 0;
                         newFocusedTempLines.forEach((line, index) => {
@@ -337,6 +345,8 @@ export class DrawStairsTool implements KTool {
                             lastSegment.startHeight = newFocusedSegment.endHeight;
                             // lastSegment.baseLineSeg3d = { start: newFocusedVertices[newFocusedVertices.length - 1], end: newFocusedVertices[newFocusedVertices.length - 2] };
                             lastSegment.baseComponent = { componentIndex: newFocusedSegment.param.index, line3dIndex: 0, line3d: { start: newFocusedVertices[newFocusedVertices.length - 1], end: newFocusedVertices[newFocusedVertices.length - 2] } };
+                            newFocusedSegment.nextComponents[0].add(lastSegment.param.index);
+
                             lastSegment.circleTangent = undefined;
                             this.drawTempComponent(lastSegment, false, true);
                         }
