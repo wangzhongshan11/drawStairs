@@ -244,12 +244,17 @@ export interface Shape {
     tempLines: number[][];
 }
 
-export enum PlatformDirectionType {
+export enum ComponentDirectionType {
     Front = 0,
     RightFront = 1,
     Right = 2,
     Left = 3,
     LeftFront = 4,
+}
+
+export enum CircularSide {
+    Left = 0,
+    Right = 1,
 }
 
 export interface Segment {
@@ -273,7 +278,8 @@ export interface Segment {
     moldShape: Shape;
     cornerShape: Shape;
     cornerMoldShape: Shape;
-    platformDirectionType?: PlatformDirectionType;
+    componentDirectionType: ComponentDirectionType;
+    circularSide?: CircularSide;
 
     tempShapeId?: string[];
     pickStartTempShapeId?: string;

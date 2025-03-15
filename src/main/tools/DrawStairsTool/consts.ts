@@ -1,4 +1,4 @@
-import { DefaultComponentParam, Segment } from "./types";
+import { ComponentDirectionType, DefaultComponentParam, Segment } from "./types";
 
 export const dummyMatrix4 = GeomLib.createIdentityMatrix4();
 export const dummyVector3d = GeomLib.createVector3d(0, 0, 1);
@@ -43,5 +43,6 @@ export function getEmptySegment(): Segment {
         },
         nextComponents: Array.from({ length: 6 }, _ => new Set()),
         param: { ...DefaultComponentParam },
+        componentDirectionType: ComponentDirectionType.Front,
     }
 }

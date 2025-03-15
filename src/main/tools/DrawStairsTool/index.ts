@@ -1,5 +1,5 @@
 import { ComponentType, ComponentParam, Segment, ParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType, StairModelValue, CircleTangentKey, StairParam, DefaultStairParam, BaseComponentKey, Handrail } from "./types";
-import { generateHandrailShape, generateShape } from "./tempMeshUtils";
+import { generateHandrailShape, generateShape, isCircularStair } from "./tempMeshUtils";
 import { buildComponentInstance, buildHandrailInstance, buildSegmentRelations, changeStairUpward, generateMeshes, getSegmentByIndex } from "./meshUtils";
 import { parseBaseComponent, parseLineSeg3d, parseParam, parseStartEnd, parseVector3d } from "./utils";
 import { getEmptySegment } from "./consts";
@@ -539,6 +539,9 @@ export class DrawStairsTool implements KTool {
             const { param: { index } } = theSegment;
             componentParam.modelEditing = true;
             theSegment.param = componentParam;
+            if (!isCircularStair(theSegment)) {
+                theSegment.circleTangent = undefined;
+            }
             if (this.drawing) {
                 this.drawTempComponent(theSegment, theSegment.param.index !== lastSegment.param.index, true);
             } else if (this.editModel) {
