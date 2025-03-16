@@ -150,7 +150,7 @@ export class DrawStairsTool implements KTool {
                         const { moldShape: { vertices, tempLines } } = lastSegment;
                         if (!lastSegment.baseComponent) {
                             // lastSegment.baseLineSeg3d = { start: vertices[0], end: vertices[1] };
-                            lastSegment.baseComponent = { line3d: { start: vertices[0], end: vertices[1] } };
+                            lastSegment.baseComponent = { line3d: { start: vertices[1], end: vertices[0] } };
                         } else {
                             const baseSegment = getSegmentByIndex(this.segments, lastSegment.baseComponent.componentIndex);
                             if (baseSegment && lastSegment.baseComponent?.line3dIndex !== undefined) {
