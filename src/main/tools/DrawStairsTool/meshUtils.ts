@@ -446,24 +446,12 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
     if (!support) {
         return 0;
     }
-    let railFace: KFace | undefined;
-    if (railType === RailType.Circle) {
-        railFace = drawCircle(railParam.radius || DefaultStairParam.horizontalStep / 5);
-    } else if (railType === RailType.Rect) {
-        railFace = drawRect(railParam.width || DefaultStairParam.horizontalStep / 5, railParam.height || DefaultStairParam.horizontalStep / 5);
-    } else {
-        return 0;
-    }
-    const railLoop = railFace?.getOuterLoop();
-    if (!railFace || !railLoop) {
-        return undefined;
-    }
 
     let columnFace: KFace | undefined;
     if (columnType === ColumnType.Circle) {
-        columnFace = drawCircle(columnParam.radius || DefaultStairParam.horizontalStep / 10, 100);
+        columnFace = drawCircle(columnParam.radius || DefaultStairParam.horizontalStep / 10, -100);
     } else if (columnType === ColumnType.Rect) {
-        columnFace = drawRect(columnParam.width || DefaultStairParam.horizontalStep / 10, columnParam.height || DefaultStairParam.horizontalStep / 10, 100);
+        columnFace = drawRect(columnParam.width || DefaultStairParam.horizontalStep / 10, columnParam.height || DefaultStairParam.horizontalStep / 10, -100);
     } else {
         return 0;
     }
@@ -473,7 +461,7 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
     }
 
     const activeDesign = app.getActiveDesign();
-    const handrailInstance = activeDesign.makeGroup([railFace, columnFace], [], [])?.addedInstance;
+    const handrailInstance = activeDesign.makeGroup([columnFace], [], [])?.addedInstance;
     const handrailDefinition = handrailInstance?.getGroupDefinition();
     if (!handrailInstance || !handrailDefinition) {
         return undefined;
@@ -508,7 +496,11 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
     }
 
     const columnCenters: KPoint3d[] = [];
-    for (const { rail, columns } of handrails) {
+    for (let j = 0; j < handrails.length; j++) {
+        const { rail, columns } = handrails[j];
+
+        // }
+        // for (const { rail, columns } of handrails) {
         const railBoundedCurves: KAuxiliaryBoundedCurve[] = [];
         for (let i = 0; i < rail.length - 1; i++) {
             const railPoint = rail[i];
@@ -521,9 +513,26 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
                 return undefined;
             }
         }
+
+        let railFace: KFace | undefined;
+        if (railType === RailType.Circle) {
+            railFace = drawCircle(railParam.radius || DefaultStairParam.horizontalStep / 5, 200 * j);
+        } else if (railType === RailType.Rect) {
+            railFace = drawRect(railParam.width || DefaultStairParam.horizontalStep / 5, railParam.height || DefaultStairParam.horizontalStep / 5, 200 * j);
+        } else {
+            return 0;
+        }
+        const railLoop = railFace?.getOuterLoop();
+        if (!railFace || !railLoop) {
+            return undefined;
+        }
+
         const sweepRailRes = activeDesign.sweepFollowCurves(railLoop, railBoundedCurves);
         if (!sweepRailRes.isSuccess || !sweepRailRes.addedShells.length) {
-            return undefined;
+            // return undefined;
+            console.log('sweep rail fail');
+        } else {
+            console.log('sweep rail success');
         }
 
         for (const column of columns) {
@@ -531,7 +540,7 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
         }
     }
     if (columnCenters.length) {
-        const columnCopyRes = activeDesign.bulkCopyGroupInstances([columnOriginInstance], [columnCenters.map(center => GeomLib.createTranslationMatrix4(center.x, center.y,center.z))]);
+        const columnCopyRes = activeDesign.bulkCopyGroupInstances([columnOriginInstance], [columnCenters.map(center => GeomLib.createTranslationMatrix4(center.x, center.y, center.z))]);
         if (!columnCopyRes?.addedInstances.length) {
             return undefined;
         }

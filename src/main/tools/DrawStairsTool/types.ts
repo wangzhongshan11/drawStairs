@@ -225,7 +225,7 @@ export const DefaultComponentParam: ComponentParam = {
     offsetWidth: 0,
     withOffset: false,
     platformLength: 2000,
-    type: ComponentType.Platform,
+    type: ComponentType.StraightStair,
     upward: DefaultStairParam.upward,
     platformThickness: DefaultStairParam.platformThickness,
 
