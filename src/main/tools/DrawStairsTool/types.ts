@@ -203,12 +203,12 @@ export const DefaultStairParam: StairParam = {
         height: 500,
         rail: {
             type: RailType.Circle,
-            param: { radius: 50, width: 50, height: 50, },
+            param: { radius: 20, width: 20, height: 20, },
         },
         column: {
             type: ColumnType.Circle,
             step: 500,
-            param: { radius: 25, width: 25, height: 25, },
+            param: { radius: 8, width: 8, height: 8, },
         },
     },
 

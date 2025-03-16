@@ -2,7 +2,7 @@ import { ComponentType, ComponentParam, Segment, ParamKey, StartEndKey, BaseLine
 import { generateHandrailShape, generateShape, isCircularStair } from "./tempMeshUtils";
 import { buildComponentInstance, buildHandrailInstance, buildSegmentRelations, changeStairUpward, generateMeshes, getSegmentByIndex } from "./meshUtils";
 import { parseBaseComponent, parseLineSeg3d, parseParam, parseStartEnd, parseVector3d } from "./utils";
-import { getEmptySegment } from "./consts";
+import { getNewSegment } from "./consts";
 import { deActivateDrawStairsTool } from "../../../main/main";
 import { MessageType } from "../../../main/types";
 
@@ -40,7 +40,7 @@ export class DrawStairsTool implements KTool {
             KEntityType.Face, KEntityType.Edge, KEntityType.AuxiliaryBoundedCurve, KEntityType.AuxiliaryLine, KEntityType.AuxiliaryVertex,
             KEntityType.GroupInstance, KEntityType.Vertex, KArchFaceType.NonPlanar, KArchFaceType.Planar,
         ]);
-        const firstSegment: Segment = getEmptySegment();
+        const firstSegment: Segment = getNewSegment(ComponentType.StraightStair);
         firstSegment.startLocked = false;
         // this.stairParam = DefaultStairParam;
         pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: [firstSegment.param], stairParam: this.stairParam, newStair: true }, '*');
@@ -131,21 +131,14 @@ export class DrawStairsTool implements KTool {
                         lastSegment.endLocked = true;
 
                         const lastParam = lastSegment.param;
+                        const nextType = lastParam.type === ComponentType.Platform ? ComponentType.StraightStair : ComponentType.Platform;
                         const nextSegment: Segment = {
-                            ...getEmptySegment(),
+                            ...getNewSegment(nextType, lastSegment),
                             start: lastSegment.end,
                             end: lastSegment.end,
                             startLocked: lastParam.type === ComponentType.Platform ? false : true,
                             startHeight: lastSegment.endHeight,
                             endHeight: lastSegment.endHeight,
-                            param: {
-                                ...lastParam,
-                                index: lastParam.index + 1,
-                                startWidth: lastParam.endWidth,
-                                offsetWidth: 0,
-                                type: lastParam.type === ComponentType.Platform ? ComponentType.StraightStair : ComponentType.Platform,
-                                platformLengthLocked: false,
-                            },
                         };
                         const { moldShape: { vertices, tempLines } } = lastSegment;
                         if (!lastSegment.baseComponent) {
@@ -694,7 +687,7 @@ export class DrawStairsTool implements KTool {
                         const circleTangent = parseVector3d(subDef.getCustomProperty(CircleTangentKey));
                         if (param && startEnd && baseLineSeg3d) {
                             const segment: Segment = {
-                                ...getEmptySegment(),
+                                ...getNewSegment(param.type),
                                 start: startEnd.start,
                                 end: startEnd.end,
                                 startHeight: startEnd.startHeight,

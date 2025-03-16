@@ -1040,6 +1040,7 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                         visitedLine3dIndexes?.add(line3dInd);
                     }
                 } else {
+                    const columnActualHeight = height + verticalStep / 2;
                     const isRightStair = componentDirectionType === ComponentDirectionType.Right;
                     const isLeftStair = componentDirectionType === ComponentDirectionType.Left;
 
@@ -1122,7 +1123,7 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                             const bottomPoint = sp.added(frontDir.multiplied(curHorStepDistance)).added(DirectionZ.multiplied(startHeight + curVerStepDistance)).added(leftDir.multiplied(left ? -offsetLength : offsetLength));
                             stairColumns.push([
                                 bottomPoint,
-                                bottomPoint.added(DirectionZ.multiplied(height)),
+                                bottomPoint.added(DirectionZ.multiplied(columnActualHeight)),
                             ]);
                             // const tempStepCount = Math.floor(tempDistance / horizontalStep);
 
@@ -1136,7 +1137,8 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
 
                             // }
                         }
-                        stairRail.push(ep.added(DirectionZ.multiplied(endHeight + height + (upward ? 0 : -(stepCount > 2 ? 2 : 1) * stepHeight))).added(leftDir.multiplied(left ? -offsetLength : offsetLength)));
+                        const totalLength = Math.abs(end.subtracted(start).dot(frontDir));
+                        stairRail.push(sp.added(DirectionZ.multiplied(startHeight + height + (upward ? stepCount : (stepCount - (stepCount > 2 ? 2 : 1))) * stepHeight)).added(frontDir.multiplied(totalLength)).added(leftDir.multiplied(left ? -offsetLength : offsetLength)));
                         if (tempStepCount - reasonableStepCount <= stepCount - 1) {
                             const prevTotalStepLength = (stepCount - 1) * horizontalStep;
                             const lastStepLength = lastLength - prevTotalStepLength;
@@ -1235,12 +1237,12 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                                         // nextStartPoint = curRightMoldPt;
                                     }
 
-                                    if (tempStepCount % reasonableStepCount !== 0) {
+                                    // if (tempStepCount % reasonableStepCount !== 0) {
                                         stairColumns.push([
                                             left ? curLeftBottomMidPt : curRightBottomMidPt,
                                             (left ? curLeftBottomMidPt : curRightBottomMidPt).added(DirectionZ.multiplied(height)),
                                         ]);
-                                    }
+                                    // }
                                     // next segment startWidth !== currentSegment endWidth
                                     sp = left ? start.added(baseLine3dDir.multiplied(startWidth / 2 - offsetLength)) : curRightMoldPt;
                                     if (!left) {
@@ -1249,10 +1251,10 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                                 }
                             }
 
-                            if (tempStepCount % reasonableStepCount === 0) {
+                            if (tempStepCount % reasonableStepCount === 0 && tempStepCount < stepCount - 1) {
                                 stairColumns.push([
                                     left ? curLeftBottomMidPt : curRightBottomMidPt,
-                                    (left ? curLeftBottomMidPt : curRightBottomMidPt).added(DirectionZ.multiplied(height)),
+                                    (left ? curLeftBottomMidPt : curRightBottomMidPt).added(DirectionZ.multiplied(columnActualHeight)),
                                 ]);
                             }
 

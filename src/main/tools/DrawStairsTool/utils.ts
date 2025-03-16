@@ -1,3 +1,4 @@
+import { DirectionX, DirectionY } from "./consts";
 import { BaseLine3dDelimiter, ComponentParam, CoordDelimiter, DefaultComponentParam, Delimiter, Segment } from "./types";
 
 export function isKArchFace(entity: KEntity | KArchFace | undefined | null): entity is KArchFace {
@@ -158,4 +159,18 @@ export function parseBaseComponent(value: string) {
 
 export function isEqual(a: number, b: number, tolerance: number = 1) {
     return Math.abs(a - b) <= tolerance;
+}
+
+export function getCoordinate(normal: KVector3d) {
+    let dx = DirectionX;
+    let dy = DirectionY;
+    let dz = normal.normalized();
+    if (DirectionX.isParallel(dz)) {
+        dx = DirectionY.cross(dz).normalized();
+        dy = dz.cross(dy);
+    } else {
+        dy = dz.cross(dx);
+        dx = dy.cross(dz);
+    }
+    return { dx, dy, dz }
 }

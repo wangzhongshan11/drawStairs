@@ -1,6 +1,6 @@
-import { DirectionZ } from "./consts";
+import { DirectionZ, dummyPoint3d } from "./consts";
 import { BaseComponentKey, BaseLineSeg3dKey, CircleTangentKey, ColumnType, ComponentType, DefaultStairParam, Handrail, HandrailModelKey, ParamKey, RailType, Segment, StairModelValue, StairParam, StartEndKey } from "./types";
-import { stringifyBaseComponent, stringifyParam, stringifyPoint3d, stringifyStartEnd } from "./utils";
+import { getCoordinate, stringifyBaseComponent, stringifyParam, stringifyPoint3d, stringifyStartEnd } from "./utils";
 
 export function generateMeshes(segments: Segment[]): KMesh[] {
     const meshes: KMesh[] = [];
@@ -449,9 +449,9 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
 
     let columnFace: KFace | undefined;
     if (columnType === ColumnType.Circle) {
-        columnFace = drawCircle(columnParam.radius || DefaultStairParam.horizontalStep / 10, -100);
+        columnFace = drawCircle(dummyPoint3d, DirectionZ, columnParam.radius || DefaultStairParam.horizontalStep / 10);
     } else if (columnType === ColumnType.Rect) {
-        columnFace = drawRect(columnParam.width || DefaultStairParam.horizontalStep / 10, columnParam.height || DefaultStairParam.horizontalStep / 10, -100);
+        columnFace = drawRect(dummyPoint3d, DirectionZ, columnParam.width || DefaultStairParam.horizontalStep / 10, columnParam.height || DefaultStairParam.horizontalStep / 10);
     } else {
         return 0;
     }
@@ -473,8 +473,8 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
     }
 
     const columnAuxiliaryBoundedCurve = activeDesign.addAuxiliaryBoundedCurve(GeomLib.createLineSegment3d(
-        GeomLib.createPoint3d(0, 0, height / 2),
-        GeomLib.createPoint3d(0, 0, -height / 2),
+        GeomLib.createPoint3d(0, 0, height),
+        dummyPoint3d,
     ))?.addedCurve;
     if (!columnAuxiliaryBoundedCurve) {
         return undefined;
@@ -495,7 +495,7 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
         return undefined;
     }
 
-    const columnCenters: KPoint3d[] = [];
+    const columnMatrixes: KMatrix4[] = [];
     for (let j = 0; j < handrails.length; j++) {
         const { rail, columns } = handrails[j];
 
@@ -514,33 +514,40 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
             }
         }
 
-        let railFace: KFace | undefined;
-        if (railType === RailType.Circle) {
-            railFace = drawCircle(railParam.radius || DefaultStairParam.horizontalStep / 5, 200 * j);
-        } else if (railType === RailType.Rect) {
-            railFace = drawRect(railParam.width || DefaultStairParam.horizontalStep / 5, railParam.height || DefaultStairParam.horizontalStep / 5, 200 * j);
-        } else {
-            return 0;
-        }
-        const railLoop = railFace?.getOuterLoop();
-        if (!railFace || !railLoop) {
-            return undefined;
-        }
-
-        const sweepRailRes = activeDesign.sweepFollowCurves(railLoop, railBoundedCurves);
-        if (!sweepRailRes.isSuccess || !sweepRailRes.addedShells.length) {
-            // return undefined;
-            console.log('sweep rail fail');
-        } else {
-            console.log('sweep rail success');
+        if (railBoundedCurves.length) {
+            const railStartCurve = railBoundedCurves[0].getBoundedCurve();
+            const railStartPoint = railStartCurve?.startPoint || dummyPoint3d;
+            const railStartDir = railStartCurve?.endPoint.subtracted(railStartPoint) || DirectionZ;
+            let railFace: KFace | undefined;
+            if (railType === RailType.Circle) {
+                railFace = drawCircle(railStartPoint, railStartDir, railParam.radius || DefaultStairParam.horizontalStep / 5);
+            } else if (railType === RailType.Rect) {
+                railFace = drawRect(railStartPoint, railStartDir, railParam.width || DefaultStairParam.horizontalStep / 5, railParam.height || DefaultStairParam.horizontalStep / 5);
+            } else {
+                return 0;
+            }
+            const railLoop = railFace?.getOuterLoop();
+            if (!railFace || !railLoop) {
+                return undefined;
+            }
+    
+            const sweepRailRes = activeDesign.sweepFollowCurves(railLoop, railBoundedCurves);
+            if (!sweepRailRes.isSuccess || !sweepRailRes.addedShells.length) {
+                // return undefined;
+                console.log('sweep rail fail');
+            } else {
+                console.log('sweep rail success');
+            }
         }
 
         for (const column of columns) {
-            columnCenters.push(GeomLib.createPoint3d(column[0].x + column[1].x, column[0].y + column[1].y, column[0].z + column[1].z));
+            const columnScaleMat = GeomLib.createScaleMatrix4(1, 1, (column[1].z - column[0].z) / height);
+            const columnTranslateMat = GeomLib.createTranslationMatrix4(column[0].x, column[0].y, column[0].z);
+            columnMatrixes.push(columnTranslateMat.multiplied(columnScaleMat));
         }
     }
-    if (columnCenters.length) {
-        const columnCopyRes = activeDesign.bulkCopyGroupInstances([columnOriginInstance], [columnCenters.map(center => GeomLib.createTranslationMatrix4(center.x, center.y, center.z))]);
+    if (columnMatrixes.length) {
+        const columnCopyRes = activeDesign.bulkCopyGroupInstances([columnOriginInstance], [columnMatrixes]);
         if (!columnCopyRes?.addedInstances.length) {
             return undefined;
         }
@@ -565,9 +572,9 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
     return handrailInstance;
 }
 
-export function drawCircle(radius: number, z: number = 0) {
+export function drawCircle(center: KPoint3d, normal: KVector3d, radius: number) {
     const activeDesign = app.getActiveDesign();
-    const res = activeDesign.addCircle(GeomLib.createCircle3dByCenterNormalRadius(GeomLib.createPoint3d(0, 0, z), DirectionZ, radius));
+    const res = activeDesign.addCircle(GeomLib.createCircle3dByCenterNormalRadius(center, normal, radius));
     if (res?.addedEdges.length) {
         const shell = res.addedEdges[0].getShell();
         const faces = shell?.getFaces();
@@ -578,13 +585,13 @@ export function drawCircle(radius: number, z: number = 0) {
     return undefined;
 }
 
-export function drawRect(width: number, height: number, z: number = 0, withCorner: boolean = true) {
+export function drawRect(center: KPoint3d, normal: KVector3d, width: number, height: number, z: number = 0, withCorner: boolean = true) {
     const point1 = GeomLib.createPoint3d(0, 0, z);
     const point2 = GeomLib.createPoint3d(width, 0, z);
-    const points: KPoint3d[] = [point1, point2];
+    let points: KPoint3d[] = [point1, point2];
     if (withCorner) {
         const p5 = GeomLib.createPoint3d(width, height / 3 * 2, z);
-        const p6 = GeomLib.createPoint3d(width / 4 * 3, height, z);
+        const p6 = GeomLib.createPoint3d(width / 4 * 3, height, z); 
         const m1 = GeomLib.createPoint3d((p5.x + p6.x) / 2, (p5.y + p6.y) / 2, z)
         const dir1 = p6.subtracted(p5).normalized();
         const toCenterDir1 = DirectionZ.cross(dir1);
@@ -620,6 +627,13 @@ export function drawRect(width: number, height: number, z: number = 0, withCorne
         points.push(point3, point4);
     }
 
+    const coordinate = getCoordinate(normal);
+    const coordinateMat = GeomLib.createAlignCCSMatrix4(coordinate.dx, coordinate.dy, coordinate.dz, center);
+    const translateMat1 = GeomLib.createTranslationMatrix4(-width / 2, -height / 2, 0);
+    // const translateMat2 = GeomLib.createTranslationMatrix4(center.x, center.y, center.z);
+    const transformMat = coordinateMat.multiplied(translateMat1);
+    points = points.map(p => p.appliedMatrix4(transformMat));
+    
     const activeDesign = app.getActiveDesign();
     const res = activeDesign.addEdges(points);
     if (res?.addedEdges.length) {

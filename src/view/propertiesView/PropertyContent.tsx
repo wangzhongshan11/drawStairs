@@ -166,29 +166,6 @@ export default class PropertiesContent extends React.Component<Props, State> {
                         type !== ComponentType.Platform &&
                         <div className='start-end-width-wrapper'>
                             <InputNumberPropertyArray
-                                title={ComponentParamSettings[ComponentParamType.HorizontalStep].title}
-                                units={[ComponentParamSettings[ComponentParamType.HorizontalStep].unit, ComponentParamSettings[ComponentParamType.VerticalStep].unit]}
-                                // units={['长', '高']}
-                                values={[horizontalStep, verticalStep]}
-                                precisions={[ComponentParamSettings[ComponentParamType.HorizontalStep].precision, ComponentParamSettings[ComponentParamType.VerticalStep].precision]}
-                                min={[ComponentParamSettings[ComponentParamType.HorizontalStep].min, ComponentParamSettings[ComponentParamType.VerticalStep].min]}
-                                max={[ComponentParamSettings[ComponentParamType.HorizontalStep].max, ComponentParamSettings[ComponentParamType.VerticalStep].max]}
-                                step={[ComponentParamSettings[ComponentParamType.HorizontalStep].step, ComponentParamSettings[ComponentParamType.VerticalStep].step]}
-                                // disabled={disabled}
-                                withProportional={stepProportional}
-                                onChange={this.getOnArrayChange([ComponentParamType.HorizontalStep, ComponentParamType.VerticalStep]).bind(this)}
-                            />
-                            {
-                                stepProportional ? <LockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.StepProportional).bind(this)} /> :
-                                    <UnlockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.StepProportional).bind(this)} />
-                            }
-                        </div>
-                    }
-
-                    {
-                        type !== ComponentType.Platform &&
-                        <div className='start-end-width-wrapper'>
-                            <InputNumberPropertyArray
                                 title={ComponentParamSettings[ComponentParamType.StartWidth].title}
                                 units={[ComponentParamSettings[ComponentParamType.StartWidth].unit, ComponentParamSettings[ComponentParamType.EndWidth].unit]}
                                 // units={['长', '高']}
@@ -204,6 +181,28 @@ export default class PropertiesContent extends React.Component<Props, State> {
                             {
                                 widthProportional ? <LockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.WidthProportional).bind(this)} /> :
                                     <UnlockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.WidthProportional).bind(this)} />
+                            }
+                        </div>
+                    }
+                    {
+                        type !== ComponentType.Platform &&
+                        <div className='start-end-width-wrapper'>
+                            <InputNumberPropertyArray
+                                title={ComponentParamSettings[ComponentParamType.HorizontalStep].title}
+                                units={[ComponentParamSettings[ComponentParamType.HorizontalStep].unit, ComponentParamSettings[ComponentParamType.VerticalStep].unit]}
+                                // units={['长', '高']}
+                                values={[horizontalStep, verticalStep]}
+                                precisions={[ComponentParamSettings[ComponentParamType.HorizontalStep].precision, ComponentParamSettings[ComponentParamType.VerticalStep].precision]}
+                                min={[ComponentParamSettings[ComponentParamType.HorizontalStep].min, ComponentParamSettings[ComponentParamType.VerticalStep].min]}
+                                max={[ComponentParamSettings[ComponentParamType.HorizontalStep].max, ComponentParamSettings[ComponentParamType.VerticalStep].max]}
+                                step={[ComponentParamSettings[ComponentParamType.HorizontalStep].step, ComponentParamSettings[ComponentParamType.VerticalStep].step]}
+                                // disabled={disabled}
+                                withProportional={stepProportional}
+                                onChange={this.getOnArrayChange([ComponentParamType.HorizontalStep, ComponentParamType.VerticalStep]).bind(this)}
+                            />
+                            {
+                                stepProportional ? <LockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.StepProportional).bind(this)} /> :
+                                    <UnlockOutlined className='lock-button' onClick={this.getOnLockChange(ComponentParamType.StepProportional).bind(this)} />
                             }
                         </div>
                     }
@@ -272,6 +271,26 @@ export default class PropertiesContent extends React.Component<Props, State> {
                 </div>
                 <Divider className='property-divider' >整体参数</Divider>
                 <div className='overall-properties'>
+
+                    {type !== ComponentType.Platform && <div className='start-end-width-wrapper'>
+                        <InputNumberPropertyArray
+                            title={ComponentParamSettings[ComponentParamType.StartWidth].title}
+                            units={[ComponentParamSettings[ComponentParamType.StartWidth].unit, ComponentParamSettings[ComponentParamType.EndWidth].unit]}
+                            // units={['长', '高']}
+                            values={[horizontalStep, verticalStep]}
+                            precisions={[ComponentParamSettings[ComponentParamType.StartWidth].precision, ComponentParamSettings[ComponentParamType.EndWidth].precision]}
+                            min={[ComponentParamSettings[ComponentParamType.StartWidth].min, ComponentParamSettings[ComponentParamType.EndWidth].min]}
+                            max={[ComponentParamSettings[ComponentParamType.StartWidth].max, ComponentParamSettings[ComponentParamType.EndWidth].max]}
+                            step={[ComponentParamSettings[ComponentParamType.StartWidth].step, ComponentParamSettings[ComponentParamType.EndWidth].step]}
+                            // disabled={disabled}
+                            withProportional={widthProportional}
+                            onChange={this.getOnArrayChangeOverall([ComponentParamType.StartWidth, ComponentParamType.EndWidth]).bind(this)}
+                        />
+                        {
+                            stepProportional ? <LockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} /> :
+                                <UnlockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} />
+                        }
+                    </div>}
                     {type !== ComponentType.Platform &&
                         <div className='start-end-width-wrapper'>
                             <InputNumberPropertyArray
@@ -292,25 +311,6 @@ export default class PropertiesContent extends React.Component<Props, State> {
                                     <UnlockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} />
                             }
                         </div>}
-                    {type !== ComponentType.Platform && <div className='start-end-width-wrapper'>
-                        <InputNumberPropertyArray
-                            title={ComponentParamSettings[ComponentParamType.StartWidth].title}
-                            units={[ComponentParamSettings[ComponentParamType.StartWidth].unit, ComponentParamSettings[ComponentParamType.EndWidth].unit]}
-                            // units={['长', '高']}
-                            values={[horizontalStep, verticalStep]}
-                            precisions={[ComponentParamSettings[ComponentParamType.StartWidth].precision, ComponentParamSettings[ComponentParamType.EndWidth].precision]}
-                            min={[ComponentParamSettings[ComponentParamType.StartWidth].min, ComponentParamSettings[ComponentParamType.EndWidth].min]}
-                            max={[ComponentParamSettings[ComponentParamType.StartWidth].max, ComponentParamSettings[ComponentParamType.EndWidth].max]}
-                            step={[ComponentParamSettings[ComponentParamType.StartWidth].step, ComponentParamSettings[ComponentParamType.EndWidth].step]}
-                            // disabled={disabled}
-                            withProportional={widthProportional}
-                            onChange={this.getOnArrayChangeOverall([ComponentParamType.StartWidth, ComponentParamType.EndWidth]).bind(this)}
-                        />
-                        {
-                            stepProportional ? <LockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} /> :
-                                <UnlockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} />
-                        }
-                    </div>}
                     {type !== ComponentType.Platform && <RadioProperty
                         title={ComponentParamSettings[ComponentParamType.Upward].title}
                         value={upward}
