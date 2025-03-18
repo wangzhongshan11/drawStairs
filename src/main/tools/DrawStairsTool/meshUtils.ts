@@ -1,4 +1,4 @@
-import { DirectionZ, dummyPoint3d } from "./consts";
+import { DirectionZ, dummyPoint3d, PresetMaterials } from "./consts";
 import { BaseComponentKey, BaseLineSeg3dKey, CircleTangentKey, ColumnType, ComponentType, DefaultStairParam, Handrail, HandrailModelKey, ParamKey, RailType, Segment, StairModelValue, StairParam, StartEndKey } from "./types";
 import { getCoordinate, stringifyBaseComponent, stringifyParam, stringifyPoint3d, stringifyStartEnd } from "./utils";
 
@@ -411,6 +411,8 @@ export function buildComponentInstance(segment: Segment, segments: Segment[]) {
             operationSuccess = operationSuccess && !!newInstance;
             const groupDef = newInstance?.getGroupDefinition();
             if (newInstance && groupDef) {
+                const materialObject = param.type === ComponentType.Platform ? PresetMaterials.Platform : PresetMaterials.Stair;
+                operationSuccess = operationSuccess && design.assignMaterialForEntities([newInstance], materialObject.materialId, materialObject.bgId);
                 // operationSuccess = operationSuccess && groupDef.setCustomProperty(ComponentIndexKey, `${newInstances.length}`).isSuccess;
                 // newInstances.push(newInstance);
                 const paramString = stringifyParam(param);
@@ -427,7 +429,6 @@ export function buildComponentInstance(segment: Segment, segments: Segment[]) {
                     if (baseSegment) {
                         const baseComponentString = stringifyBaseComponent(baseSegment, baseComponent.line3dIndex);
                         operationSuccess = operationSuccess && groupDef.setCustomProperty(BaseComponentKey, baseComponentString).isSuccess;
-
                     }
                 }
                 if (circleTangent) {
@@ -496,6 +497,7 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
     }
 
     const columnMatrixes: KMatrix4[] = [];
+    const railInstances: KGroupInstance[] = [];
     for (let j = 0; j < handrails.length; j++) {
         const { rail, columns } = handrails[j];
 
@@ -530,14 +532,23 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
             if (!railFace || !railLoop) {
                 return undefined;
             }
-    
+
             const sweepRailRes = activeDesign.sweepFollowCurves(railLoop, railBoundedCurves);
             if (!sweepRailRes.isSuccess || !sweepRailRes.addedShells.length) {
-                // return undefined;
-                console.log('sweep rail fail');
-            } else {
-                console.log('sweep rail success');
+                return undefined;
             }
+
+            const railFaces: KFace[] = [];
+            for (const railShell of sweepRailRes.addedShells) {
+                const railShellFaces = railShell.getFaces();
+                railFaces.push(...railShellFaces);
+            }
+
+            const railMakeGroupRes = activeDesign.makeGroup(railFaces, [], railBoundedCurves)
+            if (!railMakeGroupRes?.addedInstance) {
+                return undefined;
+            }
+            railInstances.push(railMakeGroupRes.addedInstance);
         }
 
         for (const column of columns) {
@@ -546,9 +557,21 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
             columnMatrixes.push(columnTranslateMat.multiplied(columnScaleMat));
         }
     }
+    if (railInstances.length) {
+        const assignRailMaterialRes = activeDesign.assignMaterialForEntities(railInstances, PresetMaterials.Handrail.rail.materialId, PresetMaterials.Handrail.rail.bgId);
+        if (!assignRailMaterialRes) {
+            return undefined;
+        }
+    }
+    
     if (columnMatrixes.length) {
         const columnCopyRes = activeDesign.bulkCopyGroupInstances([columnOriginInstance], [columnMatrixes]);
         if (!columnCopyRes?.addedInstances.length) {
+            return undefined;
+        }
+
+        const assignColumnMaterialRes = activeDesign.assignMaterialForEntities(columnCopyRes.addedInstances, PresetMaterials.Handrail.column.materialId, PresetMaterials.Handrail.column.bgId);
+        if (!assignColumnMaterialRes) {
             return undefined;
         }
     }
@@ -591,7 +614,7 @@ export function drawRect(center: KPoint3d, normal: KVector3d, width: number, hei
     let points: KPoint3d[] = [point1, point2];
     if (withCorner) {
         const p5 = GeomLib.createPoint3d(width, height / 3 * 2, z);
-        const p6 = GeomLib.createPoint3d(width / 4 * 3, height, z); 
+        const p6 = GeomLib.createPoint3d(width / 4 * 3, height, z);
         const m1 = GeomLib.createPoint3d((p5.x + p6.x) / 2, (p5.y + p6.y) / 2, z)
         const dir1 = p6.subtracted(p5).normalized();
         const toCenterDir1 = DirectionZ.cross(dir1);
@@ -633,7 +656,7 @@ export function drawRect(center: KPoint3d, normal: KVector3d, width: number, hei
     // const translateMat2 = GeomLib.createTranslationMatrix4(center.x, center.y, center.z);
     const transformMat = coordinateMat.multiplied(translateMat1);
     points = points.map(p => p.appliedMatrix4(transformMat));
-    
+
     const activeDesign = app.getActiveDesign();
     const res = activeDesign.addEdges(points);
     if (res?.addedEdges.length) {

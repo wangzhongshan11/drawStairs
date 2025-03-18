@@ -836,7 +836,7 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                 }
 
                 const stepHeight = upward ? verticalStep : -verticalStep;
-                const offsetLength = Math.max(columnParam.height || 0, columnParam.width || 0, columnParam.radius || 0);
+                const offsetLength = Math.max(columnParam.height || 0, columnParam.width || 0, columnParam.radius || 0) * 3;
 
                 const baseSegment = getSegmentByIndex(segments, baseComponent?.componentIndex);
                 const {

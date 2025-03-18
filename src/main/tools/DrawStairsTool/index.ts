@@ -2,7 +2,7 @@ import { ComponentType, ComponentParam, Segment, ParamKey, StartEndKey, BaseLine
 import { generateHandrailShape, generateShape, isCircularStair } from "./tempMeshUtils";
 import { buildComponentInstance, buildHandrailInstance, buildSegmentRelations, changeStairUpward, generateMeshes, getSegmentByIndex } from "./meshUtils";
 import { parseBaseComponent, parseLineSeg3d, parseParam, parseStartEnd, parseVector3d } from "./utils";
-import { getNewSegment } from "./consts";
+import { getNewComponentParam, getNewSegment, TempLineColors, TempLinePatterns } from "./consts";
 import { deActivateDrawStairsTool } from "../../../main/main";
 import { MessageType } from "../../../main/types";
 
@@ -36,6 +36,7 @@ export class DrawStairsTool implements KTool {
     private editModel?: EditModel;
 
     onToolActive(): void {
+        console.log((window as any).origin);
         toolHelper.setExcludeInferenceTypes([
             KEntityType.Face, KEntityType.Edge, KEntityType.AuxiliaryBoundedCurve, KEntityType.AuxiliaryLine, KEntityType.AuxiliaryVertex,
             KEntityType.GroupInstance, KEntityType.Vertex, KArchFaceType.NonPlanar, KArchFaceType.Planar,
@@ -127,6 +128,7 @@ export class DrawStairsTool implements KTool {
                     const { start, end, param: { type }, circleTangent } = lastSegment;
                     if (type === ComponentType.CircularStair && !circleTangent) {
                         lastSegment.circleTangent = end.subtracted(start).normalized();
+                        this.focusComponent(lastSegment.param.index);
                     } else {
                         lastSegment.endLocked = true;
 
@@ -176,6 +178,7 @@ export class DrawStairsTool implements KTool {
                     lastSegment.startLocked = true;
                     this.clearPickStartTempShapes(lastSegment);
                     this.drawTempComponent(lastSegment);
+                    this.focusComponent(lastSegment.param.index);
                 }
             }
         }
@@ -186,7 +189,7 @@ export class DrawStairsTool implements KTool {
             appView.clearTemporaryShapesByIds([theSegment.pickStartTempShapeId]);
         }
         if (closestPoint) {
-            const pickStartTempShapeId = appView.drawLines([position, closestPoint], { color: { r: 0, g: 0, b: 255 }, depthTest: true, pattern: KLinePattern.Dash, gapSize: 50, dashSize: 50 });
+            const pickStartTempShapeId = appView.drawLines([position, closestPoint], { color: TempLineColors.Inference, depthTest: false, pattern: TempLinePatterns.Inference, gapSize: 50, dashSize: 50 });
             if (pickStartTempShapeId?.id) {
                 theSegment.pickStartTempShapeId = pickStartTempShapeId.id;
             }
@@ -228,16 +231,16 @@ export class DrawStairsTool implements KTool {
                 appView.clearTemporaryShapesByIds(theSegment.tempShapeId);
                 theSegment.tempShapeId = [];
             }
-            const drawTempLinesFunc = focused ? appView.drawFlatLines.bind(appView) : appView.drawPolylines.bind(appView);
             if (tempLinePoints.length) {
-                // const colorValue = focused ? 255 : 155;
-                const tempShapeId = drawTempLinesFunc(tempLinePoints, { color: { r: 255, g: 0, b: 0 }, depthTest: false });
+                const stairColor = focused ? TempLineColors.Focus : TempLineColors.Stair;
+                const tempShapeId = appView.drawPolylines(tempLinePoints, { color: stairColor, depthTest: false, pattern: TempLinePatterns.StairAndMold });
                 if (tempShapeId?.ids) {
                     theSegment.tempShapeId = [...tempShapeId.ids];
                 }
             }
             if (moldTempLinePoints.length) {
-                const moldTempShapeId = drawTempLinesFunc(moldTempLinePoints, { color: { r: 0, g: 255, b: 0 }, depthTest: this.drawing });
+                const moldColor = focused ? TempLineColors.Focus : TempLineColors.Mold;
+                const moldTempShapeId = appView.drawPolylines(moldTempLinePoints, { color: moldColor, depthTest: this.drawing, pattern: TempLinePatterns.StairAndMold });
                 if (moldTempShapeId?.ids) {
                     if (theSegment.tempShapeId?.length) {
                         theSegment.tempShapeId.push(...moldTempShapeId.ids);
@@ -270,7 +273,7 @@ export class DrawStairsTool implements KTool {
                 }
                 tempLinePoints.push(...columns);
             }
-            const handrailTempShapeIds = appView.drawPolylines(tempLinePoints, { color: { r: 0, g: 0, b: 255 }, depthTest: false, pattern: KLinePattern.Dash });
+            const handrailTempShapeIds = appView.drawPolylines(tempLinePoints, { color: TempLineColors.Handrail, depthTest: false, pattern: TempLinePatterns.Handrail });
             if (handrailTempShapeIds?.ids) {
                 this.handrailCollection.tempShapeId = handrailTempShapeIds.ids;
             }
@@ -289,6 +292,9 @@ export class DrawStairsTool implements KTool {
     }
 
     focusComponent(componentIndex: number) {
+        if (componentIndex === this.focusedComponentIndex) {
+            return;
+        }
         if (this.segments.length) {
             const lastSegment = this.segments[this.segments.length - 1];
             const lastSegmentIndex = lastSegment.param.index;
@@ -303,13 +309,23 @@ export class DrawStairsTool implements KTool {
                     this.clearPickStartTempShapes(lastSegment);
                     this.clearTempShapes(lastSegment);
                     if (newFocusedType === ComponentType.Platform) {
+                        if (lastSegment.param.type === ComponentType.Platform) {
+                            const cachedIndex = lastSegment.param.index;
+                            lastSegment.param = getNewComponentParam(ComponentType.StraightStair, newFocusedSegment);
+                            lastSegment.param.index = cachedIndex;
+                            pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...lastSegment.param } }, '*');
+                        }
                         if (oldFocusedSegment && oldFocusedSegment !== newFocusedSegment) {
                             oldFocusedSegment.nextComponents.forEach(inds => inds.delete(lastSegment.param.index));
                         }
-
                         if (lastSegment.baseComponent?.line3dIndex !== undefined) {
-                            newFocusedSegment.nextComponents.forEach(inds => inds.delete(lastSegment.param.index));
+                            // newFocusedSegment.nextComponents.forEach(inds => inds.delete(lastSegment.param.index));
+                            const baseSegment = getSegmentByIndex(this.segments, lastSegment.baseComponent.componentIndex);
+                            if (baseSegment) {
+                                baseSegment.nextComponents.forEach(inds => inds.delete(lastSegment.param.index));
+                            }
                         }
+
                         let closestPoint: KPoint3d | undefined;
                         let minDistance = 0;
                         newFocusedTempLines.forEach((line, index) => {

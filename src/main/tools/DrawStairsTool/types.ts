@@ -1,3 +1,4 @@
+import { PresetMaterials } from "./consts";
 
 export const StairModelKey = 'DrawStairsModel';
 export const StairModelValue = '1';
@@ -142,6 +143,11 @@ export function getComponentTitle(componentType: ComponentType) {
     }
 }
 
+export interface MaterialType {
+    materialId?: string;
+    bgid?: string;
+}
+
 export interface StairParam {
     horizontalStep: number;
     verticalStep: number;
@@ -149,17 +155,21 @@ export interface StairParam {
     endWidth: number;
     upward: boolean;
     platformThickness: number;
+    stairMaterial?: MaterialType;
+    platformMaterial?: MaterialType;
     handrail: {
         support: boolean;
         height: number;
         rail: {
             type: RailType;
             param: HandrailComponentParam;
+            material?: MaterialType;
         },
         column: {
             step: number;
             type: ColumnType;
             param: HandrailComponentParam;
+            material?: MaterialType;
         }
     }
     stepProportional?: boolean,
@@ -179,6 +189,7 @@ export interface ComponentParam {
     type: ComponentType;
     upward: boolean;
     platformThickness: number;
+    material?: MaterialType;
 
     stepProportional?: boolean;
     widthProportional?: boolean;
@@ -198,17 +209,21 @@ export const DefaultStairParam: StairParam = {
     endWidth: 1000,
     upward: true,
     platformThickness: 200,
+    stairMaterial: PresetMaterials.Stair,
+    platformMaterial: PresetMaterials.Platform,
     handrail: {
         support: true,
         height: 500,
         rail: {
             type: RailType.Circle,
             param: { radius: 20, width: 20, height: 20, },
+            material: PresetMaterials.Handrail.rail,
         },
         column: {
             type: ColumnType.Circle,
             step: 500,
             param: { radius: 8, width: 8, height: 8, },
+            material: PresetMaterials.Handrail.column,
         },
     },
 
