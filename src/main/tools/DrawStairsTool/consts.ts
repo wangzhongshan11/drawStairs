@@ -24,7 +24,17 @@ const ProdMaterials = {
     },
 }
 
-export const PresetMaterials = ((window as any).origin || '').includes('sit') ? ProdMaterials : ProdMaterials
+const DevMaterials = {
+    Stair: { bgId: '3FO4H2D73JFO', materialId: '58af961b4a4d2c4f8aa2b1da' },
+    // Stair: { bgId: '3FO4ATKECLKI', materialId: '6168f454cdd25e00017d75d0' },
+    Platform: { bgId: '3FO4H2D6CQMY', materialId: '5816fef985da566a1b28a944' },
+    Handrail: {
+        rail: { bgId: '3FO4H2D6H8SB', materialId: '58afb3ab5c26a073b389a95f' },
+        column: { bgId: '3FO4GDK5EXDC', materialId: '5e532fb42014020001cc4889' },
+    },
+}
+
+export const PresetMaterials = ((window as any).origin || '').includes('sit') ? DevMaterials : ProdMaterials
 
 export const TempLineColors = {
     Stair: { r: 0, g: 0, b: 255 },
