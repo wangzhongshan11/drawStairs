@@ -4,18 +4,22 @@ import { ColumnType, ComponentParamSettings, ComponentParamType, DefaultStairPar
 import InputNumberProperty from './components/InputNumberProperty';
 import SelectProperty from './components/SelectProperty';
 import SwitchProperty from './components/SwitchProperty';
+import { Button } from 'antd';
+import { DeleteOutlined, PlusOutlined, UndoOutlined } from '@ant-design/icons';
 
 interface Props {
     stairParam?: StairParam;
     getOnHandrailChange?: (componentParamType: ComponentParamType) => (value: number | string) => void;
     getOnHandrailSwitchChange?: (componentParamType: ComponentParamType) => (checked: boolean) => void;
+    getOnMaterialReplaceClick?: (componentParamType: ComponentParamType) => () => void;
+    getOnMaterialDeleteClick?: (componentParamType: ComponentParamType) => () => void;
 }
 
 interface State {
     stairParam?: StairParam;
 }
 
-export default class PropertiesContent extends React.Component<Props, State> {
+export default class HandrailProperty extends React.Component<Props, State> {
     state: Readonly<State> = { stairParam: this.props.stairParam || { ...DefaultStairParam } };
 
     componentWillReceiveProps(nextProps: Readonly<Props>, nextContext: any): void {
@@ -34,6 +38,21 @@ export default class PropertiesContent extends React.Component<Props, State> {
         const { getOnHandrailSwitchChange } = this.props;
         if (getOnHandrailSwitchChange) {
             return getOnHandrailSwitchChange(componentParamType);
+        }
+    }
+
+
+    private getOnMaterialReplaceClick = (componentParamType: ComponentParamType) => {
+        const { getOnMaterialReplaceClick } = this.props;
+        if (getOnMaterialReplaceClick) {
+            return getOnMaterialReplaceClick(componentParamType);
+        }
+    }
+
+    private getOnMaterialDeleteClick = (componentParamType: ComponentParamType) => {
+        const { getOnMaterialDeleteClick } = this.props;
+        if (getOnMaterialDeleteClick) {
+            return getOnMaterialDeleteClick(componentParamType);
         }
     }
 
@@ -109,6 +128,13 @@ export default class PropertiesContent extends React.Component<Props, State> {
                             }
                         </div>
                     </div>
+                    <div className='material-property-wrapper handrail-material'>
+                        <div className='title'>{ComponentParamSettings.material.title}</div>
+                        <div className='mateiral-buttons'>
+                            <Button type="text" size="small" shape="circle" icon={rail.material ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.HandrailRailMaterial)} />
+                            {rail.material && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.HandrailRailMaterial)} />}
+                        </div>
+                    </div>
                     <div className='column-property'>
                         <div className='column-title'>柱子：</div>
                         <SelectProperty
@@ -173,6 +199,13 @@ export default class PropertiesContent extends React.Component<Props, State> {
                             // disabled={disabled}
                             onChange={this.getOnChange(ComponentParamType.HandrailColumnStep)?.bind(this)}
                         />
+                    </div>
+                    <div className='material-property-wrapper handrail-material'>
+                        <div className='title'>{ComponentParamSettings.material.title}</div>
+                        <div className='mateiral-buttons'>
+                            <Button type="text" size="small" shape="circle" icon={column.material ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.HandrailColumnMaterial)} />
+                            {column.material && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.HandrailColumnMaterial)} />}
+                        </div>
                     </div>
                 </div>}
             </div>

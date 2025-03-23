@@ -1,6 +1,10 @@
-import { DirectionZ, dummyPoint3d, PresetMaterials } from "./consts";
-import { BaseComponentKey, BaseLineSeg3dKey, CircleTangentKey, ColumnType, ComponentType, DefaultStairParam, Handrail, HandrailModelKey, ParamKey, RailType, Segment, StairModelValue, StairParam, StartEndKey } from "./types";
-import { getCoordinate, stringifyBaseComponent, stringifyParam, stringifyPoint3d, stringifyStartEnd } from "./utils";
+import { DirectionZ, dummyPoint3d } from "./consts";
+import {
+    BaseComponentKey, BaseLineSeg3dKey, CircleTangentKey, ColumnType, ComponentType, DefaultStairParam, Handrail, HandrailModelKey, RailType, Segment,
+    ModelValue, StairParam, StartEndKey, PresetMaterials, ColumnModelKey,RailModelKey,    HandrailInstancesData,
+    ComponentParamKey
+} from "./types";
+import { getCoordinate, stringifyBaseComponent, stringifyComponentParam, stringifyPoint3d, stringifyStartEnd } from "./utils";
 
 export function generateMeshes(segments: Segment[]): KMesh[] {
     const meshes: KMesh[] = [];
@@ -415,9 +419,9 @@ export function buildComponentInstance(segment: Segment, segments: Segment[]) {
                 operationSuccess = operationSuccess && design.assignMaterialForEntities([newInstance], materialObject.materialId, materialObject.bgId);
                 // operationSuccess = operationSuccess && groupDef.setCustomProperty(ComponentIndexKey, `${newInstances.length}`).isSuccess;
                 // newInstances.push(newInstance);
-                const paramString = stringifyParam(param);
+                const paramString = stringifyComponentParam(param);
                 const startEndString = stringifyStartEnd(GeomLib.createPoint3d(start.x, start.y, startHeight), GeomLib.createPoint3d(end.x, end.y, endHeight));
-                operationSuccess = operationSuccess && groupDef.setCustomProperty(ParamKey, paramString).isSuccess;
+                operationSuccess = operationSuccess && groupDef.setCustomProperty(ComponentParamKey, paramString).isSuccess;
                 operationSuccess = operationSuccess && groupDef.setCustomProperty(StartEndKey, startEndString).isSuccess;
                 // if (baseLineSeg3d) {
                 // }
@@ -442,7 +446,7 @@ export function buildComponentInstance(segment: Segment, segments: Segment[]) {
     return undefined;
 }
 
-export async function buildHandrailInstance(stairParam: StairParam, handrails: Handrail[]) {
+export async function buildHandrailInstance(stairParam: StairParam, handrails: Handrail[]): Promise<HandrailInstancesData | undefined | 0> {
     const { handrail: { support, height, rail: { type: railType, param: railParam }, column: { type: columnType, param: columnParam } } } = stairParam;
     if (!support) {
         return 0;
@@ -545,7 +549,12 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
             }
 
             const railMakeGroupRes = activeDesign.makeGroup(railFaces, [], railBoundedCurves)
-            if (!railMakeGroupRes?.addedInstance) {
+            const railGroupDef = railMakeGroupRes?.addedInstance.getGroupDefinition();
+            if (!railMakeGroupRes?.addedInstance || !railGroupDef) {
+                return undefined;
+            }
+            const railPropertyRes = railGroupDef.setCustomProperty(RailModelKey, ModelValue);
+            if (!railPropertyRes.isSuccess) {
                 return undefined;
             }
             railInstances.push(railMakeGroupRes.addedInstance);
@@ -563,11 +572,24 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
             return undefined;
         }
     }
-    
+
+    const columnInstances: KGroupInstance[] = [];
     if (columnMatrixes.length) {
         const columnCopyRes = activeDesign.bulkCopyGroupInstances([columnOriginInstance], [columnMatrixes]);
         if (!columnCopyRes?.addedInstances.length) {
             return undefined;
+        }
+
+        columnInstances.push(...columnCopyRes.addedInstances);
+        for (const columnInstance of columnCopyRes.addedInstances) {
+            const columnGroupDef = columnInstance.getGroupDefinition();
+            if (!columnGroupDef) {
+                return undefined;
+            }
+            const columnPropertyRes = columnGroupDef.setCustomProperty(ColumnModelKey, ModelValue);
+            if (!columnPropertyRes.isSuccess) {
+                return undefined;
+            }
         }
 
         const assignColumnMaterialRes = activeDesign.assignMaterialForEntities(columnCopyRes.addedInstances, PresetMaterials.Handrail.column.materialId, PresetMaterials.Handrail.column.bgId);
@@ -581,6 +603,10 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
         return undefined;
     }
 
+    const removeOriginColumnAuxCurveRes = activeDesign.removeAuxiliaryCurve(columnAuxiliaryBoundedCurve);
+    if (!removeOriginColumnAuxCurveRes.isSuccess) {
+        return undefined;
+    }
     // to remove all auxiliaryCurves
 
     const deactivateInstanceRes = await activeDesign.deactivateGroupInstance();
@@ -588,11 +614,15 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
         return undefined;
     }
 
-    const setPropertyRes = handrailDefinition.setCustomProperty(HandrailModelKey, StairModelValue);
+    const setPropertyRes = handrailDefinition.setCustomProperty(HandrailModelKey, ModelValue);
     if (!setPropertyRes.isSuccess) {
         return undefined;
     }
-    return handrailInstance;
+    return {
+        handrailInstance: { instance: handrailInstance, instanceKey: handrailInstance.getKey(), definitionKey: handrailDefinition.getKey() },
+        railInstances: railInstances.map(instance => ({ instance, instanceKey: instance.getKey(), definitionKey: instance.getGroupDefinition()?.getKey() || '' })),
+        columnInstances: columnInstances.map(instance => ({ instance, instanceKey: instance.getKey(), definitionKey: instance.getGroupDefinition()?.getKey() || '' })),
+    };
 }
 
 export function drawCircle(center: KPoint3d, normal: KVector3d, radius: number) {
@@ -712,15 +742,15 @@ export function changeStairUpward(startSegment: Segment, segments: Segment[], up
             let next: { segment: Segment, verticalDelta: number }[] = [];
             for (const { segment, verticalDelta } of current) {
                 const { startHeight, endHeight } = segment;
-                const endDelta = segment.param.upward === upward ? 0 : 2 * (startHeight - endHeight);
-                segment.startHeight += verticalDelta;
-                segment.endHeight += verticalDelta + endDelta;
+                const endDelta = segment.param.type === ComponentType.Platform ? 0 : Math.abs(endHeight - startHeight) * (upward ? 1 : -1);
+                segment.startHeight = verticalDelta;
+                segment.endHeight = segment.startHeight + endDelta;
                 segment.param.upward = upward;
                 unVisited.delete(segment);
 
                 const nextSegments = getNextComponents(segment, segments);
                 if (nextSegments.length) {
-                    next.push(...nextSegments.map(seg => ({ segment: seg, verticalDelta: verticalDelta + endDelta })));
+                    next.push(...nextSegments.map(seg => ({ segment: seg, verticalDelta: segment.endHeight  })));
                 }
             }
             current = next;

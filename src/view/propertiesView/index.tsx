@@ -3,7 +3,7 @@ import "./index.css";
 import { ColumnType, ComponentParam, ComponentParamType, RailType, StairParam, getComponentTitle } from '../../main/tools/DrawStairsTool/types';
 import { ImmutableMap } from './ImmutableMap';
 import { Tabs } from 'antd';
-import PropertiesContent from './PropertyContent';
+import PropertyContent from './PropertyContent';
 import { MessageType } from '../../main/types';
 import { DeleteOutlined } from '@ant-design/icons';
 import { Collapse } from "antd";
@@ -32,7 +32,9 @@ export default class PropertiesView extends React.Component<{}, State> {
     private onMessage = (event: any) => {
         const messageData = event.data;
         const { componentParams, componentParam } = this.state;
-        if (messageData.type === MessageType.ParamChangedByDraw) {
+        if (messageData.type === MessageType.StairParamChangedByDraw) {
+            this.setState({ stairParam: messageData.stairParam });
+        } else if (messageData.type === MessageType.ParamChangedByDraw) {
             // if (messageData.newStair) {
             //     const a = new ImmutableMap(new Map([[messageData.componentParam.index, messageData.componentParam]]));
             //     this.setState({
@@ -105,9 +107,6 @@ export default class PropertiesView extends React.Component<{}, State> {
         }
     }
 
-
-
-
     private getOnHandrailChange = (componentParamType: ComponentParamType) => {
         return (value: number | string) => {
             const { stairParam } = this.state;
@@ -164,6 +163,43 @@ export default class PropertiesView extends React.Component<{}, State> {
         }
     }
 
+
+    private getOnMaterialReplaceClick = (componentParamType: ComponentParamType, index?: number) => {
+        return () => {
+            window.parent.postMessage({ type: MessageType.MaterialReplaceClick, changeParam: componentParamType, index }, '*');
+        }
+    }
+
+    private getOnMaterialDeleteClick = (componentParamType: ComponentParamType) => {
+        return () => {
+            if (componentParamType === ComponentParamType.ComponentMaterial) {
+                const { componentParam } = this.state;
+                if (componentParam) {
+                    componentParam.material = undefined;
+                    window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam, changeParams: [componentParamType] }, '*');
+                    this.setState({ componentParam: { ...componentParam } });
+                }
+            } else {
+                const { stairParam } = this.state;
+                if (stairParam) {
+                    if (componentParamType === ComponentParamType.StairMaterial || componentParamType === ComponentParamType.PlatformMaterial) {
+                        if (componentParamType === ComponentParamType.StairMaterial) {
+                            stairParam.stairMaterial = undefined;
+                        } else {
+                            stairParam.platformMaterial = undefined;
+                        }
+                    } else if (componentParamType === ComponentParamType.HandrailRailMaterial) {
+                        stairParam.handrail.rail = { ...stairParam.handrail.rail, material: undefined }
+                    } else if (componentParamType === ComponentParamType.HandrailColumnMaterial) {
+                        stairParam.handrail.column = { ...stairParam.handrail.column, material: undefined }
+                    }
+                    window.parent.postMessage({ type: MessageType.StairParamChangedByInput, stairParam, changeParams: [componentParamType] }, '*');
+                    this.setState({ stairParam: { ...stairParam } });
+                }
+            }
+        }
+    }
+
     render() {
         const { componentParams, componentParam, stairParam, activeKey, propertiesVisible } = this.state;
         if (!componentParams.size || !propertiesVisible || !stairParam) {
@@ -196,13 +232,24 @@ export default class PropertiesView extends React.Component<{}, State> {
                             };
                         })}
                     />
-                    <PropertiesContent componentParam={componentParam} stairParam={stairParam} />
+                    <PropertyContent
+                        componentParam={componentParam}
+                        stairParam={stairParam}
+                        getOnMaterialReplaceClick={this.getOnMaterialReplaceClick}
+                        getOnMaterialDeleteClick={this.getOnMaterialDeleteClick}
+                    />
                 </div>
             },
             {
                 key: 'handrail-property',
                 label: '栏杆参数',
-                children: <HandrailProperty stairParam={stairParam} getOnHandrailChange={this.getOnHandrailChange} getOnHandrailSwitchChange={this.getOnHandrailSwitchChange} />
+                children: <HandrailProperty
+                    stairParam={stairParam}
+                    getOnHandrailChange={this.getOnHandrailChange}
+                    getOnHandrailSwitchChange={this.getOnHandrailSwitchChange}
+                    getOnMaterialReplaceClick={this.getOnMaterialReplaceClick}
+                    getOnMaterialDeleteClick={this.getOnMaterialDeleteClick}
+                />
             },
         ];
         return (

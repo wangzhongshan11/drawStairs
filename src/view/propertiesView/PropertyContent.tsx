@@ -1,16 +1,18 @@
 import * as React from 'react'
 import "./index.css";
 import InputNumberPropertyArray from './components/InputNumberPropertyArray';
-import { ComponentParam, ComponentParamSettings, ComponentParamType, ComponentType, DefaultComponentParam, StairParam } from '../../main/tools/DrawStairsTool/types';
+import { ComponentParam, ComponentParamSettings, ComponentParamType, ComponentType, DefaultComponentParam, DefaultStairParam, StairParam } from '../../main/tools/DrawStairsTool/types';
 import RadioProperty from './components/RadioProperty';
 import InputNumberProperty from './components/InputNumberProperty';
-import { LockOutlined, UnlockOutlined } from '@ant-design/icons';
+import { DeleteOutlined, LockOutlined, PlusOutlined, UndoOutlined, UnlockOutlined } from '@ant-design/icons';
 import { MessageType } from '../../main/types';
-import { Divider } from 'antd';
+import { Button, Divider } from 'antd';
 
 interface Props {
     componentParam?: ComponentParam;
     stairParam?: StairParam;
+    getOnMaterialReplaceClick?: (componentParamType: ComponentParamType, index?: number) => () => void;
+    getOnMaterialDeleteClick?: (componentParamType: ComponentParamType, index?: number) => () => void;
 }
 
 interface State {
@@ -18,12 +20,17 @@ interface State {
     stairParam?: StairParam;
 }
 
-export default class PropertiesContent extends React.Component<Props, State> {
-    state: Readonly<State> = { componentParam: this.props.componentParam || { ...DefaultComponentParam } };
+export default class ProperyContent extends React.Component<Props, State> {
+    state: Readonly<State> = { componentParam: this.props.componentParam || { ...DefaultComponentParam }, stairParam: this.props.stairParam || {...DefaultStairParam} };
 
 
-    componentWillReceiveProps(nextProps: Readonly<Props>, nextContext: any): void {
-        this.setState({ componentParam: nextProps.componentParam });
+    // componentDidUpdate(nextProps: Readonly<Props>, nextContext: any): void {
+    //     this.setState({ componentParam: nextProps.componentParam });
+    // }
+    componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any): void {
+        if (this.props.componentParam !== prevProps.componentParam) {
+            this.setState({ componentParam: this.props.componentParam})
+        }
     }
     // componentDidMount(): void {
     //     window.addEventListener("message", this.onMessage);
@@ -68,7 +75,6 @@ export default class PropertiesContent extends React.Component<Props, State> {
                 }
                 window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam, changeParams: [componentParamType] }, '*');
                 this.setState({ componentParam: { ...componentParam } });
-
             }
         }
     }
@@ -149,15 +155,30 @@ export default class PropertiesContent extends React.Component<Props, State> {
         }
     }
 
+        private getOnMaterialReplaceClick = (componentParamType: ComponentParamType, index?: number) => {
+            const { getOnMaterialReplaceClick } = this.props;
+            if (getOnMaterialReplaceClick) {
+                return getOnMaterialReplaceClick(componentParamType, index);
+            }
+        }
+    
+        private getOnMaterialDeleteClick = (componentParamType: ComponentParamType, index?: number) => {
+            const { getOnMaterialDeleteClick } = this.props;
+            if (getOnMaterialDeleteClick) {
+                return getOnMaterialDeleteClick(componentParamType, index);
+            }
+        }
+
     render() {
-        const { componentParam } = this.state;
-        if (!componentParam) {
+        const { componentParam, stairParam } = this.state;
+        if (!componentParam || !stairParam) {
             return null;
         }
         const {
             horizontalStep, verticalStep, startWidth, endWidth, offsetWidth, platformLength, platformLengthLocked, widthProportional, stepProportional, type, upward,
-            platformThickness, modelEditing,
+            platformThickness, modelEditing, material, index
         } = componentParam;
+        const { stairMaterial, platformMaterial } = stairParam;
         // const disabled = !this.state.componentParam;
         return (
             <div className='properties-content-wrapper'>
@@ -268,16 +289,22 @@ export default class PropertiesContent extends React.Component<Props, State> {
                         radioOptions={ComponentParamSettings[ComponentParamType.Type].radioOptions}
                         onChange={this.getOnChange(ComponentParamType.Type).bind(this)}
                     />}
+                    <div className='material-property-wrapper'>
+                        <div className='title'>{ComponentParamSettings.stairMaterial.title}</div>
+                        <div className='mateiral-buttons'>
+                            <Button type="text" size="small" shape="circle" icon={material ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.ComponentMaterial, index)} />
+                            {material && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.ComponentMaterial, index)} />}
+                        </div>
+                    </div>
                 </div>
                 <Divider className='property-divider' >整体参数</Divider>
                 <div className='overall-properties'>
-
                     {type !== ComponentType.Platform && <div className='start-end-width-wrapper'>
                         <InputNumberPropertyArray
                             title={ComponentParamSettings[ComponentParamType.StartWidth].title}
                             units={[ComponentParamSettings[ComponentParamType.StartWidth].unit, ComponentParamSettings[ComponentParamType.EndWidth].unit]}
                             // units={['长', '高']}
-                            values={[horizontalStep, verticalStep]}
+                            values={[stairParam.startWidth, stairParam.endWidth]}
                             precisions={[ComponentParamSettings[ComponentParamType.StartWidth].precision, ComponentParamSettings[ComponentParamType.EndWidth].precision]}
                             min={[ComponentParamSettings[ComponentParamType.StartWidth].min, ComponentParamSettings[ComponentParamType.EndWidth].min]}
                             max={[ComponentParamSettings[ComponentParamType.StartWidth].max, ComponentParamSettings[ComponentParamType.EndWidth].max]}
@@ -287,7 +314,7 @@ export default class PropertiesContent extends React.Component<Props, State> {
                             onChange={this.getOnArrayChangeOverall([ComponentParamType.StartWidth, ComponentParamType.EndWidth]).bind(this)}
                         />
                         {
-                            stepProportional ? <LockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} /> :
+                            stairParam.widthProportional ? <LockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} /> :
                                 <UnlockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} />
                         }
                     </div>}
@@ -297,7 +324,7 @@ export default class PropertiesContent extends React.Component<Props, State> {
                                 title={ComponentParamSettings[ComponentParamType.HorizontalStep].title}
                                 units={[ComponentParamSettings[ComponentParamType.HorizontalStep].unit, ComponentParamSettings[ComponentParamType.VerticalStep].unit]}
                                 // units={['长', '高']}
-                                values={[horizontalStep, verticalStep]}
+                                values={[stairParam.horizontalStep, stairParam.verticalStep]}
                                 precisions={[ComponentParamSettings[ComponentParamType.HorizontalStep].precision, ComponentParamSettings[ComponentParamType.VerticalStep].precision]}
                                 min={[ComponentParamSettings[ComponentParamType.HorizontalStep].min, ComponentParamSettings[ComponentParamType.VerticalStep].min]}
                                 max={[ComponentParamSettings[ComponentParamType.HorizontalStep].max, ComponentParamSettings[ComponentParamType.VerticalStep].max]}
@@ -307,20 +334,20 @@ export default class PropertiesContent extends React.Component<Props, State> {
                                 onChange={this.getOnArrayChangeOverall([ComponentParamType.HorizontalStep, ComponentParamType.VerticalStep]).bind(this)}
                             />
                             {
-                                stepProportional ? <LockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} /> :
+                                stairParam.stepProportional ? <LockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} /> :
                                     <UnlockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} />
                             }
                         </div>}
                     {type !== ComponentType.Platform && <RadioProperty
                         title={ComponentParamSettings[ComponentParamType.Upward].title}
-                        value={upward}
+                        value={stairParam.upward}
                         radioOptions={ComponentParamSettings[ComponentParamType.Upward].radioOptions}
                         onChange={this.getOnChangeOverall(ComponentParamType.Upward).bind(this)}
                     />}
                     {type === ComponentType.Platform && <InputNumberProperty
                         title={ComponentParamSettings[ComponentParamType.PlatformThickness].title}
                         unit={ComponentParamSettings[ComponentParamType.PlatformThickness].unit}
-                        value={platformThickness}
+                        value={stairParam.platformThickness}
                         precision={ComponentParamSettings[ComponentParamType.PlatformThickness].precision}
                         min={ComponentParamSettings[ComponentParamType.PlatformThickness].min}
                         max={ComponentParamSettings[ComponentParamType.PlatformThickness].max}
@@ -328,6 +355,20 @@ export default class PropertiesContent extends React.Component<Props, State> {
                         // disabled={disabled}
                         onChange={this.getOnChangeOverall(ComponentParamType.PlatformThickness).bind(this)}
                     />}
+                    <div className='material-property-wrapper'>
+                        <div className='title'>{ComponentParamSettings.platformMaterial.title}</div>
+                        <div className='mateiral-buttons'>
+                            <Button type="text" size="small" shape="circle" icon={stairMaterial ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.StairMaterial)} />
+                            {stairMaterial && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.StairMaterial)} />}
+                        </div>
+                    </div>
+                    <div className='material-property-wrapper'>
+                        <div className='title'>{ComponentParamSettings.material.title}</div>
+                        <div className='mateiral-buttons'>
+                            <Button type="text" size="small" shape="circle" icon={platformMaterial ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.PlatformMaterial)} />
+                            {platformMaterial && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.PlatformMaterial)} />}
+                        </div>
+                    </div>
                 </div>
             </div>
         )

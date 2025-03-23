@@ -1,5 +1,6 @@
+import { drawStairsTool } from "./index";
 import { DirectionX, DirectionY } from "./consts";
-import { BaseLine3dDelimiter, ComponentParam, CoordDelimiter, DefaultComponentParam, Delimiter, Segment } from "./types";
+import { BaseLine3dDelimiter, ColumnType, ComponentParam, CoordDelimiter, DefaultComponentParam, Delimiter, getDefaultStairParam, MaterialType, RailType, Segment, StairParam } from "./types";
 
 export function isKArchFace(entity: KEntity | KArchFace | undefined | null): entity is KArchFace {
     return !!entity && (entity.getType() === KArchFaceType.NonPlanar || entity.getType() === KArchFaceType.Planar);
@@ -41,7 +42,108 @@ export function isKArc3d(entity: KBoundedCurve3d | undefined | null): entity is 
     return !!entity && !!(entity as KArc3d).circle;
 }
 
-export function stringifyParam(param: ComponentParam) {
+export function stringifyMaterial(material: MaterialType) {
+    let value: string = '';
+    if (material.materialId) {
+        value += `mid=${material.materialId}${Delimiter}`;
+    }
+    if (material.bgid) {
+        value += `bid=${material.bgid}${Delimiter}`;
+    }
+    if (material.imgUrl) {
+        value += `img=${material.imgUrl}${Delimiter}`;
+    }
+    return value.slice(0, value.length - 1);
+}
+
+export function parseMaterial(value: string) {
+    const material: MaterialType = {};
+    const items = value.split(Delimiter);
+    for (const item of items) {
+        const keyValue = item.split('=');
+        if (keyValue.length === 2) {
+            switch (keyValue[0]) {
+                case 'mid': material.materialId = keyValue[1]; break;
+                case 'bid': material.bgid = keyValue[1]; break;
+                case 'img': material.imgUrl = keyValue[1]; break;
+            }
+        }
+    }
+    if (items.length) {
+        return material;
+    }
+}
+
+export function stringifyStairParam(param: StairParam) {
+    let value: string = '';
+    value += `hs=${param.horizontalStep}${Delimiter}`;
+    value += `vs=${param.verticalStep}${Delimiter}`;
+    value += `sw=${param.startWidth}${Delimiter}`;
+    value += `ew=${param.endWidth}${Delimiter}`;
+    value += `up=${param.upward ? 1 : 0}${Delimiter}`;
+    value += `ptk=${param.platformThickness}`;
+    if (param.handrail.support) {
+        const { handrail: { height, rail, column } } = param;
+        value += `hh=${height}${Delimiter}`;
+        value += `hrt=${rail.type}${Delimiter}`;
+        if (rail.type === RailType.Circle && rail.param.radius !== undefined) {
+            value += `hrr=${rail.param.radius}${Delimiter}`;
+        } else if (rail.type === RailType.Rect) {
+            if (rail.param.width !== undefined) {
+                value += `hrw=${rail.param.width}${Delimiter}`;
+            }
+            if (rail.param.height !== undefined) {
+                value += `hrh=${rail.param.height}${Delimiter}`;
+            }
+        }
+        value += `hct=${column.type}${Delimiter}`;
+        value += `hcs=${column.step}${Delimiter}`;
+        if (column.type === ColumnType.Circle && column.param.radius !== undefined) {
+            value += `hcr=${column.param.radius}${Delimiter}`;
+        } else if (column.type === ColumnType.Rect) {
+            if (column.param.width !== undefined) {
+                value += `hcw=${column.param.width}${Delimiter}`;
+            }
+            if (column.param.height !== undefined) {
+                value += `hch=${column.param.height}${Delimiter}`;
+            }
+        }
+    }
+    return value.slice(0, value.length - 1);
+}
+
+export function parseStairParam(value: string) {
+    const param: StairParam = getDefaultStairParam();
+    const items = value.split(Delimiter);
+    for (const item of items) {
+        const keyValue = item.split('=');
+        if (keyValue.length === 2) {
+            switch (keyValue[0]) {
+                case 'hs': param.horizontalStep = parseInt(keyValue[1]); break;
+                case 'vs': param.verticalStep = parseInt(keyValue[1]); break;
+                case 'sw': param.startWidth = parseInt(keyValue[1]); break;
+                case 'ew': param.endWidth = parseInt(keyValue[1]); break;
+                case 'up': param.upward = keyValue[1] === '1' ? true : false; break;
+                case 'ptk': param.platformThickness = parseInt(keyValue[1]); break;
+                case 'hh': param.handrail.height = parseFloat(keyValue[1]); break;
+                case 'hrt': param.handrail.rail.type = parseFloat(keyValue[1]); break;
+                case 'hrr': param.handrail.rail.param.radius = parseInt(keyValue[1]); break;
+                case 'hrw': param.handrail.rail.param.width = parseInt(keyValue[1]); break;
+                case 'hrh': param.handrail.rail.param.height = parseInt(keyValue[1]); break;
+                case 'hct': param.handrail.column.type = parseFloat(keyValue[1]); break;
+                case 'hcs': param.handrail.column.step = parseFloat(keyValue[1]); break;
+                case 'hcr': param.handrail.column.param.radius = parseInt(keyValue[1]); break;
+                case 'hcw': param.handrail.column.param.width = parseInt(keyValue[1]); break;
+                case 'hch': param.handrail.column.param.height = parseInt(keyValue[1]); break;
+            }
+        }
+    }
+    param.stepProportional = true;
+    param.widthProportional = true;
+    return param;
+}
+
+export function stringifyComponentParam(param: ComponentParam) {
     let value: string = '';
     value += `ind=${param.index}${Delimiter}`;
     value += `hs=${param.horizontalStep}${Delimiter}`;
@@ -56,7 +158,7 @@ export function stringifyParam(param: ComponentParam) {
     return value;
 }
 
-export function parseParam(value: string) {
+export function parseComponentParam(value: string) {
     const param: ComponentParam = { ...DefaultComponentParam };
     const items = value.split(Delimiter);
     for (const item of items) {
@@ -173,4 +275,32 @@ export function getCoordinate(normal: KVector3d) {
         dx = dy.cross(dz);
     }
     return { dx, dy, dz }
+}
+
+let isInOperation = false;
+
+export function startOperation() {
+    isInOperation = true;
+    app.getActiveDesign().startOperation();
+}
+
+export function commitOperation() {
+    isInOperation = false;
+    app.getActiveDesign().commitOperation();
+}
+
+export function abortOperation() {
+    isInOperation = false;
+    app.getActiveDesign().abortOperation();
+}
+
+export function onModelChanged(changes: { isUndoRedo: boolean, modified?: KGroupDefinition[], added?: KGroupDefinition[], deleted?: KGroupDefinition[] }) {
+    const deleted = changes.deleted;
+    const added = changes.added;
+    // const editModel = drawStairsTool.getEditModel();
+    if (!isInOperation && (deleted?.length || added?.length)) {
+        // if (deleted.some(deleteGroup => editModel.parent.definitionKey === deleteGroup.getKey())) {
+            drawStairsTool.clearEditModel();
+        // }
+    }
 }

@@ -1,6 +1,6 @@
 .property-wrapper {
     display: flex;
-    height: 550px;
+    height: 580px;
     overflow-y: scroll;
     /* border-bottom: 1px solid black; */
     padding-left: 4px;
@@ -34,9 +34,29 @@
         }
     }
 
+    .material-property-wrapper {
+        height: 26px;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+
+        .title {
+            min-width: 20px;
+            font-size: 13px;
+            margin-right: 10px;
+        }
+
+        .material-buttons {
+            height: 26px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+    }
+
     .stairs-property-wrapper {
         display: flex;
-        height: 260px;
+        height: 290px;
 
         .property-tabs-wrapper {
             width: 16%;
@@ -106,7 +126,7 @@
             }
 
             .overall-properties {
-                height: 95px;
+                height: 110px;
                 color: gray;
             }
 
@@ -184,6 +204,9 @@
                     font-size: 12px;
                     margin:0 5px;
                 }
+            }
+            .handrail-material {
+                margin-left: 43px;
             }
         }
     }
