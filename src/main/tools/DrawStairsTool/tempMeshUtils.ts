@@ -841,7 +841,7 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                 const baseSegment = getSegmentByIndex(segments, baseComponent?.componentIndex);
                 const {
                     startLine: { line3dInd: startLine3dInd },
-                    baseLine: { dir: baseLine3dDir, end: baseLine3dEnd},
+                    baseLine: { dir: baseLine3dDir, end: baseLine3dEnd },
                 } = getSegmentStartAndBaseLine3d(currentSegment, segments, baseSegment);
 
                 // let baseLine3dDir: KVector3d | undefined = baseComponent?.line3d ? baseComponent.line3d.end.subtracted(baseComponent.line3d.start).normalized() : DirectionX;
@@ -941,7 +941,12 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                         if (spToEpDir.dot(baseLine3dDir) > 0) {
                             lastDistance = 0;
                             pushEnd = false;
-                            nextStartPoint = sp;
+                            const nextCornerDistance = ep.distanceTo(sp);
+                            if (nextCornerDistance > offsetLength) {
+                                nextStartPoint = sp;
+                            } else {
+                                nextStartPoint = undefined;
+                            }
                         } else {
                             lastDistance = sp.distanceTo(ep);
                             nextStartPoint = isPlatform(baseSegment) ? ep : undefined;
@@ -1237,10 +1242,10 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                                     }
 
                                     // if (tempStepCount % reasonableStepCount !== 0) {
-                                        stairColumns.push([
-                                            left ? curLeftBottomMidPt : curRightBottomMidPt,
-                                            (left ? curLeftBottomMidPt : curRightBottomMidPt).added(DirectionZ.multiplied(height + (upward ? 0 : (verticalStep * ( 1 - lastStepPercent / 2))))),
-                                        ]);
+                                    stairColumns.push([
+                                        left ? curLeftBottomMidPt : curRightBottomMidPt,
+                                        (left ? curLeftBottomMidPt : curRightBottomMidPt).added(DirectionZ.multiplied(height + (upward ? 0 : (verticalStep * (1 - lastStepPercent / 2))))),
+                                    ]);
                                     // }
                                     // next segment startWidth !== currentSegment endWidth
                                     sp = left ? start.added(baseLine3dDir.multiplied(startWidth / 2 - offsetLength)) : curRightMoldPt;
