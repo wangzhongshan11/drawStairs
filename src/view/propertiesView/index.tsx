@@ -14,6 +14,7 @@ interface State {
     componentParams: ImmutableMap<number, ComponentParam>;
     componentParam?: ComponentParam;
     stairParam?: StairParam;
+    isDrawing?: boolean;
     activeKey: string;
     propertiesVisible: boolean;
 }
@@ -67,9 +68,16 @@ export default class PropertiesView extends React.Component<{}, State> {
 
                 const theComponentParams = new ImmutableMap(componentParamMap);
                 const componentParam = [...componentParamMap.values()][0];
-                this.setState({ componentParams: theComponentParams, componentParam, stairParam: messageData.stairParam, activeKey: componentParam.index.toString(), propertiesVisible: true });
+                this.setState({
+                    componentParams: theComponentParams,
+                    componentParam,
+                    stairParam: messageData.stairParam,
+                    activeKey: componentParam.index.toString(),
+                    propertiesVisible: true,
+                    isDrawing: !!messageData.isDrawing,
+                });
             } else {
-                this.setState({ componentParams: new ImmutableMap(), componentParam: undefined, activeKey: '0', propertiesVisible: true });
+                this.setState({ componentParams: new ImmutableMap(), componentParam: undefined, activeKey: '0', propertiesVisible: true, isDrawing: !!messageData.isDrawing, });
             }
         } else if (messageData?.type === MessageType.PropertiesVisible) {
             this.setState({ propertiesVisible: messageData.propertiesVisible });
@@ -201,7 +209,7 @@ export default class PropertiesView extends React.Component<{}, State> {
     }
 
     render() {
-        const { componentParams, componentParam, stairParam, activeKey, propertiesVisible } = this.state;
+        const { componentParams, componentParam, stairParam, activeKey, propertiesVisible, isDrawing } = this.state;
         if (!componentParams.size || !propertiesVisible || !stairParam) {
             return null;
         }
@@ -235,6 +243,7 @@ export default class PropertiesView extends React.Component<{}, State> {
                     <PropertyContent
                         componentParam={componentParam}
                         stairParam={stairParam}
+                        isDrawing={isDrawing}
                         getOnMaterialReplaceClick={this.getOnMaterialReplaceClick}
                         getOnMaterialDeleteClick={this.getOnMaterialDeleteClick}
                     />
@@ -245,6 +254,7 @@ export default class PropertiesView extends React.Component<{}, State> {
                 label: '栏杆参数',
                 children: <HandrailProperty
                     stairParam={stairParam}
+                    isDrawing={isDrawing}
                     getOnHandrailChange={this.getOnHandrailChange}
                     getOnHandrailSwitchChange={this.getOnHandrailSwitchChange}
                     getOnMaterialReplaceClick={this.getOnMaterialReplaceClick}

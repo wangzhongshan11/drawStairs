@@ -40,7 +40,7 @@ export class DrawStairsTool implements KTool {
         const firstSegment: Segment = getNewSegment(ComponentType.StraightStair, undefined, this.stairParam.upward);
         firstSegment.startLocked = false;
         // this.stairParam = DefaultStairParam;
-        pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: [firstSegment.param], stairParam: this.stairParam, newStair: true }, '*');
+        pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: [firstSegment.param], stairParam: this.stairParam, newStair: true, isDrawing: true }, '*');
         this.segments = [firstSegment];
         this.drawing = true;
         this.clearTempShapes();
@@ -883,7 +883,7 @@ export class DrawStairsTool implements KTool {
                         this.segments = validSegments;
                         this.drawing = false;
                         this.drawTempComponent(validSegments[0], true);
-                        pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: this.segments.map(seg => ({ ...seg.param })), stairParam: this.stairParam }, '*');
+                        pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: this.segments.map(seg => ({ ...seg.param })), stairParam: this.stairParam, isDrawing: false }, '*');
                         return;
                     }
                 }
@@ -1004,7 +1004,7 @@ export class DrawStairsTool implements KTool {
                     this.editModel = editModel;
                     // this.drawTempComponent(segments[0], true);
                     this.focusComponent(segments[0].param.index);
-                    pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: this.segments.map(seg => ({ ...seg.param })), stairParam: this.stairParam }, '*');
+                    pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, componentParams: this.segments.map(seg => ({ ...seg.param })), stairParam: this.stairParam, isDrawing: false }, '*');
                 }
             }
         }
@@ -1016,7 +1016,7 @@ export class DrawStairsTool implements KTool {
         this.handrailCollection = undefined;
         this.focusedComponentIndex = DefaultFocusedComponentIndex;
         appView.clearTemporaryShapes();
-        pluginUI.postMessage({ type: MessageType.DrawStairModelSettled }, '*');
+        pluginUI.postMessage({ type: MessageType.DrawStairModelSettled, isDrawing: false }, '*');
     }
 
     private clear() {

@@ -11,6 +11,7 @@ import { Button, Divider } from 'antd';
 interface Props {
     componentParam?: ComponentParam;
     stairParam?: StairParam;
+    isDrawing?: boolean;
     getOnMaterialReplaceClick?: (componentParamType: ComponentParamType, index?: number) => () => void;
     getOnMaterialDeleteClick?: (componentParamType: ComponentParamType, index?: number) => () => void;
 }
@@ -174,6 +175,7 @@ export default class ProperyContent extends React.Component<Props, State> {
         if (!componentParam || !stairParam) {
             return null;
         }
+        const { isDrawing } = this.props;
         const {
             horizontalStep, verticalStep, startWidth, endWidth, offsetWidth, platformLength, platformLengthLocked, widthProportional, stepProportional, type, upward,
             platformThickness, modelEditing, material, index
@@ -289,15 +291,15 @@ export default class ProperyContent extends React.Component<Props, State> {
                         radioOptions={ComponentParamSettings[ComponentParamType.Type].radioOptions}
                         onChange={this.getOnChange(ComponentParamType.Type).bind(this)}
                     />}
-                    <div className='material-property-wrapper'>
-                        <div className='title'>{ComponentParamSettings.stairMaterial.title}</div>
+                    {!isDrawing && <div className='material-property-wrapper'>
+                        <div className='title'>{ComponentParamSettings.material.title}</div>
                         <div className='mateiral-buttons'>
                             <Button type="text" size="small" shape="circle" icon={material ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.ComponentMaterial, index)} />
                             {material && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.ComponentMaterial, index)} />}
                         </div>
-                    </div>
+                    </div>}
                 </div>
-                <Divider className='property-divider' >整体参数</Divider>
+                <Divider className='property-divider' >{type === ComponentType.Platform ? '平台' : '阶梯'}整体参数</Divider>
                 <div className='overall-properties'>
                     {type !== ComponentType.Platform && <div className='start-end-width-wrapper'>
                         <InputNumberPropertyArray
@@ -355,20 +357,20 @@ export default class ProperyContent extends React.Component<Props, State> {
                         // disabled={disabled}
                         onChange={this.getOnChangeOverall(ComponentParamType.PlatformThickness).bind(this)}
                     />}
-                    <div className='material-property-wrapper'>
-                        <div className='title'>{ComponentParamSettings.platformMaterial.title}</div>
+                    {!isDrawing && type !== ComponentType.Platform && <div className='material-property-wrapper'>
+                        <div className='title'>{ComponentParamSettings.material.title}</div>
                         <div className='mateiral-buttons'>
                             <Button type="text" size="small" shape="circle" icon={stairMaterial ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.StairMaterial)} />
                             {stairMaterial && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.StairMaterial)} />}
                         </div>
-                    </div>
-                    <div className='material-property-wrapper'>
+                    </div>}
+                    {!isDrawing && type === ComponentType.Platform && <div className='material-property-wrapper'>
                         <div className='title'>{ComponentParamSettings.material.title}</div>
                         <div className='mateiral-buttons'>
                             <Button type="text" size="small" shape="circle" icon={platformMaterial ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.PlatformMaterial)} />
                             {platformMaterial && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.PlatformMaterial)} />}
                         </div>
-                    </div>
+                    </div>}
                 </div>
             </div>
         )

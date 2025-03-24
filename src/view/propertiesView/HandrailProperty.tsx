@@ -9,6 +9,7 @@ import { DeleteOutlined, PlusOutlined, UndoOutlined } from '@ant-design/icons';
 
 interface Props {
     stairParam?: StairParam;
+    isDrawing?: boolean;
     getOnHandrailChange?: (componentParamType: ComponentParamType) => (value: number | string) => void;
     getOnHandrailSwitchChange?: (componentParamType: ComponentParamType) => (checked: boolean) => void;
     getOnMaterialReplaceClick?: (componentParamType: ComponentParamType) => () => void;
@@ -61,6 +62,7 @@ export default class HandrailProperty extends React.Component<Props, State> {
         if (!stairParam) {
             return null;
         }
+        const { isDrawing } = this.props;
         const { handrail: { support, height, rail, column } } = stairParam;
         // const disabled = !this.state.componentParam;
         return (
@@ -128,13 +130,13 @@ export default class HandrailProperty extends React.Component<Props, State> {
                             }
                         </div>
                     </div>
-                    <div className='material-property-wrapper handrail-material'>
+                    {!isDrawing && <div className='material-property-wrapper handrail-material'>
                         <div className='title'>{ComponentParamSettings.material.title}</div>
                         <div className='mateiral-buttons'>
                             <Button type="text" size="small" shape="circle" icon={rail.material ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.HandrailRailMaterial)} />
                             {rail.material && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.HandrailRailMaterial)} />}
                         </div>
-                    </div>
+                    </div>}
                     <div className='column-property'>
                         <div className='column-title'>柱子：</div>
                         <SelectProperty
@@ -200,13 +202,13 @@ export default class HandrailProperty extends React.Component<Props, State> {
                             onChange={this.getOnChange(ComponentParamType.HandrailColumnStep)?.bind(this)}
                         />
                     </div>
-                    <div className='material-property-wrapper handrail-material'>
+                    {!isDrawing && <div className='material-property-wrapper handrail-material'>
                         <div className='title'>{ComponentParamSettings.material.title}</div>
                         <div className='mateiral-buttons'>
                             <Button type="text" size="small" shape="circle" icon={column.material ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.HandrailColumnMaterial)} />
                             {column.material && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.HandrailColumnMaterial)} />}
                         </div>
-                    </div>
+                    </div>}
                 </div>}
             </div>
         )
