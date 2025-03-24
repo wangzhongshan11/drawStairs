@@ -960,7 +960,7 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                     }
                     // spToEpDir = ep.subtracted(sp).normalized();
 
-                    const firstBottomPt = sp.added(DirectionZ.multiplied(startHeight)).added(offsetDir.multiplied(offsetLength)).added(spToEpDir.multiplied(startPoint ? 0 : offsetLength)).added(line3dDir.multiplied(startPoint ? 0 : offsetLength));
+                    const firstBottomPt = sp.added(DirectionZ.multiplied(startHeight)).added(offsetDir.multiplied(offsetLength)).added(spToEpDir.multiplied(startPoint ? 0 : offsetLength));
                     if (lastDistance > 0 || (lastDistance === 0 && !startPoint)) {
                         // push rail
                         handrail.rail.push(firstBottomPt.added(DirectionZ.multiplied(height)));
