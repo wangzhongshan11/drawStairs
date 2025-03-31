@@ -1,5 +1,5 @@
 import { drawStairsTool } from "./tools/DrawStairsTool/index";
-import { isKGroupInstance, onModelChanged } from "./tools/DrawStairsTool/utils";
+import { isKGroupInstance, isPartOfEditModel, onModelChanged } from "./tools/DrawStairsTool/utils";
 import { MessageType } from "./types";
 
 const pluginUI = app.getPluginUI();
@@ -66,14 +66,7 @@ selection.addObserver({
         } else if (allEntities.length) {
             const editPath = app.getActiveDesign().getEditPath();
             const editModel = drawStairsTool.getEditModel();
-            if (!editModel || (editPath.every(instance =>
-                instance.getKey() !== editModel.parent.instanceKey &&
-                [...editModel.stairs.values()].every(comp => comp.instanceKey !== instance.getKey()) &&
-                [...editModel.platforms.values()].every(comp => comp.instanceKey !== instance.getKey()) &&
-                editModel.handrail?.handrailInstance.instanceKey !== instance.getKey() && 
-                editModel.handrail?.railInstances.every(comp => comp.instanceKey !== instance.getKey()) && 
-                editModel.handrail?.columnInstances.every(comp => comp.instanceKey !== instance.getKey())
-            ))) {
+            if (!editModel || (editPath.length && isPartOfEditModel(editModel, editPath[editPath.length - 1]))) {
                 drawStairsTool.clearTempShapes();
                 if (activatedCustomTool !== drawStairsTool) {
                     pluginUI.postMessage({ type: MessageType.PropertiesVisible, propertiesVisible: false }, '*');

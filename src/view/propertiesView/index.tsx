@@ -127,11 +127,13 @@ export default class PropertiesView extends React.Component<{}, State> {
                         rail: {
                             type: handrail.rail.type,
                             param: { ...handrail.rail.param },
+                            material: handrail.rail.material,
                         },
                         column: {
                             type: handrail.column.type,
                             step: handrail.column.step,
                             param: { ...handrail.column.param },
+                            material: handrail.column.material,
                         }
                     }
                     switch (componentParamType) {

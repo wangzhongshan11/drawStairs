@@ -1,6 +1,6 @@
 import { AngleTolerance, DirectionAngleTolerance, DirectionZ, dummyPoint3d, LengthTolerance, StepCountLimit } from "./consts";
 import { getSegmentByIndex } from "./meshUtils";
-import { ComponentType, Handrail, ComponentDirectionType, Segment, StairParam, CircularSide } from "./types";
+import { ComponentType, Handrail, ComponentDirectionType, Segment, StairParam, CircularSide, HandrailDefaultOffsetLength } from "./types";
 import { isEqual } from "./utils";
 
 export function generateShape(segment: Segment, temp: boolean = true) {
@@ -789,7 +789,7 @@ type TempObject = {
 const ColumnStepTolerance = 1 / 10;
 
 export function generateHandrailShape(stairParam: StairParam, segments: Segment[]) {
-    const { handrail: { support, height, column: { step, param: columnParam } } } = stairParam;
+    const { handrail: { support, height, column: { step } } } = stairParam;
     if (segments.length && support) {
         const handrails: Handrail[] = [];
         const unVisited: Set<Segment> = new Set(segments);
@@ -836,7 +836,7 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                 }
 
                 const stepHeight = upward ? verticalStep : -verticalStep;
-                const offsetLength = Math.max(columnParam.height || 0, columnParam.width || 0, columnParam.radius || 0) * 3;
+                const offsetLength = HandrailDefaultOffsetLength;
 
                 const baseSegment = getSegmentByIndex(segments, baseComponent?.componentIndex);
                 const {

@@ -1,7 +1,7 @@
 import { DirectionZ, dummyPoint3d } from "./consts";
 import {
     BaseComponentKey, BaseLineSeg3dKey, CircleTangentKey, ColumnType, ComponentType, DefaultStairParam, Handrail, HandrailModelKey, RailType, Segment,
-    ModelValue, StairParam, StartEndKey, PresetMaterials, ColumnModelKey,RailModelKey,    HandrailInstancesData,
+    ModelValue, StairParam, StartEndKey, PresetMaterials, ColumnModelKey, RailModelKey, HandrailInstancesData,
     ComponentParamKey
 } from "./types";
 import { getCoordinate, stringifyBaseComponent, stringifyComponentParam, stringifyPoint3d, stringifyStartEnd } from "./utils";
@@ -397,7 +397,7 @@ function generatePolygonMesh(vertices: KPoint3d[], mesh: KMesh) {
     }
 }
 
-export function buildComponentInstance(segment: Segment, segments: Segment[]) {
+export function buildComponentInstance(segment: Segment, segments: Segment[], parentTransform?: KMatrix4) {
     const { start, end, startHeight, endHeight, baseComponent, circleTangent, param, mesh } = segment;
     const design = app.getActiveDesign();
 
@@ -415,6 +415,10 @@ export function buildComponentInstance(segment: Segment, segments: Segment[]) {
             operationSuccess = operationSuccess && !!newInstance;
             const groupDef = newInstance?.getGroupDefinition();
             if (newInstance && groupDef) {
+                if (parentTransform) {
+                    const transformRes = design.transformGroupInstances([newInstance], parentTransform.inversed());
+                    operationSuccess = operationSuccess && transformRes.isSuccess;
+                }
                 const materialObject = param.type === ComponentType.Platform ? PresetMaterials.Platform : PresetMaterials.Stair;
                 operationSuccess = operationSuccess && design.assignMaterialForEntities([newInstance], materialObject.materialId, materialObject.bgId);
                 // operationSuccess = operationSuccess && groupDef.setCustomProperty(ComponentIndexKey, `${newInstances.length}`).isSuccess;
@@ -446,7 +450,7 @@ export function buildComponentInstance(segment: Segment, segments: Segment[]) {
     return undefined;
 }
 
-export async function buildHandrailInstance(stairParam: StairParam, handrails: Handrail[]): Promise<HandrailInstancesData | undefined | 0> {
+export async function buildHandrailInstance(stairParam: StairParam, handrails: Handrail[], parentTransform?: KMatrix4): Promise<HandrailInstancesData | undefined | 0> {
     const { handrail: { support, height, rail: { type: railType, param: railParam }, column: { type: columnType, param: columnParam } } } = stairParam;
     if (!support) {
         return 0;
@@ -456,7 +460,7 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
     if (columnType === ColumnType.Circle) {
         columnFace = drawCircle(dummyPoint3d, DirectionZ, columnParam.radius || DefaultStairParam.horizontalStep / 10);
     } else if (columnType === ColumnType.Rect) {
-        columnFace = drawRect(dummyPoint3d, DirectionZ, columnParam.width || DefaultStairParam.horizontalStep / 10, columnParam.height || DefaultStairParam.horizontalStep / 10);
+        columnFace = drawRect(dummyPoint3d, DirectionZ, columnParam.width || DefaultStairParam.horizontalStep / 10, columnParam.height || DefaultStairParam.horizontalStep / 10, false);
     } else {
         return 0;
     }
@@ -470,6 +474,13 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
     const handrailDefinition = handrailInstance?.getGroupDefinition();
     if (!handrailInstance || !handrailDefinition) {
         return undefined;
+    }
+
+    if (parentTransform) {
+        const transformRes = activeDesign.transformGroupInstances([handrailInstance], parentTransform.inversed());
+        if (!transformRes.isSuccess) {
+            return undefined;
+        }
     }
 
     const activateInstanceRes = await activeDesign.activateGroupInstance(handrailInstance);
@@ -523,7 +534,7 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
         if (railBoundedCurves.length) {
             const railStartCurve = railBoundedCurves[0].getBoundedCurve();
             const railStartPoint = railStartCurve?.startPoint || dummyPoint3d;
-            const railStartDir = railStartCurve?.endPoint.subtracted(railStartPoint) || DirectionZ;
+            const railStartDir = railStartCurve?.endPoint.subtracted(railStartPoint).normalized().reversed() || DirectionZ;
             let railFace: KFace | undefined;
             if (railType === RailType.Circle) {
                 railFace = drawCircle(railStartPoint, railStartDir, railParam.radius || DefaultStairParam.horizontalStep / 5);
@@ -638,14 +649,14 @@ export function drawCircle(center: KPoint3d, normal: KVector3d, radius: number) 
     return undefined;
 }
 
-export function drawRect(center: KPoint3d, normal: KVector3d, width: number, height: number, z: number = 0, withCorner: boolean = true) {
-    const point1 = GeomLib.createPoint3d(0, 0, z);
-    const point2 = GeomLib.createPoint3d(width, 0, z);
+export function drawRect(center: KPoint3d, normal: KVector3d, width: number, height: number, withCorner: boolean = true) {
+    const point1 = GeomLib.createPoint3d(-width / 2, 0, 0);
+    const point2 = GeomLib.createPoint3d(width / 2, 0, 0);
     let points: KPoint3d[] = [point1, point2];
     if (withCorner) {
-        const p5 = GeomLib.createPoint3d(width, height / 3 * 2, z);
-        const p6 = GeomLib.createPoint3d(width / 4 * 3, height, z);
-        const m1 = GeomLib.createPoint3d((p5.x + p6.x) / 2, (p5.y + p6.y) / 2, z)
+        const p5 = GeomLib.createPoint3d(width / 2, height / 3 * 2, 0);
+        const p6 = GeomLib.createPoint3d(width / 4, height, 0);
+        const m1 = GeomLib.createPoint3d((p5.x + p6.x) / 2, (p5.y + p6.y) / 2, 0)
         const dir1 = p6.subtracted(p5).normalized();
         const toCenterDir1 = DirectionZ.cross(dir1);
         const d1 = p5.distanceTo(p6);
@@ -659,9 +670,9 @@ export function drawRect(center: KPoint3d, normal: KVector3d, width: number, hei
             points.push(discretePoint);
         }
 
-        const p7 = GeomLib.createPoint3d(width / 4, height, z);
-        const p8 = GeomLib.createPoint3d(0, height / 3 * 2, z);
-        const m2 = GeomLib.createPoint3d((p5.x + p6.x) / 2, (p5.y + p6.y) / 2, z);
+        const p7 = GeomLib.createPoint3d(-width / 4, height, 0);
+        const p8 = GeomLib.createPoint3d(-width / 2, height / 3 * 2, 0);
+        const m2 = GeomLib.createPoint3d((p7.x + p8.x) / 2, (p7.y + p8.y) / 2, 0);
         const dir2 = p8.subtracted(p7).normalized();
         const toCenterDir2 = DirectionZ.cross(dir2);
         const d2 = p7.distanceTo(p8);
@@ -675,14 +686,14 @@ export function drawRect(center: KPoint3d, normal: KVector3d, width: number, hei
             points.push(discretePoint);
         }
     } else {
-        const point3 = GeomLib.createPoint3d(width, height, z);
-        const point4 = GeomLib.createPoint3d(0, height, z);
+        const point3 = GeomLib.createPoint3d(width / 2, height, 0);
+        const point4 = GeomLib.createPoint3d(-width / 2, height, 0);
         points.push(point3, point4);
     }
 
     const coordinate = getCoordinate(normal);
     const coordinateMat = GeomLib.createAlignCCSMatrix4(coordinate.dx, coordinate.dy, coordinate.dz, center);
-    const translateMat1 = GeomLib.createTranslationMatrix4(-width / 2, -height / 2, 0);
+    const translateMat1 = GeomLib.createTranslationMatrix4(0, -height / 2, 0);
     // const translateMat2 = GeomLib.createTranslationMatrix4(center.x, center.y, center.z);
     const transformMat = coordinateMat.multiplied(translateMat1);
     points = points.map(p => p.appliedMatrix4(transformMat));
@@ -690,7 +701,18 @@ export function drawRect(center: KPoint3d, normal: KVector3d, width: number, hei
     const activeDesign = app.getActiveDesign();
     const res = activeDesign.addEdges(points);
     if (res?.addedEdges.length) {
-        const setSoftResult = activeDesign.setEdgesSoft(res.addedEdges, true);
+        const edgeVertices: Set<KVertex> = new Set();
+        for (const addedEdge of res.addedEdges) {
+            const va = addedEdge.getVertexA();
+            const vb = addedEdge.getVertexB();
+            if (va) {
+                edgeVertices.add(va);
+            }
+            if (vb) {
+                edgeVertices.add(vb);
+            }
+        }
+        const setSoftResult = activeDesign.setVerticesSoft([...edgeVertices], true);
         if (setSoftResult.isSuccess) {
             const shell = res.addedEdges[0].getShell();
             const faces = shell?.getFaces();
@@ -734,24 +756,29 @@ export function getNextComponents(segment: Segment, segments: Segment[]) {
     return nextSegments;
 }
 
-export function changeStairUpward(startSegment: Segment, segments: Segment[], upward: boolean, bulkChange: boolean) {
+export function changeStairUpward(startSegment: Segment, segments: Segment[], upward: boolean, bulkChange: boolean, onlyStart: boolean = false) {
     if (segments.length) {
         let current: { segment: Segment, verticalDelta: number }[] = [{ segment: startSegment, verticalDelta: 0 }];
         const unVisited: Set<Segment> = new Set(segments);
+        const changedSegments: Set<Segment> = new Set();
         while (current.length) {
             let next: { segment: Segment, verticalDelta: number }[] = [];
             for (const { segment, verticalDelta } of current) {
                 const { startHeight, endHeight } = segment;
-                const endDelta = segment.param.type === ComponentType.Platform ? 0 : Math.abs(endHeight - startHeight) * (upward ? 1 : -1);
+                const upwardFlag = onlyStart ? segment.param.upward : upward;
+                const endDelta = segment.param.type === ComponentType.Platform ? 0 : Math.abs(endHeight - startHeight) * (upwardFlag ? 1 : -1);
                 segment.startHeight = verticalDelta;
                 segment.endHeight = segment.startHeight + endDelta;
-                segment.param.upward = upward;
+                if (!onlyStart) {
+                    segment.param.upward = upward;
+                }
                 unVisited.delete(segment);
 
                 const nextSegments = getNextComponents(segment, segments);
                 if (nextSegments.length) {
-                    next.push(...nextSegments.map(seg => ({ segment: seg, verticalDelta: segment.endHeight  })));
+                    next.push(...nextSegments.map(seg => ({ segment: seg, verticalDelta: segment.endHeight })));
                 }
+                changedSegments.add(segment);
             }
             current = next;
 
@@ -762,5 +789,7 @@ export function changeStairUpward(startSegment: Segment, segments: Segment[], up
                 }
             }
         }
+
+        return [...changedSegments];
     }
 }

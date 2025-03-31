@@ -111,8 +111,8 @@ export interface HandrailComponentParam {
 }
 
 export const ComponentParamSettings = {
-    horizontalStep: { title: "步长", min: 1, max: 100000, step: 10, unit: '长', precision: 0, },
-    verticalStep: { title: "步长", min: 1, max: 100000, step: 10, unit: '高', precision: 0, },
+    horizontalStep: { title: "步长", min: 1, max: 100000, step: 20, unit: '长', precision: 0, },
+    verticalStep: { title: "步长", min: 1, max: 100000, step: 20, unit: '高', precision: 0, },
     startWidth: { title: "宽度", min: 1, max: 100000, step: 50, unit: '起', precision: 0, },
     endWidth: { title: "宽度", min: 1, max: 100000, step: 50, unit: '终', precision: 0, },
     platformLength: { title: "长度", min: 100, max: 100000, step: 50, unit: '', precision: 0, },
@@ -241,6 +241,8 @@ export interface ComponentParam {
     // handrail?: HandrailParam;
 }
 
+export const HandrailDefaultOffsetLength = 120;
+
 export const DefaultStairParam: StairParam = {
     horizontalStep: 250,
     verticalStep: 250,
@@ -255,13 +257,13 @@ export const DefaultStairParam: StairParam = {
         height: 500,
         rail: {
             type: RailType.Circle,
-            param: { radius: 20, width: 20, height: 20, },
+            param: { radius: 20, width: 60, height: 30, },
             material: PresetMaterials.Handrail.rail,
         },
         column: {
             type: ColumnType.Circle,
             step: 500,
-            param: { radius: 8, width: 8, height: 8, },
+            param: { radius: 8, width: 16, height: 16, },
             material: PresetMaterials.Handrail.column,
         },
     },
@@ -285,13 +287,13 @@ export function getDefaultStairParam(): StairParam {
             height: 500,
             rail: {
                 type: RailType.Circle,
-                param: { radius: 20, width: 20, height: 20, },
+                param: { radius: 20, width: 60, height: 30, },
                 material: PresetMaterials.Handrail.rail,
             },
             column: {
                 type: ColumnType.Circle,
                 step: 500,
-                param: { radius: 8, width: 8, height: 8, },
+                param: { radius: 8, width: 16, height: 16, },
                 material: PresetMaterials.Handrail.column,
             },
         },
@@ -370,6 +372,14 @@ export interface Segment {
     pickStartTempShapeId?: string;
 
     mesh?: KMesh;
+}
+
+export type EditModel = {
+    parent: InstanceData;
+    // child: Map<number, InstanceData>;
+    stairs: Map<number, InstanceData>;
+    platforms: Map<number, InstanceData>;
+    handrail?: HandrailInstancesData;
 }
 
 export type InstanceData = {

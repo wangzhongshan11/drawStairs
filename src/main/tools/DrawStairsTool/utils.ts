@@ -1,6 +1,6 @@
 import { drawStairsTool } from "./index";
-import { DirectionX, DirectionY } from "./consts";
-import { BaseLine3dDelimiter, ColumnType, ComponentParam, CoordDelimiter, DefaultComponentParam, Delimiter, getDefaultStairParam, MaterialType, RailType, Segment, StairParam } from "./types";
+import { DirectionX, DirectionY, DirectionZ } from "./consts";
+import { ColumnType, ComponentParam, CoordDelimiter, DefaultComponentParam, Delimiter, EditModel, getDefaultStairParam, MaterialType, RailType, Segment, StairParam } from "./types";
 
 export function isKArchFace(entity: KEntity | KArchFace | undefined | null): entity is KArchFace {
     return !!entity && (entity.getType() === KArchFaceType.NonPlanar || entity.getType() === KArchFaceType.Planar);
@@ -248,8 +248,8 @@ export function stringifyBaseComponent(baseSegment: Segment, line3dIndex?: numbe
 }
 
 export function parseBaseComponent(value: string) {
-    const items = value.split(BaseLine3dDelimiter);
-    if (items.length > 0) {
+    const items = value.split(CoordDelimiter);
+    if (value.length && items.length > 0) {
         const baseComponentIndex = parseInt(items[0]);
         let line3dIndex: number | undefined;
         if (items.length === 2) {
@@ -265,14 +265,14 @@ export function isEqual(a: number, b: number, tolerance: number = 1) {
 
 export function getCoordinate(normal: KVector3d) {
     let dx = DirectionX;
-    let dy = DirectionY;
+    let dy = DirectionZ;
     let dz = normal.normalized();
-    if (DirectionX.isParallel(dz)) {
+    if (DirectionZ.isParallel(dz)) {
         dx = DirectionY.cross(dz).normalized();
-        dy = dz.cross(dy);
+        dy = dz.cross(dx).normalized();
     } else {
-        dy = dz.cross(dx);
-        dx = dy.cross(dz);
+        dx = dy.cross(dz).normalized();
+        dy = dz.cross(dx).normalized();
     }
     return { dx, dy, dz }
 }
@@ -303,4 +303,14 @@ export function onModelChanged(changes: { isUndoRedo: boolean, modified?: KGroup
             drawStairsTool.clearEditModel();
         // }
     }
+}
+
+export function isPartOfEditModel(editModel: EditModel, groupInstance: KGroupInstance) {
+    const groupInstanceKey = groupInstance.getKey();
+    return editModel.parent.instanceKey === groupInstanceKey || 
+    [...editModel.stairs.values()].some(instanceData => instanceData.instanceKey === groupInstanceKey) ||
+    [...editModel.platforms.values()].some(instanceData => instanceData.instanceKey === groupInstanceKey) ||
+    editModel.handrail?.handrailInstance.instanceKey === groupInstanceKey || 
+    [...(editModel.handrail?.railInstances || []).values()].some(instanceData => instanceData.instanceKey === groupInstanceKey) ||
+    [...(editModel.handrail?.columnInstances || []).values()].some(instanceData => instanceData.instanceKey === groupInstanceKey)
 }
