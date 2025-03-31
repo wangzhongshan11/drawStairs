@@ -397,6 +397,27 @@ function generatePolygonMesh(vertices: KPoint3d[], mesh: KMesh) {
     }
 }
 
+export async function loadDefaultMaterials() {
+    const design = app.getActiveDesign();
+    const res1 = await design.loadMaterial(PresetMaterials.Stair.materialId);
+    if (!res1.isSuccess) {
+        return false;
+    }
+    const res2 = await design.loadMaterial(PresetMaterials.Platform.materialId);
+    if (!res2.isSuccess) {
+        return false;
+    }
+    const res3 = await design.loadMaterial(PresetMaterials.Handrail.rail.materialId);
+    if (!res3.isSuccess) {
+        return false;
+    }
+    const res4 = await design.loadMaterial(PresetMaterials.Handrail.column.materialId);
+    if (!res4.isSuccess) {
+        return false;
+    }
+    return true;
+}
+
 export function buildComponentInstance(segment: Segment, segments: Segment[], parentTransform?: KMatrix4) {
     const { start, end, startHeight, endHeight, baseComponent, circleTangent, param, mesh } = segment;
     const design = app.getActiveDesign();

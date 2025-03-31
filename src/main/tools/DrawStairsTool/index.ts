@@ -1,6 +1,6 @@
 import { ComponentType, ComponentParam, Segment, ComponentParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType, ModelValue, CircleTangentKey, StairParam, DefaultStairParam, BaseComponentKey, Handrail, InstanceData, HandrailInstancesData, HandrailModelKey, RailModelKey, ColumnModelKey, StairParamKey, StairMaterialKey, ColumnMaterialKey, RailMaterialKey, PlatformMaterialKey, EditModel } from "./types";
 import { generateHandrailShape, generateShape, isCircularStair } from "./tempMeshUtils";
-import { buildComponentInstance, buildHandrailInstance, buildSegmentRelations, changeStairUpward, generateMeshes, getSegmentByIndex } from "./meshUtils";
+import { buildComponentInstance, buildHandrailInstance, buildSegmentRelations, changeStairUpward, generateMeshes, getSegmentByIndex, loadDefaultMaterials } from "./meshUtils";
 import { parseBaseComponent, parseLineSeg3d, parseComponentParam, parseStartEnd, parseVector3d, stringifyStairParam, stringifyMaterial, parseStairParam, parseMaterial, startOperation, abortOperation, commitOperation, isPartOfEditModel } from "./utils";
 import { getNewComponentParam, getNewSegment, TempLineColors, TempLinePatterns } from "./consts";
 import { deActivateDrawStairsTool } from "../../../main/main";
@@ -25,7 +25,8 @@ export class DrawStairsTool implements KTool {
     private editModel?: EditModel;
 
     onToolActive(): void {
-        console.log((window as any).origin);
+        loadDefaultMaterials();
+        // console.log((window as any).origin);
         toolHelper.setExcludeInferenceTypes([
             KEntityType.Face, KEntityType.Edge, KEntityType.AuxiliaryBoundedCurve, KEntityType.AuxiliaryLine, KEntityType.AuxiliaryVertex,
             KEntityType.GroupInstance, KEntityType.Vertex, KArchFaceType.NonPlanar, KArchFaceType.Planar,
@@ -443,6 +444,10 @@ export class DrawStairsTool implements KTool {
     onMaterialReplaceItemClick = (changeParam: ComponentParamType, index?: number, isDelete?: boolean) => {
         const that = this;
         return async (materialId: string = '', bgid: string = '') => {
+            const loadMaterialRes = await design.loadMaterial(materialId);
+            if (!loadMaterialRes.isSuccess) {
+                return;
+            }
             const instancePath = that.editModel ? design.getEditPathsToGroupInstance(that.editModel.parent.instance) : [];
             if (changeParam === ComponentParamType.ComponentMaterial) {
                 const segment = getSegmentByIndex(that.segments, index);
@@ -485,10 +490,17 @@ export class DrawStairsTool implements KTool {
                     let operationSuccess = true;
                     operationSuccess = operationSuccess && (await design.activateEditPath([...instancePath[0], that.editModel.parent.instance])).isSuccess;
                     const components = changeParam === ComponentParamType.StairMaterial ? that.editModel.stairs : that.editModel.platforms;
+                    const componentInstances: KGroupInstance[] = [];
+                    for (const [ind, instanceData] of components) {
+                        const theSegment = getSegmentByIndex(that.segments, ind);
+                        if (theSegment && !theSegment.param.material) {
+                            componentInstances.push(instanceData.instance);
+                        }
+                    }
                     if (isDelete) {
-                        operationSuccess = operationSuccess && design.clearMaterial([...components.values()].map(c => c.instance));
+                        operationSuccess = operationSuccess && design.clearMaterial(componentInstances);
                     } else {
-                        operationSuccess = operationSuccess && design.assignMaterialForEntities([...components.values()].map(c => c.instance), materialId, bgid);
+                        operationSuccess = operationSuccess && design.assignMaterialForEntities(componentInstances, materialId, bgid);
                     }
                     operationSuccess = operationSuccess && (await design.activateEditPath(instancePath[0])).isSuccess;
                     if (operationSuccess) {
@@ -790,7 +802,6 @@ export class DrawStairsTool implements KTool {
         const meshes = generateMeshes(this.segments);
         if (meshes.length) {
             startOperation();
-
             const newInstances: KGroupInstance[] = [];
             const stairsChild: Map<number, InstanceData> = new Map();
             const platformChild: Map<number, InstanceData> = new Map();

@@ -44,7 +44,7 @@ const DevMaterials = {
     },
 }
 
-export const PresetMaterials = ((window as any).origin || '').includes('sit') ? DevMaterials : ProdMaterials
+export const PresetMaterials = ((window as any).origin || '').includes('sit') ? DevMaterials : ProdMaterials;
 
 export enum ComponentParamType {
     HorizontalStep = "horizontalStep",
