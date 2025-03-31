@@ -68,6 +68,18 @@ export default class ProperyContent extends React.Component<Props, State> {
                 } else {
                     if (componentParamType === ComponentParamType.PlatformLength) {
                         componentParam.platformLengthLocked = true;
+                    } else if (componentParamType === ComponentParamType.Type) {
+                        if (value === ComponentType.Platform) {
+                            if (componentParam.type !== ComponentType.Platform) {
+                                componentParam.startWidth = 4 * componentParam.startWidth;
+                                componentParam.endWidth = componentParam.startWidth;
+                            }
+                        } else {
+                            if (componentParam.type === ComponentType.Platform) {
+                                componentParam.startWidth = componentParam.startWidth / 4;
+                                componentParam.endWidth = componentParam.startWidth;
+                            }
+                        }
                     }
 
                     if (value !== undefined) {

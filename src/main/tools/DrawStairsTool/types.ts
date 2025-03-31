@@ -164,9 +164,9 @@ export const ComponentParamSettings = {
             step: { title: "间隔", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
         },
         componentParam: {
-            radius: { title: "半径", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
-            width: { title: "宽度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
-            height: { title: "高度", min: 1, max: 100000, step: 10, unit: '', precision: 0, },
+            radius: { title: "半径", min: 1, max: 100000, step: 1, unit: '', precision: 0, },
+            width: { title: "宽度", min: 1, max: 100000, step: 1, unit: '', precision: 0, },
+            height: { title: "高度", min: 1, max: 100000, step: 1, unit: '', precision: 0, },
         }
     }
 }
@@ -241,29 +241,29 @@ export interface ComponentParam {
     // handrail?: HandrailParam;
 }
 
-export const HandrailDefaultOffsetLength = 120;
+export const HandrailDefaultOffsetLength = 40;
 
 export const DefaultStairParam: StairParam = {
-    horizontalStep: 250,
-    verticalStep: 250,
+    horizontalStep: 200,
+    verticalStep: 200,
     startWidth: 1000,
     endWidth: 1000,
     upward: true,
-    platformThickness: 200,
+    platformThickness: 100,
     stairMaterial: PresetMaterials.Stair,
     platformMaterial: PresetMaterials.Platform,
     handrail: {
         support: true,
-        height: 500,
+        height: 400,
         rail: {
             type: RailType.Circle,
-            param: { radius: 20, width: 60, height: 30, },
+            param: { radius: 16, width: 40, height: 30, },
             material: PresetMaterials.Handrail.rail,
         },
         column: {
             type: ColumnType.Circle,
             step: 500,
-            param: { radius: 8, width: 16, height: 16, },
+            param: { radius: 8, width: 12, height: 12, },
             material: PresetMaterials.Handrail.column,
         },
     },
