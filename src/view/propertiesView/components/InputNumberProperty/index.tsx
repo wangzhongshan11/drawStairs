@@ -23,7 +23,9 @@ export default class InputNumberProperty extends React.PureComponent<Props, Stat
     state: Readonly<State> = { inputtingValue: this.props.value };
 
     componentWillReceiveProps(nextProps: Readonly<Props>, nextContext: any): void {
-        this.setState({ inputtingValue: nextProps.value });
+        if (this.props.value !== nextProps.value) {
+            this.setState({ inputtingValue: nextProps.value });
+        }
     }
 
     private onChange = (value: number | null) => {

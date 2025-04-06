@@ -285,13 +285,13 @@ export function startOperation() {
 }
 
 export function commitOperation() {
-    isInOperation = false;
     app.getActiveDesign().commitOperation();
+    isInOperation = false;
 }
 
 export function abortOperation() {
-    isInOperation = false;
     app.getActiveDesign().abortOperation();
+    isInOperation = false;
 }
 
 export function onModelChanged(changes: { isUndoRedo: boolean, modified?: KGroupDefinition[], added?: KGroupDefinition[], deleted?: KGroupDefinition[] }) {

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import "./index.css";
-import { ColumnType, ComponentParam, ComponentParamType, RailType, StairParam, getComponentTitle } from '../../main/tools/DrawStairsTool/types';
+import { ColumnType, ComponentParam, ComponentParamType, MaterialAssignType, RailType, StairParam, getComponentTitle } from '../../main/tools/DrawStairsTool/types';
 import { ImmutableMap } from './ImmutableMap';
 import { Tabs } from 'antd';
 import PropertyContent from './PropertyContent';
@@ -17,6 +17,7 @@ interface State {
     isDrawing?: boolean;
     activeKey: string;
     propertiesVisible: boolean;
+    materialAssignType?: MaterialAssignType | number;
 }
 
 export default class PropertiesView extends React.Component<{}, State> {
@@ -32,9 +33,11 @@ export default class PropertiesView extends React.Component<{}, State> {
 
     private onMessage = (event: any) => {
         const messageData = event.data;
-        const { componentParams, componentParam } = this.state;
+        const { stairParam, componentParams, componentParam } = this.state;
         if (messageData.type === MessageType.StairParamChangedByDraw) {
-            this.setState({ stairParam: messageData.stairParam });
+            const newComponentParams = messageData.componentParams ? new ImmutableMap(new Map((messageData.componentParams as ComponentParam[]).map(param => ([param.index, param])))) : componentParams;
+            const newComponentParam = componentParam ? newComponentParams.get(componentParam.index) : componentParam;
+            this.setState({ stairParam: messageData.stairParam, componentParams: newComponentParams, componentParam: newComponentParam });
         } else if (messageData.type === MessageType.ParamChangedByDraw) {
             // if (messageData.newStair) {
             //     const a = new ImmutableMap(new Map([[messageData.componentParam.index, messageData.componentParam]]));
@@ -50,6 +53,7 @@ export default class PropertiesView extends React.Component<{}, State> {
             this.setState({
                 componentParams: newComponentParams,
                 componentParam: componentParam ? (messageData.componentParam.index === componentParam.index ? messageData.componentParam : componentParam) : messageData.componentParam,
+                stairParam: messageData.stairParam || stairParam,
             });
             // }
         } else if (messageData.type === MessageType.ComponentAdded) {
@@ -58,6 +62,7 @@ export default class PropertiesView extends React.Component<{}, State> {
                 componentParams: newComponentParams,
                 componentParam: messageData.componentParam,
                 activeKey: messageData.componentParam.index.toString(),
+                materialAssignType: undefined,
             });
         } else if (messageData.type === MessageType.DrawStairModelSettled) {
             if (messageData.componentParams) {
@@ -75,14 +80,22 @@ export default class PropertiesView extends React.Component<{}, State> {
                     activeKey: componentParam.index.toString(),
                     propertiesVisible: true,
                     isDrawing: !!messageData.isDrawing,
+                    materialAssignType: undefined,
                 });
             } else {
-                this.setState({ componentParams: new ImmutableMap(), componentParam: undefined, activeKey: '0', propertiesVisible: true, isDrawing: !!messageData.isDrawing, });
+                this.setState({ 
+                    componentParams: new ImmutableMap(), 
+                    componentParam: undefined, 
+                    activeKey: '0', 
+                    propertiesVisible: true, 
+                    isDrawing: !!messageData.isDrawing,
+                    materialAssignType: undefined,
+                 });
             }
         } else if (messageData?.type === MessageType.PropertiesVisible) {
-            this.setState({ propertiesVisible: messageData.propertiesVisible });
+            this.setState({ propertiesVisible: messageData.propertiesVisible, materialAssignType: undefined });
         } else if (messageData?.type === MessageType.LeaveDrawStairsTool) {
-            this.setState({ componentParams: new ImmutableMap(), componentParam: undefined, activeKey: '0' });
+            this.setState({ componentParams: new ImmutableMap(), componentParam: undefined, activeKey: '0', materialAssignType: undefined });
         }
     }
 
@@ -121,6 +134,7 @@ export default class PropertiesView extends React.Component<{}, State> {
             if (stairParam) {
                 if (componentParamType.startsWith(ComponentParamType.Handrail)) {
                     const { handrail } = stairParam;
+                    let changed = false;
                     const newHandrail = {
                         support: handrail.support,
                         height: handrail.height,
@@ -137,24 +151,24 @@ export default class PropertiesView extends React.Component<{}, State> {
                         }
                     }
                     switch (componentParamType) {
-                        case ComponentParamType.HandrailHeight: newHandrail.height = value as number; break;
-                        case ComponentParamType.HandrailRailType: newHandrail.rail.type = value as RailType; break;
-                        case ComponentParamType.HandrailRailRadius: newHandrail.rail.param.radius = value as number; break;
-                        case ComponentParamType.HandrailRailWidth: newHandrail.rail.param.width = value as number; break;
-                        case ComponentParamType.HandrailRailHeight: newHandrail.rail.param.height = value as number; break;
-                        case ComponentParamType.HandrailColumnType: newHandrail.column.type = value as ColumnType; break;
-                        case ComponentParamType.HandrailColumnStep: newHandrail.column.step = value as number; break;
-                        case ComponentParamType.HandrailColumnRadius: newHandrail.column.param.radius = value as number; break;
-                        case ComponentParamType.HandrailColumnWidth: newHandrail.column.param.width = value as number; break;
-                        case ComponentParamType.HandrailColumnHeight: newHandrail.column.param.height = value as number; break;
+                        case ComponentParamType.HandrailHeight: changed = newHandrail.height !== value; newHandrail.height = value as number; break;
+                        case ComponentParamType.HandrailRailType: changed = newHandrail.rail.type !== value; newHandrail.rail.type = value as RailType; break;
+                        case ComponentParamType.HandrailRailRadius: changed = newHandrail.rail.param.radius !== value; newHandrail.rail.param.radius = value as number; break;
+                        case ComponentParamType.HandrailRailWidth: changed = newHandrail.rail.param.width !== value; newHandrail.rail.param.width = value as number; break;
+                        case ComponentParamType.HandrailRailHeight: changed = newHandrail.rail.param.height !== value; newHandrail.rail.param.height = value as number; break;
+                        case ComponentParamType.HandrailColumnType: changed = newHandrail.column.type !== value; newHandrail.column.type = value as ColumnType; break;
+                        case ComponentParamType.HandrailColumnStep: changed = newHandrail.column.step !== value; newHandrail.column.step = value as number; break;
+                        case ComponentParamType.HandrailColumnRadius: changed = newHandrail.column.param.radius !== value; newHandrail.column.param.radius = value as number; break;
+                        case ComponentParamType.HandrailColumnWidth: changed = newHandrail.column.param.width !== value; newHandrail.column.param.width = value as number; break;
+                        case ComponentParamType.HandrailColumnHeight: changed = newHandrail.column.param.height !== value; newHandrail.column.param.height = value as number; break;
                         default: break;
                     }
-                    stairParam.handrail = newHandrail;
-                } else {
-                    (stairParam as any)[componentParamType] = value;
+                    if (changed) {
+                        stairParam.handrail = newHandrail;
+                        window.parent.postMessage({ type: MessageType.StairParamChangedByInput, stairParam, changeParams: [componentParamType] }, '*');
+                        this.setState({ stairParam: { ...stairParam } });
+                    }
                 }
-                window.parent.postMessage({ type: MessageType.StairParamChangedByInput, stairParam, changeParams: [componentParamType] }, '*');
-                this.setState({ stairParam: { ...stairParam } });
             }
         }
     }
@@ -176,6 +190,19 @@ export default class PropertiesView extends React.Component<{}, State> {
 
     private getOnMaterialReplaceClick = (componentParamType: ComponentParamType, index?: number) => {
         return () => {
+            let newMaterialAssignType = this.state.materialAssignType;
+            if (componentParamType === ComponentParamType.ComponentMaterial) {
+                newMaterialAssignType = index;
+            } else if (componentParamType === ComponentParamType.StairMaterial) {
+                newMaterialAssignType = MaterialAssignType.StairOverall;
+            } else if (componentParamType === ComponentParamType.PlatformMaterial) {
+                newMaterialAssignType = MaterialAssignType.PlatformOverall;
+            } else if (componentParamType === ComponentParamType.HandrailRailMaterial) {
+                newMaterialAssignType = MaterialAssignType.Rail;
+            } else if (componentParamType === ComponentParamType.HandrailColumnMaterial) {
+                newMaterialAssignType = MaterialAssignType.Column;
+            }
+            this.setState({ materialAssignType: newMaterialAssignType });
             window.parent.postMessage({ type: MessageType.MaterialReplaceClick, changeParam: componentParamType, index }, '*');
         }
     }
@@ -211,7 +238,7 @@ export default class PropertiesView extends React.Component<{}, State> {
     }
 
     render() {
-        const { componentParams, componentParam, stairParam, activeKey, propertiesVisible, isDrawing } = this.state;
+        const { componentParams, componentParam, stairParam, activeKey, propertiesVisible, isDrawing, materialAssignType } = this.state;
         if (!componentParams.size || !propertiesVisible || !stairParam) {
             return null;
         }
@@ -246,6 +273,7 @@ export default class PropertiesView extends React.Component<{}, State> {
                         componentParam={componentParam}
                         stairParam={stairParam}
                         isDrawing={isDrawing}
+                        materialAssignType={materialAssignType}
                         getOnMaterialReplaceClick={this.getOnMaterialReplaceClick}
                         getOnMaterialDeleteClick={this.getOnMaterialDeleteClick}
                     />
@@ -257,6 +285,7 @@ export default class PropertiesView extends React.Component<{}, State> {
                 children: <HandrailProperty
                     stairParam={stairParam}
                     isDrawing={isDrawing}
+                    materialAssignType={materialAssignType}
                     getOnHandrailChange={this.getOnHandrailChange}
                     getOnHandrailSwitchChange={this.getOnHandrailSwitchChange}
                     getOnMaterialReplaceClick={this.getOnMaterialReplaceClick}

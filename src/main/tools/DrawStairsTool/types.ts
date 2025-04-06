@@ -33,32 +33,35 @@ const ProdMaterials = {
         column: { bgId: '3FO4LHERE7NP', materialId: '5972e8d7aa01f3585f51de97' },
     },
 }
+export const PresetMaterials = ProdMaterials;
 
-const DevMaterials = {
-    Stair: { bgId: '3FO4H2D73JFO', materialId: '58af961b4a4d2c4f8aa2b1da' },
-    // Stair: { bgId: '3FO4ATKECLKI', materialId: '6168f454cdd25e00017d75d0' },
-    Platform: { bgId: '3FO4H2D6CQMY', materialId: '5816fef985da566a1b28a944' },
-    Handrail: {
-        rail: { bgId: '3FO4H2D6H8SB', materialId: '58afb3ab5c26a073b389a95f' },
-        column: { bgId: '3FO4GDK5EXDC', materialId: '5e532fb42014020001cc4889' },
-    },
-}
 
-export const PresetMaterials = ((window as any).origin || '').includes('sit') ? DevMaterials : ProdMaterials;
+// const DevMaterials = {
+//     Stair: { bgId: '3FO4H2D73JFO', materialId: '58af961b4a4d2c4f8aa2b1da' },
+//     // Stair: { bgId: '3FO4ATKECLKI', materialId: '6168f454cdd25e00017d75d0' },
+//     Platform: { bgId: '3FO4H2D6CQMY', materialId: '5816fef985da566a1b28a944' },
+//     Handrail: {
+//         rail: { bgId: '3FO4H2D6H8SB', materialId: '58afb3ab5c26a073b389a95f' },
+//         column: { bgId: '3FO4GDK5EXDC', materialId: '5e532fb42014020001cc4889' },
+//     },
+// }
+// export const PresetMaterials = ((window as any).origin || '').includes('sit') ? DevMaterials : ProdMaterials;
 
 export enum ComponentParamType {
     HorizontalStep = "horizontalStep",
     VerticalStep = "verticalStep",
     StartWidth = "startWidth",
     EndWidth = "endWidth",
-    StepProportional = 'stepProportional',
-    WidthProportional = 'widthProportional',
-    PlatformLength = 'platformLength',
-    PlatformLengthLocked = 'platformLengthLocked',
-    Type = "type",
     Upward = "upward",
     PlatformThickness = "platformThickness",
-    ComponentMaterial = 'componentMaterial',
+    ComponentMaterial = 'material',
+    Type = "type",
+    PlatformLength = 'platformLength',
+
+    StepProportional = 'stepProportional',
+    WidthProportional = 'widthProportional',
+    PlatformLengthLocked = 'platformLengthLocked',
+
     StairMaterial = 'stairMaterial', //整体
     PlatformMaterial = 'platformMaterial', //整体
 
@@ -169,6 +172,13 @@ export const ComponentParamSettings = {
             height: { title: "高度", min: 1, max: 100000, step: 1, unit: '', precision: 0, },
         }
     }
+}
+
+export enum MaterialAssignType {
+    StairOverall = 'stairOverall',
+    PlatformOverall = 'platformOverall',
+    Rail = 'rail',
+    Column = 'column',
 }
 
 export function getComponentTitle(componentType: ComponentType) {
@@ -366,6 +376,7 @@ export interface Segment {
     cornerShape: Shape;
     cornerMoldShape: Shape;
     componentDirectionType: ComponentDirectionType;
+    // without side should be degrade to straight stair
     circularSide?: CircularSide;
 
     tempShapeId?: string[];

@@ -1,8 +1,9 @@
-import { DirectionZ, dummyPoint3d } from "./consts";
+import { AngleTolerance, DirectionZ, dummyPoint3d, LengthTolerance, StepCountLimit } from "./consts";
 import {
     BaseComponentKey, BaseLineSeg3dKey, CircleTangentKey, ColumnType, ComponentType, DefaultStairParam, Handrail, HandrailModelKey, RailType, Segment,
     ModelValue, StairParam, StartEndKey, PresetMaterials, ColumnModelKey, RailModelKey, HandrailInstancesData,
-    ComponentParamKey
+    ComponentParamKey,
+    CircularSide
 } from "./types";
 import { getCoordinate, stringifyBaseComponent, stringifyComponentParam, stringifyPoint3d, stringifyStartEnd } from "./utils";
 
@@ -451,8 +452,8 @@ export function buildComponentInstance(segment: Segment, segments: Segment[], pa
                 // if (baseLineSeg3d) {
                 // }
                 if (baseComponent) {
-                    const BaseLineString = stringifyStartEnd(baseComponent.line3d.start, baseComponent.line3d.end);
-                    operationSuccess = operationSuccess && groupDef.setCustomProperty(BaseLineSeg3dKey, BaseLineString).isSuccess;
+                    const baseLineString = stringifyStartEnd(baseComponent.line3d.start, baseComponent.line3d.end);
+                    operationSuccess = operationSuccess && groupDef.setCustomProperty(BaseLineSeg3dKey, baseLineString).isSuccess;
 
                     const baseSegment = getSegmentByIndex(segments, baseComponent.componentIndex);
                     if (baseSegment) {
@@ -779,7 +780,7 @@ export function getNextComponents(segment: Segment, segments: Segment[]) {
 
 export function changeStairUpward(startSegment: Segment, segments: Segment[], upward: boolean, bulkChange: boolean, onlyStart: boolean = false) {
     if (segments.length) {
-        let current: { segment: Segment, verticalDelta: number }[] = [{ segment: startSegment, verticalDelta: 0 }];
+        let current: { segment: Segment, verticalDelta: number }[] = [{ segment: startSegment, verticalDelta: startSegment.startHeight }];
         const unVisited: Set<Segment> = new Set(segments);
         const changedSegments: Set<Segment> = new Set();
         while (current.length) {
@@ -806,7 +807,95 @@ export function changeStairUpward(startSegment: Segment, segments: Segment[], up
             if (!current.length) {
                 if (bulkChange && unVisited.size) {
                     const theSegment = [...unVisited.values()][0];
-                    current = [{ segment: theSegment, verticalDelta: theSegment.startHeight > 0 === upward ? 0 : (theSegment.startHeight * - 2) }];
+                    current = [{ segment: theSegment, verticalDelta: theSegment.startHeight }];
+                }
+            }
+        }
+
+        return [...changedSegments];
+    }
+}
+
+
+export function changeStairStep(startSegment: Segment, segments: Segment[], newHorizontalStep: number, newVerticalStep: number, bulkChange: boolean, onlyStart: boolean = false) {
+    if (segments.length) {
+        let current: { segment: Segment, verticalDelta: number }[] = [{ segment: startSegment, verticalDelta: startSegment.startHeight }];
+        const unVisited: Set<Segment> = new Set(segments);
+        const changedSegments: Set<Segment> = new Set();
+        while (current.length) {
+            let next: { segment: Segment, verticalDelta: number }[] = [];
+            for (const { segment, verticalDelta } of current) {
+                const { start, end, circleTangent, param: { type, horizontalStep, startWidth, endWidth, upward } } = segment;
+                const stairLength = start.distanceTo(end);
+                const startEndDir = end.subtracted(start).normalized();
+                const startEndDistance = start.distanceTo(end);
+                const maxWidth = Math.max(startWidth, endWidth);
+                let newStepCount = 0;
+                if (type === ComponentType.StraightStair) {
+                    newStepCount = Math.ceil(stairLength / horizontalStep);
+                    const lastStepLength = startEndDistance - (newStepCount - 1) * horizontalStep;
+                    const validStepCount = (lastStepLength === 0 || lastStepLength > LengthTolerance) ? newStepCount : newStepCount - 1;
+                    if (validStepCount < 1 || validStepCount >= StepCountLimit) {
+                        return;
+                    }
+
+                } else if (type === ComponentType.CircularStair && circleTangent) {
+                    const tangentLeftDir = DirectionZ.cross(circleTangent).normalized();
+                    const endAngle = startEndDir.angleTo(circleTangent, DirectionZ);
+                    const isLeftArc = endAngle > Math.PI;
+                    if (isLeftArc) {
+                        segment.circularSide = CircularSide.Left;
+                    } else {
+                        segment.circularSide = CircularSide.Right;
+                    }
+                    const endComplementaryAngle = isLeftArc ? Math.abs(endAngle - Math.PI / 2 - Math.PI) : Math.abs(endAngle - Math.PI / 2);
+                    const halfChord = startEndDistance / 2;
+                    const radius = halfChord / Math.cos(endComplementaryAngle);
+                    const innerRadius = radius - maxWidth / 2;
+                    if (radius < maxWidth / 2 * 1.2 || innerRadius < horizontalStep / 2 / 0.8) {
+                        return;
+                    }
+                    const horizontalStepAngle = Math.asin(horizontalStep / 2 / innerRadius) * 2;
+                    const circleNormal = isLeftArc ? DirectionZ : DirectionZ.reversed();
+                    const circleCenter = start.added(tangentLeftDir.multiplied(isLeftArc ? radius : -radius));
+                    // const circle = GeomLib.createCircle3dByCenterNormalRadius(circleCenter, circleNormal, radius);
+                    const arc = GeomLib.createArc3dByCenterNormalRadius(circleCenter, circleNormal, radius, start, end);
+                    const arcAngle = arc.arcAngle;
+                    newStepCount = Math.ceil(arcAngle / horizontalStepAngle);
+                    const lastHorizontalAngle = arcAngle - horizontalStepAngle * (newStepCount - 1);
+                    const validStepCount = (lastHorizontalAngle === 0 || lastHorizontalAngle > AngleTolerance) ? newStepCount : newStepCount - 1;
+                    if (horizontalStepAngle >= arcAngle || horizontalStepAngle >= Math.PI / 2 || validStepCount >= StepCountLimit || validStepCount < 1) {
+                        return;
+                    }
+                }
+
+                const newDeltaHeight = newStepCount * newVerticalStep * (upward ? 1 : -1);
+                // const oldDeltaHeight = endHeight - startHeight;
+                segment.startHeight = verticalDelta;
+                if (type === ComponentType.Platform) {
+                    segment.endHeight = verticalDelta;
+                } else {
+                    segment.endHeight = segment.startHeight + newDeltaHeight;
+                    if (!onlyStart) {
+                        segment.param.horizontalStep = newHorizontalStep;
+                        segment.param.verticalStep = newVerticalStep;
+                    }
+                }
+
+                unVisited.delete(segment);
+
+                const nextSegments = getNextComponents(segment, segments);
+                if (nextSegments.length) {
+                    next.push(...nextSegments.map(seg => ({ segment: seg, verticalDelta: segment.endHeight })));
+                }
+                changedSegments.add(segment);
+            }
+            current = next;
+
+            if (!current.length) {
+                if (bulkChange && unVisited.size) {
+                    const theSegment = [...unVisited.values()][0];
+                    current = [{ segment: theSegment, verticalDelta: theSegment.startHeight }];
                 }
             }
         }

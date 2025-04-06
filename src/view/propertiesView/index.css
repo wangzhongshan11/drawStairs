@@ -52,6 +52,14 @@
             justify-content: flex-start;
             align-items: center;
         }
+
+        .assigning {
+            background: rgb(244, 183, 69);
+
+            &:hover {
+                background: rgb(244, 183, 69);
+            }
+        }
     }
 
     .stairs-property-wrapper {
@@ -156,7 +164,7 @@
                 .title {
                     min-width: 10px;
                     font-size: 12px;
-                    margin:0 5px;
+                    margin: 0 5px;
                 }
 
                 .rail-param-property {
@@ -175,13 +183,15 @@
                 display: flex;
                 align-items: center;
                 justify-content: flex-start;
+
                 .column-title {
                     font-size: 13px;
                 }
+
                 .title {
                     min-width: 10px;
                     font-size: 12px;
-                    margin:0 5px;
+                    margin: 0 5px;
                 }
 
                 .column-param-property {
@@ -202,9 +212,10 @@
                 .title {
                     min-width: 10px;
                     font-size: 12px;
-                    margin:0 5px;
+                    margin: 0 5px;
                 }
             }
+
             .handrail-material {
                 margin-left: 43px;
             }

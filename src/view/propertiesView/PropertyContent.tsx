@@ -1,7 +1,7 @@
 import * as React from 'react'
 import "./index.css";
 import InputNumberPropertyArray from './components/InputNumberPropertyArray';
-import { ComponentParam, ComponentParamSettings, ComponentParamType, ComponentType, DefaultComponentParam, DefaultStairParam, StairParam } from '../../main/tools/DrawStairsTool/types';
+import { ComponentParam, ComponentParamSettings, ComponentParamType, ComponentType, DefaultComponentParam, DefaultStairParam, MaterialAssignType, StairParam } from '../../main/tools/DrawStairsTool/types';
 import RadioProperty from './components/RadioProperty';
 import InputNumberProperty from './components/InputNumberProperty';
 import { DeleteOutlined, LockOutlined, PlusOutlined, UndoOutlined, UnlockOutlined } from '@ant-design/icons';
@@ -12,6 +12,7 @@ interface Props {
     componentParam?: ComponentParam;
     stairParam?: StairParam;
     isDrawing?: boolean;
+    materialAssignType?: MaterialAssignType | number;
     getOnMaterialReplaceClick?: (componentParamType: ComponentParamType, index?: number) => () => void;
     getOnMaterialDeleteClick?: (componentParamType: ComponentParamType, index?: number) => () => void;
 }
@@ -22,15 +23,17 @@ interface State {
 }
 
 export default class ProperyContent extends React.Component<Props, State> {
-    state: Readonly<State> = { componentParam: this.props.componentParam || { ...DefaultComponentParam }, stairParam: this.props.stairParam || {...DefaultStairParam} };
+    state: Readonly<State> = { componentParam: this.props.componentParam || { ...DefaultComponentParam }, stairParam: this.props.stairParam || { ...DefaultStairParam } };
 
-
-    // componentDidUpdate(nextProps: Readonly<Props>, nextContext: any): void {
-    //     this.setState({ componentParam: nextProps.componentParam });
+    // componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any): void {
+    //     if (this.props.componentParam !== prevProps.componentParam || this.props.stairParam !== prevProps.stairParam) {
+    //         this.setState({ componentParam: this.props.componentParam, stairParam: this.props.stairParam, });
+    //     }
     // }
-    componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any): void {
-        if (this.props.componentParam !== prevProps.componentParam) {
-            this.setState({ componentParam: this.props.componentParam})
+
+    componentWillReceiveProps(nextProps: Readonly<Props>, nextContext: any): void {
+        if (this.props.componentParam !== nextProps.componentParam || this.props.stairParam !== nextProps.stairParam) {
+            this.setState({ componentParam: nextProps.componentParam, stairParam: nextProps.stairParam, });
         }
     }
     // componentDidMount(): void {
@@ -57,15 +60,21 @@ export default class ProperyContent extends React.Component<Props, State> {
                 if (componentParam.type === ComponentType.Platform && componentParamType === ComponentParamType.StartWidth) {
                     const { startWidth, offsetWidth } = componentParam;
                     const newWidth = value as number;
+                    if (newWidth === (startWidth + Math.abs(offsetWidth))) {
+                        return;
+                    }
                     const delta = newWidth - startWidth;
                     if (delta <= 0 || offsetWidth === 0) {
                         componentParam.startWidth += delta;
                         componentParam.endWidth += delta;
                         componentParam.offsetWidth = 0;
                     } else {
-                        componentParam.offsetWidth = componentParam.offsetWidth > 0 ? delta : -delta;
+                        componentParam.offsetWidth = offsetWidth > 0 ? delta : -delta;
                     }
                 } else {
+                    if (value === (componentParam as any)[componentParamType]) {
+                        return;
+                    }
                     if (componentParamType === ComponentParamType.PlatformLength) {
                         componentParam.platformLengthLocked = true;
                     } else if (componentParamType === ComponentParamType.Type) {
@@ -99,7 +108,6 @@ export default class ProperyContent extends React.Component<Props, State> {
             if (componentParam) {
                 if (componentParamType === ComponentParamType.PlatformLengthLocked) {
                     componentParam.platformLengthLocked = !componentParam.platformLengthLocked;
-
                 } else if (componentParamType === ComponentParamType.WidthProportional) {
                     componentParam.widthProportional = !componentParam.widthProportional;
                 } else if (componentParamType === ComponentParamType.StepProportional) {
@@ -116,12 +124,18 @@ export default class ProperyContent extends React.Component<Props, State> {
         return (values: number[]) => {
             const { componentParam } = this.state;
             if (componentParam) {
+                let changed = false;
                 for (let i = 0; i < componentParamTypes.length; i++) {
                     const componentParamType = componentParamTypes[i];
-                    (componentParam as any)[componentParamType] = values[i];
+                    if (values[i] !== (componentParam as any)[componentParamType]) {
+                        (componentParam as any)[componentParamType] = values[i];
+                        changed = true;
+                    }
                 }
-                window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam, changeParams: componentParamTypes }, '*');
-                this.setState({ componentParam: { ...componentParam } });
+                if (changed) {
+                    window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam, changeParams: componentParamTypes }, '*');
+                    this.setState({ componentParam: { ...componentParam } });
+                }
             }
         }
     }
@@ -130,9 +144,10 @@ export default class ProperyContent extends React.Component<Props, State> {
         return (value: number | string) => {
             const { stairParam } = this.state;
             if (stairParam) {
-                if (!componentParamType.startsWith(ComponentParamType.Handrail)) {
-                    (stairParam as any)[componentParamType] = value;
+                if (value === (stairParam as any)[componentParamType]) {
+                    return;
                 }
+                (stairParam as any)[componentParamType] = value;
                 window.parent.postMessage({ type: MessageType.StairParamChangedByInput, stairParam, changeParams: [componentParamType] }, '*');
                 this.setState({ stairParam: { ...stairParam } });
             }
@@ -146,10 +161,11 @@ export default class ProperyContent extends React.Component<Props, State> {
             if (stairParam) {
                 if (componentParamType === ComponentParamType.StepProportional) {
                     stairParam.stepProportional = !stairParam.stepProportional;
+                } if (componentParamType === ComponentParamType.WidthProportional) {
+                    stairParam.widthProportional = !stairParam.widthProportional;
                 }
                 window.parent.postMessage({ type: MessageType.StairParamChangedByInput, stairParam, changeParams: [componentParamType] }, '*');
                 this.setState({ stairParam: { ...stairParam } });
-
             }
         }
     }
@@ -158,36 +174,42 @@ export default class ProperyContent extends React.Component<Props, State> {
         return (values: number[]) => {
             const { stairParam } = this.state;
             if (stairParam) {
+                let changed = false;
                 for (let i = 0; i < componentParamTypes.length; i++) {
                     const componentParamType = componentParamTypes[i];
-                    (stairParam as any)[componentParamType] = values[i];
+                    if (values[i] !== (stairParam as any)[componentParamType]) {
+                        (stairParam as any)[componentParamType] = values[i];
+                        changed = true;
+                    }
                 }
-                window.parent.postMessage({ type: MessageType.StairParamChangedByInput, stairParam, changeParams: componentParamTypes }, '*');
-                this.setState({ stairParam: { ...stairParam } });
+                if (changed) {
+                    window.parent.postMessage({ type: MessageType.StairParamChangedByInput, stairParam, changeParams: componentParamTypes }, '*');
+                    this.setState({ stairParam: { ...stairParam } });
+                }
             }
         }
     }
 
-        private getOnMaterialReplaceClick = (componentParamType: ComponentParamType, index?: number) => {
-            const { getOnMaterialReplaceClick } = this.props;
-            if (getOnMaterialReplaceClick) {
-                return getOnMaterialReplaceClick(componentParamType, index);
-            }
+    private getOnMaterialReplaceClick = (componentParamType: ComponentParamType, index?: number) => {
+        const { getOnMaterialReplaceClick } = this.props;
+        if (getOnMaterialReplaceClick) {
+            return getOnMaterialReplaceClick(componentParamType, index);
         }
-    
-        private getOnMaterialDeleteClick = (componentParamType: ComponentParamType, index?: number) => {
-            const { getOnMaterialDeleteClick } = this.props;
-            if (getOnMaterialDeleteClick) {
-                return getOnMaterialDeleteClick(componentParamType, index);
-            }
+    }
+
+    private getOnMaterialDeleteClick = (componentParamType: ComponentParamType, index?: number) => {
+        const { getOnMaterialDeleteClick } = this.props;
+        if (getOnMaterialDeleteClick) {
+            return getOnMaterialDeleteClick(componentParamType, index);
         }
+    }
 
     render() {
         const { componentParam, stairParam } = this.state;
         if (!componentParam || !stairParam) {
             return null;
         }
-        const { isDrawing } = this.props;
+        const { isDrawing, materialAssignType } = this.props;
         const {
             horizontalStep, verticalStep, startWidth, endWidth, offsetWidth, platformLength, platformLengthLocked, widthProportional, stepProportional, type, upward,
             platformThickness, modelEditing, material, index
@@ -306,7 +328,7 @@ export default class ProperyContent extends React.Component<Props, State> {
                     {!isDrawing && <div className='material-property-wrapper'>
                         <div className='title'>{ComponentParamSettings.material.title}</div>
                         <div className='mateiral-buttons'>
-                            <Button type="text" size="small" shape="circle" icon={material ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.ComponentMaterial, index)} />
+                            <Button className={materialAssignType === componentParam.index ? 'assigning' : ''} type="text" size="small" shape="circle" icon={material ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.ComponentMaterial, index)} />
                             {material && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.ComponentMaterial, index)} />}
                         </div>
                     </div>}
@@ -328,8 +350,8 @@ export default class ProperyContent extends React.Component<Props, State> {
                             onChange={this.getOnArrayChangeOverall([ComponentParamType.StartWidth, ComponentParamType.EndWidth]).bind(this)}
                         />
                         {
-                            stairParam.widthProportional ? <LockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} /> :
-                                <UnlockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.StepProportional).bind(this)} />
+                            stairParam.widthProportional ? <LockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.WidthProportional).bind(this)} /> :
+                                <UnlockOutlined className='lock-button' onClick={this.getOnLockChangeOverall(ComponentParamType.WidthProportional).bind(this)} />
                         }
                     </div>}
                     {type !== ComponentType.Platform &&
@@ -372,14 +394,14 @@ export default class ProperyContent extends React.Component<Props, State> {
                     {!isDrawing && type !== ComponentType.Platform && <div className='material-property-wrapper'>
                         <div className='title'>{ComponentParamSettings.material.title}</div>
                         <div className='mateiral-buttons'>
-                            <Button type="text" size="small" shape="circle" icon={stairMaterial ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.StairMaterial)} />
+                            <Button className={materialAssignType === MaterialAssignType.StairOverall ? 'assigning' : ''} type="text" size="small" shape="circle" icon={stairMaterial ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.StairMaterial)} />
                             {stairMaterial && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.StairMaterial)} />}
                         </div>
                     </div>}
                     {!isDrawing && type === ComponentType.Platform && <div className='material-property-wrapper'>
                         <div className='title'>{ComponentParamSettings.material.title}</div>
                         <div className='mateiral-buttons'>
-                            <Button type="text" size="small" shape="circle" icon={platformMaterial ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.PlatformMaterial)} />
+                            <Button className={materialAssignType === MaterialAssignType.PlatformOverall ? 'assigning' : ''} type="text" size="small" shape="circle" icon={platformMaterial ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.PlatformMaterial)} />
                             {platformMaterial && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.PlatformMaterial)} />}
                         </div>
                     </div>}

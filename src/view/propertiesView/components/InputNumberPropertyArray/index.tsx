@@ -22,9 +22,11 @@ interface State {
 export default class InputNumberPropertyArray extends React.PureComponent<Props, State> {
     state: Readonly<State> = { inputtingValues: [...this.props.values] };
 
-    // private onChange = (values: number[] | null) => {
-    //     this.setState({ inputtingValues: values });
-    // }
+    componentWillReceiveProps(nextProps: Readonly<Props>, nextContext: any): void {
+        if (this.props.values !== nextProps.values) {
+            this.setState({ inputtingValues: nextProps.values });
+        }
+    }
 
     private getOnChange = (index: number) => {
         return (value: number | null) => {

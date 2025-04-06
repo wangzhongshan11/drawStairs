@@ -1,6 +1,6 @@
 import { ComponentType, ComponentParam, Segment, ComponentParamKey, StartEndKey, BaseLineSeg3dKey, StairModelKey, ComponentParamType, ModelValue, CircleTangentKey, StairParam, DefaultStairParam, BaseComponentKey, Handrail, InstanceData, HandrailInstancesData, HandrailModelKey, RailModelKey, ColumnModelKey, StairParamKey, StairMaterialKey, ColumnMaterialKey, RailMaterialKey, PlatformMaterialKey, EditModel } from "./types";
 import { generateHandrailShape, generateShape, isCircularStair } from "./tempMeshUtils";
-import { buildComponentInstance, buildHandrailInstance, buildSegmentRelations, changeStairUpward, generateMeshes, getSegmentByIndex, loadDefaultMaterials } from "./meshUtils";
+import { buildComponentInstance, buildHandrailInstance, buildSegmentRelations, changeStairStep, changeStairUpward, generateMeshes, getSegmentByIndex, loadDefaultMaterials } from "./meshUtils";
 import { parseBaseComponent, parseLineSeg3d, parseComponentParam, parseStartEnd, parseVector3d, stringifyStairParam, stringifyMaterial, parseStairParam, parseMaterial, startOperation, abortOperation, commitOperation, isPartOfEditModel } from "./utils";
 import { getNewComponentParam, getNewSegment, TempLineColors, TempLinePatterns } from "./consts";
 import { deActivateDrawStairsTool } from "../../../main/main";
@@ -21,7 +21,7 @@ export class DrawStairsTool implements KTool {
     private focusedComponentIndex: number = DefaultFocusedComponentIndex;
     private segments: Segment[] = [];
     private handrailCollection?: { handrails: Handrail[], tempShapeId?: string[]; };
-    private stairParam: StairParam = DefaultStairParam;
+    private stairParam: StairParam = {...DefaultStairParam};
     private editModel?: EditModel;
 
     onToolActive(): void {
@@ -121,8 +121,12 @@ export class DrawStairsTool implements KTool {
                         this.focusComponent(lastSegment.param.index);
                     } else {
                         lastSegment.endLocked = true;
-
                         const lastParam = lastSegment.param;
+
+                        if (lastParam.type === ComponentType.CircularStair && !lastSegment.circularSide) {
+                            lastParam.type = ComponentType.StraightStair;
+                            lastSegment.circleTangent = undefined;
+                        }
                         const nextType = lastParam.type === ComponentType.Platform ? ComponentType.StraightStair : ComponentType.Platform;
                         const nextSegment: Segment = {
                             ...getNewSegment(nextType, lastSegment, this.stairParam.upward),
@@ -437,11 +441,11 @@ export class DrawStairsTool implements KTool {
         }
     }
 
-    onMaterialReplaceClick(changeParam: ComponentParamType, index?: number) {
-        app.getApplicationUI().toggleMaterialReplacePanel(true, this.onMaterialReplaceItemClick(changeParam, index));
+    onMaterialReplaceClick(changeParamType: ComponentParamType, index?: number) {
+        app.getApplicationUI().toggleMaterialReplacePanel(true, this.onMaterialReplaceItemClick(changeParamType, index));
     }
 
-    onMaterialReplaceItemClick = (changeParam: ComponentParamType, index?: number, isDelete?: boolean) => {
+    onMaterialReplaceItemClick = (changeParamType: ComponentParamType, index?: number, isDelete?: boolean) => {
         const that = this;
         return async (materialId: string = '', bgid: string = '') => {
             const loadMaterialRes = await design.loadMaterial(materialId);
@@ -449,12 +453,26 @@ export class DrawStairsTool implements KTool {
                 return;
             }
             const instancePath = that.editModel ? design.getEditPathsToGroupInstance(that.editModel.parent.instance) : [];
-            if (changeParam === ComponentParamType.ComponentMaterial) {
-                const segment = getSegmentByIndex(that.segments, index);
-                if (segment && index !== undefined) {
+            if (changeParamType === ComponentParamType.ComponentMaterial) {
+                const theSegment = getSegmentByIndex(that.segments, index);
+                if (theSegment && index !== undefined) {
+                    let stairParamChanged = false;
                     if (that.drawing) {
-                        segment.param.material = { materialId, bgid };
-                        pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...segment.param } }, '*');
+                        theSegment.param.material = { materialId, bgid };
+                        if (theSegment.param.type === ComponentType.Platform) {
+                            const platformSegments = this.segments.filter(seg => seg.param.type === ComponentType.Platform);
+                            if (platformSegments.length === 1) {
+                                this.stairParam.platformMaterial = { materialId, bgid };
+                                stairParamChanged = true;
+                            }
+                        } else {
+                            const stairSegments = this.segments.filter(seg => seg.param.type !== ComponentType.Platform);
+                            if (stairSegments.length === 1) {
+                                this.stairParam.stairMaterial = { materialId, bgid };
+                                stairParamChanged = true;
+                            }
+                        }
+                        pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...theSegment.param }, stairParam: stairParamChanged ? this.stairParam : undefined }, '*');
                     } else if (that.editModel) {
                         const theInstance = that.editModel.stairs.get(index) || that.editModel.platforms.get(index);
                         if (theInstance && instancePath) {
@@ -469,31 +487,56 @@ export class DrawStairsTool implements KTool {
                             operationSuccess = operationSuccess && (await design.activateEditPath(instancePath[0])).isSuccess;
                             if (operationSuccess) {
                                 commitOperation();
-                                segment.param.material = { materialId, bgid };
-                                pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...segment.param } }, '*');
+                                theSegment.param.material = { materialId, bgid };
+
+                                if (theSegment.param.type === ComponentType.Platform) {
+                                    const platformSegments = this.segments.filter(seg => seg.param.type === ComponentType.Platform);
+                                    if (platformSegments.length === 1) {
+                                        this.stairParam.platformMaterial = isDelete ? undefined : { materialId, bgid };
+                                        stairParamChanged = true;
+                                    }
+                                } else {
+                                    const stairSegments = this.segments.filter(seg => seg.param.type !== ComponentType.Platform);
+                                    if (stairSegments.length === 1) {
+                                        this.stairParam.stairMaterial = isDelete ? undefined : { materialId, bgid };
+                                        stairParamChanged = true;
+                                    }
+                                }
+
+                                pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...theSegment.param }, stairParam: stairParamChanged ? this.stairParam : undefined }, '*');
                             } else {
                                 abortOperation();
                             }
                         }
                     }
                 }
-            } else if (changeParam === ComponentParamType.StairMaterial || changeParam === ComponentParamType.PlatformMaterial) {
+            } else if (changeParamType === ComponentParamType.StairMaterial || changeParamType === ComponentParamType.PlatformMaterial) {
                 if (!that.editModel) {
-                    if (changeParam === ComponentParamType.StairMaterial) {
+                    if (changeParamType === ComponentParamType.StairMaterial) {
                         that.stairParam.stairMaterial = { materialId, bgid };
+                        for (const segment of this.segments) {
+                            if (segment.param.type !== ComponentType.Platform) {
+                                segment.param.material = { materialId, bgid };
+                            }
+                        }
                     } else {
                         that.stairParam.platformMaterial = { materialId, bgid };
+                        for (const segment of this.segments) {
+                            if (segment.param.type === ComponentType.Platform) {
+                                segment.param.material = { materialId, bgid };
+                            }
+                        }
                     }
-                    pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: that.stairParam }, '*');
+                    pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: that.stairParam, componentParams: this.segments.map(seg => ({ ...seg.param })) }, '*');
                 } else if (instancePath) {
                     startOperation();
                     let operationSuccess = true;
                     operationSuccess = operationSuccess && (await design.activateEditPath([...instancePath[0], that.editModel.parent.instance])).isSuccess;
-                    const components = changeParam === ComponentParamType.StairMaterial ? that.editModel.stairs : that.editModel.platforms;
+                    const components = changeParamType === ComponentParamType.StairMaterial ? that.editModel.stairs : that.editModel.platforms;
                     const componentInstances: KGroupInstance[] = [];
                     for (const [ind, instanceData] of components) {
                         const theSegment = getSegmentByIndex(that.segments, ind);
-                        if (theSegment && !theSegment.param.material) {
+                        if (theSegment) {
                             componentInstances.push(instanceData.instance);
                         }
                     }
@@ -505,19 +548,29 @@ export class DrawStairsTool implements KTool {
                     operationSuccess = operationSuccess && (await design.activateEditPath(instancePath[0])).isSuccess;
                     if (operationSuccess) {
                         commitOperation();
-                        if (changeParam === ComponentParamType.StairMaterial) {
+                        if (changeParamType === ComponentParamType.StairMaterial) {
                             that.stairParam.stairMaterial = { materialId, bgid };
+                            for (const segment of this.segments) {
+                                if (segment.param.type !== ComponentType.Platform) {
+                                    segment.param.material = { materialId, bgid };
+                                }
+                            }
                         } else {
                             that.stairParam.platformMaterial = { materialId, bgid };
+                            for (const segment of this.segments) {
+                                if (segment.param.type === ComponentType.Platform) {
+                                    segment.param.material = { materialId, bgid };
+                                }
+                            }
                         }
-                        pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: that.stairParam }, '*');
+                        pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: that.stairParam, componentParams: this.segments.map(seg => ({ ...seg.param })) }, '*');
                     } else {
                         abortOperation();
                     }
                 }
-            } else if (changeParam === ComponentParamType.HandrailRailMaterial || changeParam === ComponentParamType.HandrailColumnMaterial) {
+            } else if (changeParamType === ComponentParamType.HandrailRailMaterial || changeParamType === ComponentParamType.HandrailColumnMaterial) {
                 if (!that.editModel) {
-                    if (changeParam === ComponentParamType.HandrailRailMaterial) {
+                    if (changeParamType === ComponentParamType.HandrailRailMaterial) {
                         that.stairParam.handrail.rail.material = { materialId, bgid };
                     } else {
                         that.stairParam.handrail.column.material = { materialId, bgid };
@@ -527,7 +580,7 @@ export class DrawStairsTool implements KTool {
                     startOperation();
                     let operationSuccess = true;
                     operationSuccess = operationSuccess && (await design.activateEditPath([...instancePath[0], that.editModel.parent.instance, that.editModel.handrail.handrailInstance.instance])).isSuccess;
-                    const components = changeParam === ComponentParamType.HandrailRailMaterial ? that.editModel.handrail.railInstances : that.editModel.handrail.columnInstances;
+                    const components = changeParamType === ComponentParamType.HandrailRailMaterial ? that.editModel.handrail.railInstances : that.editModel.handrail.columnInstances;
                     if (isDelete) {
                         operationSuccess = operationSuccess && design.clearMaterial([...components.values()].map(c => c.instance));
                     } else {
@@ -536,7 +589,7 @@ export class DrawStairsTool implements KTool {
                     operationSuccess = operationSuccess && (await design.activateEditPath(instancePath[0])).isSuccess;
                     if (operationSuccess) {
                         commitOperation();
-                        if (changeParam === ComponentParamType.HandrailRailMaterial) {
+                        if (changeParamType === ComponentParamType.HandrailRailMaterial) {
                             that.stairParam.handrail.rail.material = { materialId, bgid };
                         } else {
                             that.stairParam.handrail.column.material = { materialId, bgid };
@@ -550,40 +603,62 @@ export class DrawStairsTool implements KTool {
         }
     }
 
-    async changeStairParam(stairParam: StairParam, changeParams: ComponentParamType[]) {
+    async changeStairParam(stairParam: StairParam, changeParamTypes: ComponentParamType[]) {
         // this.stairParam = stairParam
         if (!this.segments.length) {
             return;
         }
         const instancePath = this.editModel ? design.getEditPathsToGroupInstance(this.editModel.parent.instance) : [];
         const lastSegment = this.segments[this.segments.length - 1];
-        let stairPraamString = '';
-        if (changeParams.indexOf(ComponentParamType.HorizontalStep) > -1 || changeParams.indexOf(ComponentParamType.VerticalStep) > -1 ||
-            changeParams.indexOf(ComponentParamType.StartWidth) > -1 || changeParams.indexOf(ComponentParamType.EndWidth) > -1 ||
-            changeParams.indexOf(ComponentParamType.Upward) > -1 ||
-            changeParams.indexOf(ComponentParamType.PlatformThickness) > -1
+        let stairPramString = '';
+        if (changeParamTypes.indexOf(ComponentParamType.WidthProportional) > -1 || changeParamTypes.indexOf(ComponentParamType.StepProportional) > -1 ||
+            changeParamTypes.indexOf(ComponentParamType.PlatformLengthLocked) > -1
+        ) {
+            this.stairParam = stairParam;
+        } else if (changeParamTypes.indexOf(ComponentParamType.HorizontalStep) > -1 || changeParamTypes.indexOf(ComponentParamType.VerticalStep) > -1 ||
+            changeParamTypes.indexOf(ComponentParamType.StartWidth) > -1 || changeParamTypes.indexOf(ComponentParamType.EndWidth) > -1 ||
+            changeParamTypes.indexOf(ComponentParamType.Upward) > -1 ||
+            changeParamTypes.indexOf(ComponentParamType.PlatformThickness) > -1
         ) {
             let reGenerateSegments = this.segments;
-            if (changeParams.indexOf(ComponentParamType.Upward) > -1) {
-                changeStairUpward(reGenerateSegments[0], reGenerateSegments, stairParam.upward, true);
+            if (changeParamTypes.indexOf(ComponentParamType.Upward) > -1) {
+                reGenerateSegments = changeStairUpward(reGenerateSegments[0], reGenerateSegments, stairParam.upward, true) || reGenerateSegments;
+            } else if (changeParamTypes.indexOf(ComponentParamType.HorizontalStep) > -1 || changeParamTypes.indexOf(ComponentParamType.VerticalStep) > -1) {
+                reGenerateSegments = changeStairStep(reGenerateSegments[0], this.segments, stairParam.horizontalStep, stairParam.verticalStep, true, false) || reGenerateSegments;
             } else {
-                reGenerateSegments = this.segments.filter(seg => changeParams.indexOf(ComponentParamType.PlatformThickness) > -1 ? seg.param.type === ComponentType.Platform : seg.param.type !== ComponentType.Platform);
+                reGenerateSegments = this.segments.filter(seg => changeParamTypes.indexOf(ComponentParamType.PlatformThickness) > -1 ? seg.param.type === ComponentType.Platform : seg.param.type !== ComponentType.Platform);
             }
             if (reGenerateSegments.length) {
                 for (const reGenerateSegment of reGenerateSegments) {
-                    for (const changeParam of changeParams) {
-                        (reGenerateSegment.param as any)[changeParam] = (stairParam as any)[changeParam];
+                    for (const changeParamType of changeParamTypes) {
+                        (reGenerateSegment.param as any)[changeParamType] = (stairParam as any)[changeParamType];
                     }
                 }
+                const parentTransform = this.editModel ? this.editModel.parent.instance.getTransform() : undefined;
+                const oldStairParam = this.stairParam;
+                const oldComponentParams = new Map(this.segments.map(seg => ([seg.param.index, { ...seg.param }])));
+                this.stairParam = stairParam;
 
                 let operationSuccess = true;
                 if (!this.drawing && this.editModel) {
                     startOperation();
+                    stairPramString = stringifyStairParam(stairParam);
+                    operationSuccess = operationSuccess && !!this.editModel.parent.instance.getGroupDefinition()?.setCustomProperty(StairParamKey, stairPramString).isSuccess;
+                    if (instancePath.length) {
+                        operationSuccess = operationSuccess && (await design.activateEditPath([...instancePath[0], this.editModel.parent.instance])).isSuccess;
+                    }
                 }
-                const parentTransform = this.editModel ? this.editModel.parent.instance.getTransform() : undefined;
                 for (const reGenerateSegment of reGenerateSegments) {
+                    if (changeParamTypes.length === 1 && changeParamTypes[0] === ComponentParamType.PlatformThickness) {
+                        reGenerateSegment.param.platformThickness = this.stairParam.platformThickness;
+                    } else {
+                        for (const changeParamType of changeParamTypes) {
+                            (reGenerateSegment.param as any)[changeParamType] = (this.stairParam as any)[changeParamType];
+                        }
+                    }
+
                     if (this.drawing) {
-                        this.stairParam = stairParam;
+                        // this.stairParam = stairParam;
                         this.drawTempComponent(reGenerateSegment, reGenerateSegment.param.index === this.focusedComponentIndex && reGenerateSegment.param.index !== lastSegment.param.index);
                     } else if (this.editModel) {
                         const { param: { index, type } } = reGenerateSegment;
@@ -613,7 +688,10 @@ export class DrawStairsTool implements KTool {
                         }
                     }
                 }
-                if (!this.drawing && this.editModel) {
+                if (this.drawing) {
+                    this.drawHandrails();
+                    pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: this.stairParam, componentParams: this.segments.map(seg => ({ ...seg.param })) }, '*');
+                } else if (!this.drawing && this.editModel) {
                     this.generateHandrailShape(stairParam);
                     if (this.handrailCollection?.handrails.length) {
                         if (this.editModel.handrail) {
@@ -634,18 +712,23 @@ export class DrawStairsTool implements KTool {
                     const parentInstance = this.editModel.parent.instance;
                     if (operationSuccess) {
                         commitOperation();
-                        this.stairParam = stairParam;
-                        pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: this.stairParam }, '*');
+                        // this.stairParam = stairParam;
+                        pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: this.stairParam, componentParams: this.segments.map(seg => ({ ...seg.param })) }, '*');
                     } else {
                         abortOperation();
+                        this.stairParam = oldStairParam;
+                        for (const segment of this.segments) {
+                            const oldSegmentParam = oldComponentParams.get(segment.param.index);
+                            if (oldSegmentParam) {
+                                segment.param = oldSegmentParam;
+                            }
+                        }
                         pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: this.stairParam }, '*');
                     }
                     selection.add([parentInstance]);
-                } else if (this.drawing) {
-                    this.drawHandrails();
                 }
             }
-        } else if (changeParams.length === 1 && changeParams[0].startsWith(ComponentParamType.Handrail)) {
+        } else if (changeParamTypes.length === 1 && changeParamTypes[0].startsWith(ComponentParamType.Handrail)) {
             if (this.drawing) {
                 this.stairParam = stairParam;
                 this.drawHandrails();
@@ -653,8 +736,8 @@ export class DrawStairsTool implements KTool {
                 this.generateHandrailShape(stairParam);
                 let operationSuccess = true;
                 startOperation();
-                stairPraamString = stringifyStairParam(stairParam);
-                operationSuccess = operationSuccess && !!this.editModel.parent.instance.getGroupDefinition()?.setCustomProperty(StairParamKey, stairPraamString).isSuccess;
+                stairPramString = stringifyStairParam(stairParam);
+                operationSuccess = operationSuccess && !!this.editModel.parent.instance.getGroupDefinition()?.setCustomProperty(StairParamKey, stairPramString).isSuccess;
                 if (instancePath.length) {
                     operationSuccess = operationSuccess && (await design.activateEditPath([...instancePath[0], this.editModel.parent.instance])).isSuccess;
                 }
@@ -669,7 +752,6 @@ export class DrawStairsTool implements KTool {
                     if (handrailInstancesData) {
                         this.editModel.handrail = handrailInstancesData;
                     }
-                    // }
                 }
 
                 if (instancePath.length) {
@@ -687,18 +769,18 @@ export class DrawStairsTool implements KTool {
                 }
                 selection.add([parentInstance]);
             }
-        } else if (!stairParam.stairMaterial && changeParams.length === 0 && changeParams[0] === ComponentParamType.StairMaterial) {
-            await this.onMaterialReplaceItemClick(changeParams[0], undefined, true)();
-        } else if (!stairParam.platformMaterial && changeParams.length === 0 && changeParams[0] === ComponentParamType.PlatformLength) {
-            await this.onMaterialReplaceItemClick(changeParams[0], undefined, true)();
-        } else if (!stairParam.handrail.rail.material && changeParams.length === 0 && changeParams[0] === ComponentParamType.HandrailRailMaterial) {
-            await this.onMaterialReplaceItemClick(changeParams[0], undefined, true)();
-        } else if (!stairParam.handrail.column.material && changeParams.length === 0 && changeParams[0] === ComponentParamType.HandrailColumnMaterial) {
-            await this.onMaterialReplaceItemClick(changeParams[0], undefined, true)();
+        } else if (!stairParam.stairMaterial && changeParamTypes.length === 0 && changeParamTypes[0] === ComponentParamType.StairMaterial) {
+            await this.onMaterialReplaceItemClick(changeParamTypes[0], undefined, true)();
+        } else if (!stairParam.platformMaterial && changeParamTypes.length === 0 && changeParamTypes[0] === ComponentParamType.PlatformLength) {
+            await this.onMaterialReplaceItemClick(changeParamTypes[0], undefined, true)();
+        } else if (!stairParam.handrail.rail.material && changeParamTypes.length === 0 && changeParamTypes[0] === ComponentParamType.HandrailRailMaterial) {
+            await this.onMaterialReplaceItemClick(changeParamTypes[0], undefined, true)();
+        } else if (!stairParam.handrail.column.material && changeParamTypes.length === 0 && changeParamTypes[0] === ComponentParamType.HandrailColumnMaterial) {
+            await this.onMaterialReplaceItemClick(changeParamTypes[0], undefined, true)();
         }
     }
 
-    async changeComponentParam(componentParam: ComponentParam, changeParams: ComponentParamType[]) {
+    async changeComponentParam(componentParam: ComponentParam, changeParamTypes: ComponentParamType[]) {
         if (!this.segments.length) return;
 
         const theSegment = getSegmentByIndex(this.segments, componentParam.index);
@@ -709,20 +791,27 @@ export class DrawStairsTool implements KTool {
             if (!isCircularStair(theSegment)) {
                 theSegment.circleTangent = undefined;
             }
-            if (changeParams.length === 0 && changeParams[0] === ComponentParamType.ComponentMaterial && !componentParam.material) {
-                this.onMaterialReplaceItemClick(changeParams[0], componentParam.index, true);
+            if (changeParamTypes.length === 0 && changeParamTypes[0] === ComponentParamType.ComponentMaterial && !componentParam.material) {
+                this.onMaterialReplaceItemClick(changeParamTypes[0], componentParam.index, true);
+            } else if (changeParamTypes.length === 1 && (changeParamTypes[0] === ComponentParamType.StepProportional ||
+                changeParamTypes[0] === ComponentParamType.WidthProportional ||
+                changeParamTypes[0] === ComponentParamType.PlatformLengthLocked
+            )) {
+                theSegment.param = componentParam;
             } else {
+                const oldParam = theSegment.param;
+                theSegment.param = componentParam;
                 let reGenerateSegments = [theSegment];
-                if (changeParams.indexOf(ComponentParamType.Upward) > -1) {
+                if (changeParamTypes.indexOf(ComponentParamType.Upward) > -1) {
                     reGenerateSegments = changeStairUpward(theSegment, this.segments, theSegment.param.upward, false, true) || reGenerateSegments;
+                } else if (changeParamTypes.indexOf(ComponentParamType.HorizontalStep) > -1 || changeParamTypes.indexOf(ComponentParamType.VerticalStep) > -1) {
+                    reGenerateSegments = changeStairStep(theSegment, this.segments, componentParam.horizontalStep, componentParam.verticalStep, false, true) || reGenerateSegments;
                 }
                 if (reGenerateSegments.length) {
                     let operationSuccess = true;
                     const instancePath = this.editModel ? design.getEditPathsToGroupInstance(this.editModel.parent.instance) : [];
-                    if (this.drawing) {
-                        theSegment.param = componentParam;
-                    } else if (this.editModel) {
-                        design.startOperation();
+                    if (!this.drawing && this.editModel) {
+                        startOperation();
                         if (instancePath.length) {
                             operationSuccess = operationSuccess && (await design.activateEditPath([...instancePath[0], this.editModel.parent.instance])).isSuccess;
                         }
@@ -761,8 +850,21 @@ export class DrawStairsTool implements KTool {
                         }
                     }
 
+                    let stairParamChanged = false;
                     if (this.drawing) {
                         this.drawHandrails();
+                        if (changeParamTypes[0] !== ComponentParamType.Type && changeParamTypes[0] !== ComponentParamType.PlatformLength) {
+                            const theSegments = this.segments.filter(seg => (seg.param.type === ComponentType.Platform) === (changeParamTypes[0] === ComponentParamType.PlatformThickness))
+                            if (theSegments.length === 1) {
+                                for (const changeParamType of changeParamTypes) {
+                                    (this.stairParam as any)[changeParamType] = (theSegment.param as any)[changeParamType];
+                                }
+                                stairParamChanged = true;
+                            }
+                        }
+                        if (stairParamChanged) {
+                            pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...theSegment.param }, stairParam: stairParamChanged ? this.stairParam : undefined }, '*');
+                        }
                     } else if (this.editModel) {
                         this.generateHandrailShape();
                         if (this.stairParam.handrail.support) {
@@ -784,11 +886,25 @@ export class DrawStairsTool implements KTool {
                         }
                         const parentInstance = this.editModel.parent.instance;
                         if (operationSuccess) {
+                            // theSegment.param = componentParam;
+                            if (changeParamTypes[0] !== ComponentParamType.Type && changeParamTypes[0] !== ComponentParamType.PlatformLength) {
+                                const theSegments = this.segments.filter(seg => (seg.param.type === ComponentType.Platform) === (changeParamTypes[0] === ComponentParamType.PlatformThickness))
+                                if (theSegments.length === 1) {
+                                    for (const changeParamType of changeParamTypes) {
+                                        (this.stairParam as any)[changeParamType] = (theSegment.param as any)[changeParamType];
+                                    }
+                                    stairParamChanged = true;
+                                }
+                            }
+                            if (stairParamChanged) {
+                                const stairPramString = stringifyStairParam(this.stairParam);
+                                operationSuccess = operationSuccess && !!this.editModel.parent.instance.getGroupDefinition()?.setCustomProperty(StairParamKey, stairPramString).isSuccess;
+                            }
                             commitOperation();
-                            theSegment.param = componentParam;
-                            pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...theSegment.param } }, '*');
+                            pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...theSegment.param }, stairParam: stairParamChanged ? this.stairParam : undefined }, '*');
                         } else {
                             abortOperation();
+                            theSegment.param = oldParam;
                             pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...theSegment.param } }, '*');
                         }
                         selection.add([parentInstance]);
@@ -1020,14 +1136,28 @@ export class DrawStairsTool implements KTool {
         // this.segments = [];
         this.drawing = false;
         this.focusedComponentIndex = DefaultFocusedComponentIndex;
-        this.stairParam = DefaultStairParam;
+        this.stairParam = {...DefaultStairParam};
         // this.editModel = undefined;
     }
 
     onRButtonUp(event: KMouseEvent, inferenceResult?: KInferenceResult): void {
-        this.tryCommit().then(() => {
-            deActivateDrawStairsTool();
-        });
+        if (this.segments.length) {
+            const lastSegment = this.segments[this.segments.length - 1];
+            if (lastSegment.startLocked) {
+                const { param, circularSide, moldShape: { vertices } } = lastSegment;
+                if (!lastSegment.baseComponent) {
+                    // lastSegment.baseLineSeg3d = { start: vertices[0], end: vertices[1] };
+                    lastSegment.baseComponent = { line3d: { start: vertices[1], end: vertices[0] } };
+                }
+                if (param.type === ComponentType.CircularStair && circularSide === undefined) {
+                    param.type = ComponentType.StraightStair;
+                    lastSegment.circleTangent = undefined;
+                }
+                this.tryCommit().then(() => {
+                    deActivateDrawStairsTool();
+                });
+            }
+        }
     }
     onLButtonDbClick(event: KMouseEvent, inferenceResult?: KInferenceResult): void {
         ;

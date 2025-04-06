@@ -1,6 +1,6 @@
 import * as React from 'react'
 import "./index.css";
-import { ColumnType, ComponentParamSettings, ComponentParamType, DefaultStairParam, RailType, StairParam } from '../../main/tools/DrawStairsTool/types';
+import { ColumnType, ComponentParamSettings, ComponentParamType, DefaultStairParam, MaterialAssignType, RailType, StairParam } from '../../main/tools/DrawStairsTool/types';
 import InputNumberProperty from './components/InputNumberProperty';
 import SelectProperty from './components/SelectProperty';
 import SwitchProperty from './components/SwitchProperty';
@@ -10,6 +10,7 @@ import { DeleteOutlined, PlusOutlined, UndoOutlined } from '@ant-design/icons';
 interface Props {
     stairParam?: StairParam;
     isDrawing?: boolean;
+    materialAssignType?: MaterialAssignType | number;
     getOnHandrailChange?: (componentParamType: ComponentParamType) => (value: number | string) => void;
     getOnHandrailSwitchChange?: (componentParamType: ComponentParamType) => (checked: boolean) => void;
     getOnMaterialReplaceClick?: (componentParamType: ComponentParamType) => () => void;
@@ -62,7 +63,7 @@ export default class HandrailProperty extends React.Component<Props, State> {
         if (!stairParam) {
             return null;
         }
-        const { isDrawing } = this.props;
+        const { isDrawing, materialAssignType } = this.props;
         const { handrail: { support, height, rail, column } } = stairParam;
         // const disabled = !this.state.componentParam;
         return (
@@ -133,7 +134,7 @@ export default class HandrailProperty extends React.Component<Props, State> {
                     {!isDrawing && <div className='material-property-wrapper handrail-material'>
                         <div className='title'>{ComponentParamSettings.material.title}</div>
                         <div className='mateiral-buttons'>
-                            <Button type="text" size="small" shape="circle" icon={rail.material ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.HandrailRailMaterial)} />
+                            <Button className={materialAssignType === MaterialAssignType.Rail ? 'assigning' : ''} type="text" size="small" shape="circle" icon={rail.material ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.HandrailRailMaterial)} />
                             {rail.material && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.HandrailRailMaterial)} />}
                         </div>
                     </div>}
@@ -205,7 +206,7 @@ export default class HandrailProperty extends React.Component<Props, State> {
                     {!isDrawing && <div className='material-property-wrapper handrail-material'>
                         <div className='title'>{ComponentParamSettings.material.title}</div>
                         <div className='mateiral-buttons'>
-                            <Button type="text" size="small" shape="circle" icon={column.material ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.HandrailColumnMaterial)} />
+                            <Button className={materialAssignType === MaterialAssignType.Column ? 'assigning' : ''} type="text" size="small" shape="circle" icon={column.material ? <UndoOutlined /> : <PlusOutlined />} onClick={this.getOnMaterialReplaceClick(ComponentParamType.HandrailColumnMaterial)} />
                             {column.material && <Button type="text" size="small" shape="circle" icon={<DeleteOutlined />} onClick={this.getOnMaterialDeleteClick(ComponentParamType.HandrailColumnMaterial)} />}
                         </div>
                     </div>}
