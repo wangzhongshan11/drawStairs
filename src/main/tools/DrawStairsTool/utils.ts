@@ -76,36 +76,36 @@ export function parseMaterial(value: string) {
 
 export function stringifyStairParam(param: StairParam) {
     let value: string = '';
-    value += `hs=${param.horizontalStep}${Delimiter}`;
-    value += `vs=${param.verticalStep}${Delimiter}`;
-    value += `sw=${param.startWidth}${Delimiter}`;
-    value += `ew=${param.endWidth}${Delimiter}`;
-    value += `up=${param.upward ? 1 : 0}${Delimiter}`;
-    value += `ptk=${param.platformThickness}`;
+    value += `a=${param.horizontalStep}${Delimiter}`;
+    value += `b=${param.verticalStep}${Delimiter}`;
+    value += `c=${param.startWidth}${Delimiter}`;
+    value += `d=${param.endWidth}${Delimiter}`;
+    value += `e=${param.upward ? 1 : 0}${Delimiter}`;
+    value += `f=${param.platformThickness}`;
     if (param.handrail.support) {
         const { handrail: { height, rail, column } } = param;
-        value += `hh=${height}${Delimiter}`;
-        value += `hrt=${rail.type}${Delimiter}`;
+        value += `g=${height}${Delimiter}`;
+        value += `h=${rail.type}${Delimiter}`;
         if (rail.type === RailType.Circle && rail.param.radius !== undefined) {
-            value += `hrr=${rail.param.radius}${Delimiter}`;
+            value += `i=${rail.param.radius}${Delimiter}`;
         } else if (rail.type === RailType.Rect) {
             if (rail.param.width !== undefined) {
-                value += `hrw=${rail.param.width}${Delimiter}`;
+                value += `j=${rail.param.width}${Delimiter}`;
             }
             if (rail.param.height !== undefined) {
-                value += `hrh=${rail.param.height}${Delimiter}`;
+                value += `k=${rail.param.height}${Delimiter}`;
             }
         }
-        value += `hct=${column.type}${Delimiter}`;
-        value += `hcs=${column.step}${Delimiter}`;
+        value += `l=${column.type}${Delimiter}`;
+        value += `m=${column.step}${Delimiter}`;
         if (column.type === ColumnType.Circle && column.param.radius !== undefined) {
-            value += `hcr=${column.param.radius}${Delimiter}`;
+            value += `n=${column.param.radius}${Delimiter}`;
         } else if (column.type === ColumnType.Rect) {
             if (column.param.width !== undefined) {
-                value += `hcw=${column.param.width}${Delimiter}`;
+                value += `o=${column.param.width}${Delimiter}`;
             }
             if (column.param.height !== undefined) {
-                value += `hch=${column.param.height}${Delimiter}`;
+                value += `p=${column.param.height}${Delimiter}`;
             }
         }
     }
@@ -119,22 +119,22 @@ export function parseStairParam(value: string) {
         const keyValue = item.split('=');
         if (keyValue.length === 2) {
             switch (keyValue[0]) {
-                case 'hs': param.horizontalStep = parseInt(keyValue[1]); break;
-                case 'vs': param.verticalStep = parseInt(keyValue[1]); break;
-                case 'sw': param.startWidth = parseInt(keyValue[1]); break;
-                case 'ew': param.endWidth = parseInt(keyValue[1]); break;
-                case 'up': param.upward = keyValue[1] === '1' ? true : false; break;
-                case 'ptk': param.platformThickness = parseInt(keyValue[1]); break;
-                case 'hh': param.handrail.height = parseFloat(keyValue[1]); break;
-                case 'hrt': param.handrail.rail.type = parseFloat(keyValue[1]); break;
-                case 'hrr': param.handrail.rail.param.radius = parseInt(keyValue[1]); break;
-                case 'hrw': param.handrail.rail.param.width = parseInt(keyValue[1]); break;
-                case 'hrh': param.handrail.rail.param.height = parseInt(keyValue[1]); break;
-                case 'hct': param.handrail.column.type = parseFloat(keyValue[1]); break;
-                case 'hcs': param.handrail.column.step = parseFloat(keyValue[1]); break;
-                case 'hcr': param.handrail.column.param.radius = parseInt(keyValue[1]); break;
-                case 'hcw': param.handrail.column.param.width = parseInt(keyValue[1]); break;
-                case 'hch': param.handrail.column.param.height = parseInt(keyValue[1]); break;
+                case 'a': param.horizontalStep = parseInt(keyValue[1]); break;
+                case 'b': param.verticalStep = parseInt(keyValue[1]); break;
+                case 'c': param.startWidth = parseInt(keyValue[1]); break;
+                case 'd': param.endWidth = parseInt(keyValue[1]); break;
+                case 'e': param.upward = keyValue[1] === '1' ? true : false; break;
+                case 'f': param.platformThickness = parseInt(keyValue[1]); break;
+                case 'g': param.handrail.height = parseFloat(keyValue[1]); break;
+                case 'h': param.handrail.rail.type = parseFloat(keyValue[1]); break;
+                case 'i': param.handrail.rail.param.radius = parseInt(keyValue[1]); break;
+                case 'j': param.handrail.rail.param.width = parseInt(keyValue[1]); break;
+                case 'k': param.handrail.rail.param.height = parseInt(keyValue[1]); break;
+                case 'l': param.handrail.column.type = parseFloat(keyValue[1]); break;
+                case 'm': param.handrail.column.step = parseFloat(keyValue[1]); break;
+                case 'n': param.handrail.column.param.radius = parseInt(keyValue[1]); break;
+                case 'o': param.handrail.column.param.width = parseInt(keyValue[1]); break;
+                case 'p': param.handrail.column.param.height = parseInt(keyValue[1]); break;
             }
         }
     }
@@ -145,16 +145,16 @@ export function parseStairParam(value: string) {
 
 export function stringifyComponentParam(param: ComponentParam) {
     let value: string = '';
-    value += `ind=${param.index}${Delimiter}`;
-    value += `hs=${param.horizontalStep}${Delimiter}`;
-    value += `vs=${param.verticalStep}${Delimiter}`;
-    value += `sw=${param.startWidth}${Delimiter}`;
-    value += `ew=${param.endWidth}${Delimiter}`;
-    value += `ow=${param.offsetWidth}${Delimiter}`;
-    value += `pl=${param.platformLength}${Delimiter}`;
-    value += `tp=${param.type}${Delimiter}`;
-    value += `up=${param.upward ? 1 : 0}${Delimiter}`;
-    value += `ptk=${param.platformThickness}`;
+    value += `a=${param.index}${Delimiter}`;
+    value += `b=${param.horizontalStep}${Delimiter}`;
+    value += `c=${param.verticalStep}${Delimiter}`;
+    value += `d=${param.startWidth}${Delimiter}`;
+    value += `e=${param.endWidth}${Delimiter}`;
+    value += `f=${param.offsetWidth}${Delimiter}`;
+    value += `g=${param.platformLength}${Delimiter}`;
+    value += `h=${param.type}${Delimiter}`;
+    value += `i=${param.upward ? 1 : 0}${Delimiter}`;
+    value += `j=${param.platformThickness}`;
     return value;
 }
 
@@ -165,16 +165,16 @@ export function parseComponentParam(value: string) {
         const keyValue = item.split('=');
         if (keyValue.length === 2) {
             switch (keyValue[0]) {
-                case 'ind': param.index = parseInt(keyValue[1]); break;
-                case 'hs': param.horizontalStep = parseInt(keyValue[1]); break;
-                case 'vs': param.verticalStep = parseInt(keyValue[1]); break;
-                case 'sw': param.startWidth = parseInt(keyValue[1]); break;
-                case 'ew': param.endWidth = parseInt(keyValue[1]); break;
-                case 'ow': param.offsetWidth = parseFloat(keyValue[1]); break;
-                case 'pl': param.platformLength = parseFloat(keyValue[1]); break;
-                case 'tp': param.type = parseInt(keyValue[1]); break;
-                case 'up': param.upward = keyValue[1] === '1' ? true : false; break;
-                case 'ptk': param.platformThickness = parseInt(keyValue[1]); break;
+                case 'a': param.index = parseInt(keyValue[1]); break;
+                case 'b': param.horizontalStep = parseInt(keyValue[1]); break;
+                case 'c': param.verticalStep = parseInt(keyValue[1]); break;
+                case 'd': param.startWidth = parseInt(keyValue[1]); break;
+                case 'e': param.endWidth = parseInt(keyValue[1]); break;
+                case 'f': param.offsetWidth = parseFloat(keyValue[1]); break;
+                case 'g': param.platformLength = parseFloat(keyValue[1]); break;
+                case 'h': param.type = parseInt(keyValue[1]); break;
+                case 'i': param.upward = keyValue[1] === '1' ? true : false; break;
+                case 'j': param.platformThickness = parseInt(keyValue[1]); break;
             }
         }
     }

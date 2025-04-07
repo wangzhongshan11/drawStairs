@@ -66,8 +66,8 @@ selection.addObserver({
         } else if (allEntities.length) {
             const editPath = app.getActiveDesign().getEditPath();
             const editModel = drawStairsTool.getEditModel();
-            if (!editModel || (editPath.length && isPartOfEditModel(editModel, editPath[editPath.length - 1]))) {
-                drawStairsTool.clearTempShapes();
+            drawStairsTool.clearTempShapes();
+            if (!editPath.length || !editModel || !isPartOfEditModel(editModel, editPath[editPath.length - 1])) {
                 if (activatedCustomTool !== drawStairsTool) {
                     pluginUI.postMessage({ type: MessageType.PropertiesVisible, propertiesVisible: false }, '*');
                 }

@@ -3,9 +3,10 @@ import {
     BaseComponentKey, BaseLineSeg3dKey, CircleTangentKey, ColumnType, ComponentType, DefaultStairParam, Handrail, HandrailModelKey, RailType, Segment,
     ModelValue, StairParam, StartEndKey, PresetMaterials, ColumnModelKey, RailModelKey, HandrailInstancesData,
     ComponentParamKey,
-    CircularSide
+    CircularSide,
+    ComponentMaterialKey
 } from "./types";
-import { getCoordinate, stringifyBaseComponent, stringifyComponentParam, stringifyPoint3d, stringifyStartEnd } from "./utils";
+import { getCoordinate, stringifyBaseComponent, stringifyComponentParam, stringifyMaterial, stringifyPoint3d, stringifyStartEnd } from "./utils";
 
 export function generateMeshes(segments: Segment[]): KMesh[] {
     const meshes: KMesh[] = [];
@@ -446,8 +447,12 @@ export function buildComponentInstance(segment: Segment, segments: Segment[], pa
                 // operationSuccess = operationSuccess && groupDef.setCustomProperty(ComponentIndexKey, `${newInstances.length}`).isSuccess;
                 // newInstances.push(newInstance);
                 const paramString = stringifyComponentParam(param);
-                const startEndString = stringifyStartEnd(GeomLib.createPoint3d(start.x, start.y, startHeight), GeomLib.createPoint3d(end.x, end.y, endHeight));
                 operationSuccess = operationSuccess && groupDef.setCustomProperty(ComponentParamKey, paramString).isSuccess;
+                if (param.material) {
+                    const componentMaterialString = stringifyMaterial(param.material);
+                    operationSuccess = operationSuccess && groupDef.setCustomProperty(ComponentMaterialKey, componentMaterialString).isSuccess;
+                }
+                const startEndString = stringifyStartEnd(GeomLib.createPoint3d(start.x, start.y, startHeight), GeomLib.createPoint3d(end.x, end.y, endHeight));
                 operationSuccess = operationSuccess && groupDef.setCustomProperty(StartEndKey, startEndString).isSuccess;
                 // if (baseLineSeg3d) {
                 // }
@@ -581,7 +586,14 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
                 railFaces.push(...railShellFaces);
             }
 
-            const railMakeGroupRes = activeDesign.makeGroup(railFaces, [], railBoundedCurves)
+            for (const railBoundedCurve of railBoundedCurves) {
+                const removeRailBoundedCurveRes = activeDesign.removeAuxiliaryCurve(railBoundedCurve);
+                if (!removeRailBoundedCurveRes.isSuccess) {
+                    return undefined;
+                }
+            }
+
+            const railMakeGroupRes = activeDesign.makeGroup(railFaces, [], [])
             const railGroupDef = railMakeGroupRes?.addedInstance.getGroupDefinition();
             if (!railMakeGroupRes?.addedInstance || !railGroupDef) {
                 return undefined;

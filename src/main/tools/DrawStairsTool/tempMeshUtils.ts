@@ -169,8 +169,8 @@ function generateCircularStairShape(segment: Segment, temp: boolean = true) {
             }
             if (lastHorizontalAngle >= AngleTolerance || lastHorizontalAngle === 0) {
                 vertices.push(
-                    vertices[vertices.length - 2].added(DirectionZ.multiplied(verticalStep)),
-                    vertices[vertices.length - 1].added(DirectionZ.multiplied(verticalStep))
+                    vertices[vertices.length - 2].added(DirectionZ.multiplied(stepHeight)),
+                    vertices[vertices.length - 1].added(DirectionZ.multiplied(stepHeight))
                 );
                 vertices.push(lastLeftPt, lastRightPt);
                 if (temp) {
@@ -437,8 +437,8 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
     }
     if (upward) {
         vertices.push(
-            stepCount > 1 ? vertices[vertices.length - 2].added(horizontalFrontDir.multiplied(horizontalStep)) : leftPt,
-            stepCount > 1 ? vertices[vertices.length - 1].added(horizontalFrontDir.multiplied(horizontalStep)) : rightPt,
+            stepCount > 1 ? vertices[vertices.length - 2].added(horizontalFrontDir.multiplied(horizontalStep)).added(horizontalLeftDir.multiplied(widthDelta)) : leftPt,
+            stepCount > 1 ? vertices[vertices.length - 1].added(horizontalFrontDir.multiplied(horizontalStep)).added(horizontalLeftDir.multiplied(-widthDelta)) : rightPt,
         );
         if (temp) {
             tempLines.push(
@@ -468,8 +468,8 @@ function generateStraightStairShape(segment: Segment, temp: boolean = true) {
         }
     } else {
         vertices.push(
-            stepCount > 1 ? vertices[vertices.length - 2].added(DirectionZ.multiplied(stepHeight)) : leftPt,
-            stepCount > 1 ? vertices[vertices.length - 1].added(DirectionZ.multiplied(stepHeight)) : rightPt,
+            stepCount > 1 ? vertices[vertices.length - 2].added(DirectionZ.multiplied(stepHeight)).added(horizontalLeftDir.multiplied(widthDelta)) : leftPt,
+            stepCount > 1 ? vertices[vertices.length - 1].added(DirectionZ.multiplied(stepHeight)).added(horizontalLeftDir.multiplied(-widthDelta)) : rightPt,
         );
         if (temp) {
             tempLines.push(

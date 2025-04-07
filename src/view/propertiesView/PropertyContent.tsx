@@ -346,7 +346,7 @@ export default class ProperyContent extends React.Component<Props, State> {
                             max={[ComponentParamSettings[ComponentParamType.StartWidth].max, ComponentParamSettings[ComponentParamType.EndWidth].max]}
                             step={[ComponentParamSettings[ComponentParamType.StartWidth].step, ComponentParamSettings[ComponentParamType.EndWidth].step]}
                             // disabled={disabled}
-                            withProportional={widthProportional}
+                            withProportional={stairParam.widthProportional}
                             onChange={this.getOnArrayChangeOverall([ComponentParamType.StartWidth, ComponentParamType.EndWidth]).bind(this)}
                         />
                         {
@@ -366,7 +366,7 @@ export default class ProperyContent extends React.Component<Props, State> {
                                 max={[ComponentParamSettings[ComponentParamType.HorizontalStep].max, ComponentParamSettings[ComponentParamType.VerticalStep].max]}
                                 step={[ComponentParamSettings[ComponentParamType.HorizontalStep].step, ComponentParamSettings[ComponentParamType.VerticalStep].step]}
                                 // disabled={disabled}
-                                withProportional={stepProportional}
+                                withProportional={stairParam.stepProportional}
                                 onChange={this.getOnArrayChangeOverall([ComponentParamType.HorizontalStep, ComponentParamType.VerticalStep]).bind(this)}
                             />
                             {
