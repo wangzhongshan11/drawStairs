@@ -1,12 +1,13 @@
-import { AngleTolerance, DirectionZ, dummyPoint3d, LengthTolerance, StepCountLimit } from "./consts";
+import { AngleTolerance, DirectionAngleTolerance, DirectionZ, dummyPoint3d, dummyVector3d, LengthTolerance, StepCountLimit } from "./consts";
+import { generateShape } from "./tempMeshUtils";
 import {
     BaseComponentKey, BaseLineSeg3dKey, CircleTangentKey, ColumnType, ComponentType, DefaultStairParam, Handrail, HandrailModelKey, RailType, Segment,
     ModelValue, StairParam, StartEndKey, PresetMaterials, ColumnModelKey, RailModelKey, HandrailInstancesData,
     ComponentParamKey,
     CircularSide,
-    ComponentMaterialKey
+    ComponentMaterialKey,
 } from "./types";
-import { getCoordinate, stringifyBaseComponent, stringifyComponentParam, stringifyMaterial, stringifyPoint3d, stringifyStartEnd } from "./utils";
+import { getCoordinate, isEqual, stringifyBaseComponent, stringifyComponentParam, stringifyMaterial, stringifyPoint3d, stringifyStartEnd } from "./utils";
 
 export function generateMeshes(segments: Segment[]): KMesh[] {
     const meshes: KMesh[] = [];
@@ -43,8 +44,6 @@ function generateCircularStairMesh(segment: Segment) {
         softEdges: [],
     }
 
-    // 最底部台阶后下位置
-    // const leftIndex = vertices.length - ((!upward && stepCount > 1) ? 4 : 2);
     for (let i = 0; i < stepCount; i++) {
         stairMesh.triangleIndices.push(
             // stair faces
@@ -140,59 +139,22 @@ function generateCircularStairMesh(segment: Segment) {
 
     if (upward) {
         stairMesh.triangleIndices.push(
-            // bottom faces
-            // [vertices.length - 1, 1, 0],
-            // [vertices.length - 1, 0, vertices.length - 2],
             // 前侧面
             [stepCount * 4, stepCount * 4 + 1, stepCount * 4 + 2],
             [stepCount * 4 + 1, stepCount * 4 + 3, stepCount * 4 + 2],
         );
         stairMesh.softEdges?.push(
-            // [vertices.length - 1, 0],
             [stepCount * 4 + 1, stepCount * 4 + 2],
         );
-        // if (stepCount > 1) {
-        //     stairMesh.triangleIndices.push(
-        //         // side bottom faces
-        //         [vertices.length - 2, vertices.length - 10, vertices.length - 4],
-        //         [vertices.length - 1, vertices.length - 3, vertices.length - 9],
-        //         // bottom faces
-        //         [vertices.length - 5, vertices.length - 3, vertices.length - 4],
-        //         [vertices.length - 5, vertices.length - 4, vertices.length - 6],
-        //     );
-        //     stairMesh.softEdges?.push(
-        //         [vertices.length - 5, vertices.length - 4],
-        //         [vertices.length - 2, vertices.length - 10],
-        //         [vertices.length - 10, vertices.length - 4],
-        //     );
-        // }
     } else {
         stairMesh.triangleIndices.push(
             // 后侧面
             [vertices.length - 1, 1, 0],
             [vertices.length - 1, 0, vertices.length - 2],
-            // [vertices.length - 3, vertices.length - 2, vertices.length - 1],
-            // [vertices.length - 3, vertices.length - 4, vertices.length - 2],
         );
         stairMesh.softEdges?.push(
             [vertices.length - 1, 0],
-            // [vertices.length - 3, vertices.length - 2],
         );
-        // if (stepCount > 1) {
-        //     stairMesh.triangleIndices.push(
-        //         // side bottom faces
-        //         [vertices.length - 2, 0, vertices.length - 4],
-        //         [vertices.length - 1, vertices.length - 3, 1],
-        //         // bottom faces
-        //         [vertices.length - 5, vertices.length - 4, vertices.length - 3],
-        //         [vertices.length - 5, vertices.length - 6, vertices.length - 4],
-        //     );
-        //     stairMesh.softEdges?.push(
-        //         [vertices.length - 5, vertices.length - 4],
-        //         [vertices.length - 3, 1],
-        //         [0, vertices.length - 4],
-        //     );
-        // }
     }
 
     if (cornerVertices.length === 6) {
@@ -242,10 +204,8 @@ function generateStraightStairMesh(segment: Segment) {
             );
             stairMesh.softEdges?.push(
                 [bbLeftIndex, i * 4],
-                // [i * 4, (i + 1) * 4],
 
                 [bbLeftIndex + 1, i * 4 + 1],
-                // [(i + 1) * 4 + 1, i * 4 + 1],
             );
         } else {
             stairMesh.triangleIndices.push(
@@ -253,10 +213,6 @@ function generateStraightStairMesh(segment: Segment) {
                 [leftIndex, i * 4, (i + 1) * 4],
                 [leftIndex + 1, (i + 1) * 4 + 1, i * 4 + 1],
             );
-            // stairMesh.softEdges?.push(
-            //     [i * 4, (i + 1) * 4],
-            //     [(i + 1) * 4 + 1, i * 4 + 1],
-            // );
             if (upward) {
                 if (i > 0) {
                     stairMesh.softEdges?.push(
@@ -352,7 +308,6 @@ function generateStraightStairMesh(segment: Segment) {
 
 function generatePlatformMesh(segment: Segment) {
     const { stairShape: { vertices } } = segment;
-    // if (endLocked) {
     const vertexLength = vertices.length / 2;
     if (vertexLength === 4 || vertexLength === 5) {
         const platformMesh: KMesh = {
@@ -363,7 +318,6 @@ function generatePlatformMesh(segment: Segment) {
         generatePolygonMesh(vertices, platformMesh);
         segment.mesh = platformMesh;
     }
-    // }
 
     return undefined;
 }
@@ -429,10 +383,6 @@ export function buildComponentInstance(segment: Segment, segments: Segment[], pa
         const newShell = design.createShellFromMesh(mesh)?.newShell;
         operationSuccess = operationSuccess && !!newShell;
         if (newShell) {
-            // if (param.type !== ComponentType.CircularStair) {
-            //     const softEdges = newShell.getEdges().filter(e => e.isSoft());
-            //     operationSuccess = operationSuccess && design.removeEdges(softEdges).isSuccess;
-            // }
 
             const newInstance = design.makeGroup(newShell.getFaces(), [], [])?.addedInstance;
             operationSuccess = operationSuccess && !!newInstance;
@@ -444,8 +394,6 @@ export function buildComponentInstance(segment: Segment, segments: Segment[], pa
                 }
                 const materialObject = param.type === ComponentType.Platform ? PresetMaterials.Platform : PresetMaterials.Stair;
                 operationSuccess = operationSuccess && design.assignMaterialForEntities([newInstance], materialObject.materialId, materialObject.bgId);
-                // operationSuccess = operationSuccess && groupDef.setCustomProperty(ComponentIndexKey, `${newInstances.length}`).isSuccess;
-                // newInstances.push(newInstance);
                 const paramString = stringifyComponentParam(param);
                 operationSuccess = operationSuccess && groupDef.setCustomProperty(ComponentParamKey, paramString).isSuccess;
                 if (param.material) {
@@ -454,8 +402,6 @@ export function buildComponentInstance(segment: Segment, segments: Segment[], pa
                 }
                 const startEndString = stringifyStartEnd(GeomLib.createPoint3d(start.x, start.y, startHeight), GeomLib.createPoint3d(end.x, end.y, endHeight));
                 operationSuccess = operationSuccess && groupDef.setCustomProperty(StartEndKey, startEndString).isSuccess;
-                // if (baseLineSeg3d) {
-                // }
                 if (baseComponent) {
                     const baseLineString = stringifyStartEnd(baseComponent.line3d.start, baseComponent.line3d.end);
                     operationSuccess = operationSuccess && groupDef.setCustomProperty(BaseLineSeg3dKey, baseLineString).isSuccess;
@@ -543,8 +489,6 @@ export async function buildHandrailInstance(stairParam: StairParam, handrails: H
     for (let j = 0; j < handrails.length; j++) {
         const { rail, columns } = handrails[j];
 
-        // }
-        // for (const { rail, columns } of handrails) {
         const railBoundedCurves: KAuxiliaryBoundedCurve[] = [];
         for (let i = 0; i < rail.length - 1; i++) {
             const railPoint = rail[i];
@@ -694,7 +638,6 @@ export function drawRect(center: KPoint3d, normal: KVector3d, width: number, hei
         const dir1 = p6.subtracted(p5).normalized();
         const toCenterDir1 = DirectionZ.cross(dir1);
         const d1 = p5.distanceTo(p6);
-        // const r1 = d1 / 2 / Math.sin(Math.PI / 6);
         const h1 = d1 / 2 / Math.tan(Math.PI / 6);
         const center1 = m1.added(toCenterDir1.multiplied(h1));
 
@@ -710,7 +653,6 @@ export function drawRect(center: KPoint3d, normal: KVector3d, width: number, hei
         const dir2 = p8.subtracted(p7).normalized();
         const toCenterDir2 = DirectionZ.cross(dir2);
         const d2 = p7.distanceTo(p8);
-        // const r2 = d2 / 2 / Math.sin(Math.PI / 6);
         const h2 = d2 / 2 / Math.tan(Math.PI / 6);
         const center2 = m2.added(toCenterDir2.multiplied(h2));
 
@@ -728,7 +670,6 @@ export function drawRect(center: KPoint3d, normal: KVector3d, width: number, hei
     const coordinate = getCoordinate(normal);
     const coordinateMat = GeomLib.createAlignCCSMatrix4(coordinate.dx, coordinate.dy, coordinate.dz, center);
     const translateMat1 = GeomLib.createTranslationMatrix4(0, -height / 2, 0);
-    // const translateMat2 = GeomLib.createTranslationMatrix4(center.x, center.y, center.z);
     const transformMat = coordinateMat.multiplied(translateMat1);
     points = points.map(p => p.appliedMatrix4(transformMat));
 
@@ -799,7 +740,7 @@ export function changeStairUpward(startSegment: Segment, segments: Segment[], up
             let next: { segment: Segment, verticalDelta: number }[] = [];
             for (const { segment, verticalDelta } of current) {
                 const { startHeight, endHeight } = segment;
-                const upwardFlag = onlyStart ? segment.param.upward : upward;
+                const upwardFlag = (onlyStart && segment !== startSegment) ? segment.param.upward : upward;
                 const endDelta = segment.param.type === ComponentType.Platform ? 0 : Math.abs(endHeight - startHeight) * (upwardFlag ? 1 : -1);
                 segment.startHeight = verticalDelta;
                 segment.endHeight = segment.startHeight + endDelta;
@@ -837,52 +778,22 @@ export function changeStairStep(startSegment: Segment, segments: Segment[], newH
         while (current.length) {
             let next: { segment: Segment, verticalDelta: number }[] = [];
             for (const { segment, verticalDelta } of current) {
-                const { start, end, circleTangent, param: { type, horizontalStep, startWidth, endWidth, upward } } = segment;
-                const stairLength = start.distanceTo(end);
-                const startEndDir = end.subtracted(start).normalized();
+                const { start, end, circleTangent, param: { type, horizontalStep, upward } } = segment;
                 const startEndDistance = start.distanceTo(end);
-                const maxWidth = Math.max(startWidth, endWidth);
                 let newStepCount = 0;
                 if (type === ComponentType.StraightStair) {
-                    newStepCount = Math.ceil(stairLength / horizontalStep);
+                    newStepCount = Math.ceil(startEndDistance / horizontalStep);
                     const lastStepLength = startEndDistance - (newStepCount - 1) * horizontalStep;
                     const validStepCount = (lastStepLength === 0 || lastStepLength > LengthTolerance) ? newStepCount : newStepCount - 1;
                     if (validStepCount < 1 || validStepCount >= StepCountLimit) {
                         return;
                     }
-
                 } else if (type === ComponentType.CircularStair && circleTangent) {
-                    const tangentLeftDir = DirectionZ.cross(circleTangent).normalized();
-                    const endAngle = startEndDir.angleTo(circleTangent, DirectionZ);
-                    const isLeftArc = endAngle > Math.PI;
-                    if (isLeftArc) {
-                        segment.circularSide = CircularSide.Left;
-                    } else {
-                        segment.circularSide = CircularSide.Right;
-                    }
-                    const endComplementaryAngle = isLeftArc ? Math.abs(endAngle - Math.PI / 2 - Math.PI) : Math.abs(endAngle - Math.PI / 2);
-                    const halfChord = startEndDistance / 2;
-                    const radius = halfChord / Math.cos(endComplementaryAngle);
-                    const innerRadius = radius - maxWidth / 2;
-                    if (radius < maxWidth / 2 * 1.2 || innerRadius < horizontalStep / 2 / 0.8) {
-                        return;
-                    }
-                    const horizontalStepAngle = Math.asin(horizontalStep / 2 / innerRadius) * 2;
-                    const circleNormal = isLeftArc ? DirectionZ : DirectionZ.reversed();
-                    const circleCenter = start.added(tangentLeftDir.multiplied(isLeftArc ? radius : -radius));
-                    // const circle = GeomLib.createCircle3dByCenterNormalRadius(circleCenter, circleNormal, radius);
-                    const arc = GeomLib.createArc3dByCenterNormalRadius(circleCenter, circleNormal, radius, start, end);
-                    const arcAngle = arc.arcAngle;
+                    const { horizontalStepAngle, arcAngle } = calculateCircularStair(segment, circleTangent);
                     newStepCount = Math.ceil(arcAngle / horizontalStepAngle);
-                    const lastHorizontalAngle = arcAngle - horizontalStepAngle * (newStepCount - 1);
-                    const validStepCount = (lastHorizontalAngle === 0 || lastHorizontalAngle > AngleTolerance) ? newStepCount : newStepCount - 1;
-                    if (horizontalStepAngle >= arcAngle || horizontalStepAngle >= Math.PI / 2 || validStepCount >= StepCountLimit || validStepCount < 1) {
-                        return;
-                    }
                 }
 
                 const newDeltaHeight = newStepCount * newVerticalStep * (upward ? 1 : -1);
-                // const oldDeltaHeight = endHeight - startHeight;
                 segment.startHeight = verticalDelta;
                 if (type === ComponentType.Platform) {
                     segment.endHeight = verticalDelta;
@@ -914,4 +825,271 @@ export function changeStairStep(startSegment: Segment, segments: Segment[], newH
 
         return [...changedSegments];
     }
+}
+
+
+export function changePlatformLength(startSegment: Segment, segments: Segment[], newPlatformLength: number, bulkChange: boolean, onlyStart: boolean = false) {
+    if (segments.length) {
+        // const platformSegments = segments.filter(seg => seg.param.type === ComponentType.Platform);
+        let current: { segment: Segment, deltaVec: KVector3d }[] = [{ segment: startSegment, deltaVec: dummyVector3d }];
+        const unVisited: Set<Segment> = new Set(segments);
+        const changedSegments: Set<Segment> = new Set();
+        while (current.length) {
+            let next: { segment: Segment, deltaVec: KVector3d }[] = [];
+            for (const { segment, deltaVec } of current) {
+                const { start, end, param: { type, startWidth, platformLength }, baseComponent, nextComponents, moldShape: {tempLines} } = segment;
+                let nextDeltaVec = deltaVec;
+                if (type === ComponentType.Platform) {
+                    const frontDir = end.subtracted(start).normalized();
+                    const deltaPlatformLength = newPlatformLength - platformLength;
+                    nextDeltaVec = deltaVec.added(frontDir.multiplied(deltaPlatformLength));
+                    segment.param.platformLength = newPlatformLength;
+                    if (baseComponent && deltaPlatformLength < 0) {
+                        const { angle, cornerDirectionAngle } = calculatePlatform(segment, baseComponent.line3d);
+                        if (DirectionAngleTolerance < angle && angle < (Math.PI / 2 - cornerDirectionAngle)) {
+                            if (Math.tan(Math.PI / 2 - angle) <= startWidth / 2 / newPlatformLength) {
+                                nextDeltaVec = deltaVec;
+                                segment.param.platformLength = platformLength;
+                            }
+                        } else if (angle > (Math.PI * 3 / 2 + cornerDirectionAngle) && angle < (Math.PI * 2 - DirectionAngleTolerance)) {
+                            if (Math.tan(angle - Math.PI * 3 / 2) <= startWidth / 2 / newPlatformLength) {
+                                nextDeltaVec = deltaVec;
+                                segment.param.platformLength = platformLength;
+                            }
+                        }
+                    }
+                    const edgeNextComponents = nextComponents[tempLines.length - 2];
+                    for (const edgeNextComponent of edgeNextComponents) {
+                        const edgeNextSegment = getSegmentByIndex(segments, edgeNextComponent);
+                        if (edgeNextSegment) {
+                            next.push({ segment: edgeNextSegment, deltaVec: nextDeltaVec });
+                        }
+                    }
+                } else {
+                    const nextSegments = getNextComponents(segment, segments);
+                    if (nextSegments.length) {
+                        next.push(...nextSegments.map(seg => ({ segment: seg, deltaVec: nextDeltaVec })));
+                    }
+                }
+                segment.start = start.added(deltaVec);
+                segment.end = end.added(nextDeltaVec);
+                if (baseComponent) {
+                    baseComponent.line3d.start = baseComponent.line3d.start.added(deltaVec);
+                    baseComponent.line3d.end = baseComponent.line3d.end.added(deltaVec);
+                }
+
+                unVisited.delete(segment);
+
+                changedSegments.add(segment);
+            }
+            current = next;
+
+            if (!current.length) {
+                if (bulkChange && unVisited.size) {
+                    const theSegment = [...unVisited.values()][0];
+                    current = [{ segment: theSegment, deltaVec: dummyVector3d }];
+                }
+            }
+        }
+
+        return [...changedSegments];
+    }
+}
+
+export function changePlatformWidth(startSegment: Segment, segments: Segment[], newWidth: number, bulkChange: boolean, onlyStart: boolean = false) {
+    if (segments.length) {
+        // const platformSegments = segments.filter(seg => seg.param.type === ComponentType.Platform);
+        let current: { segment: Segment, deltaVec: KVector3d }[] = [{ segment: startSegment, deltaVec: dummyVector3d }];
+        const unVisited: Set<Segment> = new Set(segments);
+        const changedSegments: Set<Segment> = new Set();
+        while (current.length) {
+            let next: { segment: Segment, deltaVec: KVector3d }[] = [];
+            for (const { segment, deltaVec } of current) {
+                const { start, end, param: { type, startWidth, platformLength }, baseComponent, nextComponents, moldShape: { vertices, tempLines } } = segment;
+                if (type === ComponentType.Platform && (onlyStart ? segment === startSegment : true)) {
+                    const deltaWidth = newWidth - startWidth;
+                    let shouldChange = true;
+                    const edgeCount = tempLines.length;
+                    if (baseComponent && deltaWidth > 0) {
+                        const { angle, cornerDirectionAngle, leftConnectPoints, rightConnectPoints } = calculatePlatform(segment, baseComponent.line3d);
+                        if (DirectionAngleTolerance < angle && angle < (Math.PI / 2 - cornerDirectionAngle)) {
+                            if (Math.tan(Math.PI / 2 - angle) <= newWidth / 2 / platformLength) {
+                                shouldChange = false;
+                            } else if (edgeCount !== (leftConnectPoints.length + 3)) {
+                                shouldChange = false;
+                            }
+                        } else if (angle > (Math.PI * 3 / 2 + cornerDirectionAngle) && angle < (Math.PI * 2 - DirectionAngleTolerance)) {
+                            if (Math.tan(angle - Math.PI * 3 / 2) <= newWidth / 2 / platformLength) {
+                                shouldChange = false;
+                            } else if (edgeCount !== (rightConnectPoints.length + 3)) {
+                                shouldChange = false;
+                            }
+                        }
+                    }
+                    if (shouldChange) {
+                        const oldVertices = [...vertices];
+                        segment.param.startWidth = newWidth;
+                        segment.param.endWidth = newWidth;
+                        generateShape(segment);
+                        const newVertices = segment.moldShape.vertices;
+                        for (let i = 0; i < edgeCount; i++) {
+                            const edgeNextComponents = nextComponents[i];
+                            const oldEdgeStart = oldVertices[tempLines[i][0]];
+                            const oldEdgeEnd = oldVertices[tempLines[i][1]];
+                            const oldEdgeLength = oldEdgeStart.distanceTo(oldEdgeEnd);
+                            const oldEdgeDir = oldEdgeEnd.subtracted(oldEdgeStart).normalized();
+                            const oldEdgeCenter = getMidPoint(oldEdgeStart, oldEdgeEnd);
+
+                            const newEdgeStart = newVertices[tempLines[i][0]];
+                            const newEdgeEnd = newVertices[tempLines[i][1]];
+                            const newEdgeDir = newEdgeEnd.subtracted(newEdgeStart).normalized();
+
+                            const newEdgeCenter = getMidPoint(newEdgeStart, newEdgeEnd);
+                            const centerDeltaDir = newEdgeCenter.subtracted(oldEdgeCenter);
+                            for (const edgeNextComponent of edgeNextComponents) {
+                                const edgeNextSegment = getSegmentByIndex(segments, edgeNextComponent);
+                                if (edgeNextSegment) {
+                                    const toCenterDir = oldEdgeCenter.subtracted(edgeNextSegment.start);
+                                    if (isEqual(toCenterDir.length, 0)) {
+                                        next.push({ segment: edgeNextSegment, deltaVec: deltaVec.added(centerDeltaDir) });
+                                    } else if (toCenterDir.isSameDirection(oldEdgeDir)) {
+                                        next.push({ segment: edgeNextSegment, deltaVec: deltaVec.added(centerDeltaDir).added(newEdgeDir.multiplied(-toCenterDir.length / oldEdgeLength * 2)) });
+                                    } else {
+                                        next.push({ segment: edgeNextSegment, deltaVec: deltaVec.added(centerDeltaDir).added(newEdgeDir.multiplied(toCenterDir.length / oldEdgeLength * 2)) });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    const nextSegments = getNextComponents(segment, segments);
+                    if (nextSegments.length) {
+                        next.push(...nextSegments.map(seg => ({ segment: seg, deltaVec })));
+                    }
+                }
+                segment.start = start.added(deltaVec);
+                segment.end = end.added(deltaVec);
+                if (baseComponent) {
+                    baseComponent.line3d.start = baseComponent.line3d.start.added(deltaVec);
+                    baseComponent.line3d.end = baseComponent.line3d.end.added(deltaVec);
+                }
+
+                unVisited.delete(segment);
+                changedSegments.add(segment);
+            }
+            current = next;
+
+            if (!current.length) {
+                if (bulkChange && unVisited.size) {
+                    const theSegment = [...unVisited.values()][0];
+                    current = [{ segment: theSegment, deltaVec: dummyVector3d }];
+                }
+            }
+        }
+
+        return [...changedSegments];
+    }
+}
+
+export function calculateCircularStair(segment: Segment, circleTangent: KVector3d) {
+    const { start, end, param } = segment;
+    const { startWidth, endWidth, horizontalStep, } = param;
+
+    let valid = true;
+
+    const tangentLeftDir = DirectionZ.cross(circleTangent).normalized();
+    const startEndDir = end.subtracted(start).normalized();
+    const startEndDistance = start.distanceTo(end);
+    const maxWidth = Math.max(startWidth, endWidth);
+    const endAngle = startEndDir.angleTo(circleTangent, DirectionZ);
+
+    const isLeftArc = endAngle > Math.PI;
+    if (isLeftArc) {
+        segment.circularSide = CircularSide.Left;
+    } else {
+        segment.circularSide = CircularSide.Right;
+    }
+    const endComplementaryAngle = isLeftArc ? Math.abs(endAngle - Math.PI / 2 - Math.PI) : Math.abs(endAngle - Math.PI / 2);
+    const halfChord = startEndDistance / 2;
+    const radius = halfChord / Math.cos(endComplementaryAngle);
+    const innerRadius = radius - maxWidth / 2;
+    if (radius < maxWidth / 2 * 1.2 || innerRadius < horizontalStep / 2 / 0.8) {
+        valid = false;
+    }
+    const horizontalStepAngle = Math.asin(horizontalStep / 2 / radius) * 2;
+    const circleNormal = isLeftArc ? DirectionZ : DirectionZ.reversed();
+    const circleCenter = start.added(tangentLeftDir.multiplied(isLeftArc ? radius : -radius));
+    const arc = GeomLib.createArc3dByCenterNormalRadius(circleCenter, circleNormal, radius, start, end);
+    const arcAngle = arc.arcAngle;
+    const stepCount = Math.ceil(arcAngle / horizontalStepAngle);
+    const lastHorizontalAngle = arcAngle - horizontalStepAngle * (stepCount - 1);
+    const validStepCount = (lastHorizontalAngle === 0 || lastHorizontalAngle > AngleTolerance) ? stepCount : stepCount - 1;
+    if (horizontalStepAngle >= arcAngle || horizontalStepAngle >= Math.PI / 2 || validStepCount >= StepCountLimit || validStepCount < 1) {
+        valid = false;
+    }
+
+    return { 
+        tangentLeftDir, validStepCount, isLeftArc, stepCount, circleCenter, radius, horizontalStepAngle, circleNormal, arcAngle, lastHorizontalAngle, 
+        innerRadius, endAngle, valid,
+     }
+}
+
+export function calculatePlatform(segment: Segment, baseLineSeg3d: { start: KPoint3d; end: KPoint3d; }) {
+    const { start, param } = segment;
+    const { startWidth, platformLength, platformLengthLocked } = param;
+
+    const curDir = segment.end.subtracted(start);
+    const curLeftDir = DirectionZ.cross(curDir).normalized();
+    const { start: baseLineStart, end: baseLineEnd } = baseLineSeg3d;
+    const baseLineDir = baseLineEnd.subtracted(baseLineStart).normalized();
+
+    const prevDirNormalized = baseLineDir.cross(DirectionZ).normalized();
+    const prevLeftDir = DirectionZ.cross(prevDirNormalized).normalized();
+    const angle = curDir.angleTo(prevDirNormalized, DirectionZ);
+    const frontLength = platformLengthLocked ? platformLength : Math.abs(curDir.dot(prevDirNormalized));
+
+    const curEndLeftCorner = segment.end.added(curLeftDir.multiplied(startWidth / 2));
+    const cornerDirection = curEndLeftCorner.subtracted(segment.start);
+    const cornerDirectionAngle = cornerDirection.angle(curDir);
+
+    let leftConnectPoints: KPoint3d[] = [start.added(curLeftDir.multiplied(startWidth / 2)), baseLineEnd];
+    let rightConnectPoints: KPoint3d[] = [baseLineStart, start.added(curLeftDir.multiplied(-startWidth / 2))];
+    if (DirectionAngleTolerance < angle && angle < (Math.PI / 2 - cornerDirectionAngle)) {
+        // segment.componentDirectionType = ComponentDirectionType.RightFront;
+        // param.platformLength = segment.end.distanceTo(segment.start);
+
+        const baseLineEndDistance = start.distanceTo(baseLineEnd);
+        const leftProjectDistance = startWidth / 2 * Math.cos(angle);
+        if (leftProjectDistance < baseLineEndDistance) {
+            const l1 = startWidth / 2 / Math.cos(angle);
+            if (l1 > baseLineEndDistance) {
+                const a1 = l1 - baseLineEndDistance;
+                const c1 = a1 / Math.tan(angle);
+                leftConnectPoints = [start.added(prevLeftDir.multiplied(baseLineEndDistance)).added(prevDirNormalized.multiplied(c1)), start.added(prevLeftDir.multiplied(baseLineEndDistance))];
+            } else {
+                leftConnectPoints = [start.added(prevLeftDir.multiplied(l1))];
+            }
+        }
+    } else if (angle > (Math.PI * 3 / 2 + cornerDirectionAngle) && angle < (Math.PI * 2 - DirectionAngleTolerance)) {
+        // segment.componentDirectionType = ComponentDirectionType.LeftFront;
+        // param.platformLength = segment.end.distanceTo(segment.start);
+        const baseLineStartDistance = start.distanceTo(baseLineStart);
+        const rightProjectDistance = startWidth / 2 * Math.cos(angle);
+        if (rightProjectDistance < baseLineStartDistance) {
+            const l2 = startWidth / 2 / Math.cos(angle);
+            if (l2 > baseLineStartDistance) {
+                const a2 = l2 - baseLineStartDistance;
+                const c2 = a2 / Math.tan(Math.PI * 2 - angle);
+                rightConnectPoints = [start.added(prevLeftDir.multiplied(-baseLineStartDistance)), start.added(prevLeftDir.multiplied(-baseLineStartDistance)).added(prevDirNormalized.multiplied(c2))];
+            } else {
+                rightConnectPoints = [start.added(prevLeftDir.multiplied(-l2))];
+            }
+        }
+    }
+
+    return { angle, frontLength, cornerDirectionAngle, prevDirNormalized, prevLeftDir, leftConnectPoints, rightConnectPoints };
+}
+
+export function getMidPoint(start: KPoint3d, end: KPoint3d) {
+    return GeomLib.createPoint3d((start.x + end.x) / 2, (start.y + end.y) / 2, (start.z + end.z) / 2)
 }

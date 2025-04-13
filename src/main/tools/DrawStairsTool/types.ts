@@ -243,6 +243,7 @@ export interface ComponentParam {
     stepProportional?: boolean;
     widthProportional?: boolean;
     platformLengthLocked?: boolean;
+    // draw over
     modelEditing?: boolean;
 
     // stepType: StepType;
@@ -308,8 +309,8 @@ export function getDefaultStairParam(): StairParam {
             },
         },
 
-        stepProportional: true,
-        widthProportional: true,
+        stepProportional: DefaultStairParam.stepProportional,
+        widthProportional: DefaultStairParam.widthProportional,
     }
 }
 
@@ -326,7 +327,7 @@ export const DefaultComponentParam: ComponentParam = {
     upward: DefaultStairParam.upward,
     platformThickness: DefaultStairParam.platformThickness,
 
-    stepProportional: DefaultStairParam.stepProportional,
+    stepProportional: true,
     widthProportional: true,
     platformLengthLocked: false,
 

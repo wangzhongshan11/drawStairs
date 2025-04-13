@@ -1,7 +1,7 @@
-import { ComponentDirectionType, ComponentParam, ComponentType, DefaultComponentParam, DefaultStairParam, Segment } from "./types";
+import { ComponentDirectionType, ComponentParam, ComponentType, DefaultComponentParam, DefaultStairParam, PresetMaterials, Segment } from "./types";
 
 export const dummyMatrix4 = GeomLib.createIdentityMatrix4();
-export const dummyVector3d = GeomLib.createVector3d(0, 0, 1);
+export const dummyVector3d = GeomLib.createVector3d(0, 0, 0);
 export const dummyPoint3d = GeomLib.createPoint3d(0, 0, 0);
 export const DirectionX = GeomLib.createVector3d(1, 0, 0);
 export const DirectionY = GeomLib.createVector3d(0, 1, 0);
@@ -10,7 +10,7 @@ export const DirectionZ = GeomLib.createVector3d(0, 0, 1);
 // const HeightTolerance: number = 5;
 export const LengthTolerance: number = 2;
 export const DirectionAngleTolerance = Math.PI / 36;
-export const AngleTolerance = Math.PI / 180;
+export const AngleTolerance = Math.PI / 180 / 5;
 export const StepCountLimit = 100;
 // const DefaultBoardThickness = 50;
 
@@ -25,6 +25,10 @@ export const TempLinePatterns = {
     Handrail: KLinePattern.Dash,
     StairAndMold: KLinePattern.Solid,
     Inference: KLinePattern.Dash,
+}
+
+export const CacheSettings = {
+    stairType: ComponentType.StraightStair,
 }
 
 export function getNewComponentParam(type: ComponentType, baseSegment?: Segment, upward?: boolean): ComponentParam {
@@ -59,8 +63,10 @@ export function getNewComponentParam(type: ComponentType, baseSegment?: Segment,
         platformLengthLocked: false,
     };
 }
+
 export function getNewSegment(type: ComponentType, baseSegment?: Segment, upward?: boolean): Segment {
     const param = getNewComponentParam(type, baseSegment, upward);
+    param.material = type === ComponentType.Platform ? PresetMaterials.Platform : PresetMaterials.Stair;
     return {
         start: dummyPoint3d,
         end: dummyPoint3d,

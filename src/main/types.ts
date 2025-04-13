@@ -1,5 +1,8 @@
 export enum MessageType {
     DrawStairViewMounted = 'drawStairViewMounted',
+    PropertiesVisible = 'propertiesVisible',
+
+    DrawStairModelSettled = 'drawStairModelSettled',
 
     StairParamChangedByInput = 'stairParamChangedByInput',
     StairParamChangedByDraw = 'stairParamChangedByDraw',
@@ -7,10 +10,10 @@ export enum MessageType {
     ParamChangedByInput = 'paramChangedByInput',
     ParamChangedByDraw = 'paramChangedByDraw',
     ComponentAdded = 'componentAdded',
-    DrawStairModelSettled = 'drawStairModelSettled',
-    PropertiesVisible = 'propertiesVisible',
-    FocusComponentIndex = 'focusComponentIndex',
     RemoveComponent = 'removeComponent',
+    FocusComponentIndex = 'focusComponentIndex',
+    FocusComponentIndexByDraw = 'focusComponentIndexByDraw',
+
     MaterialReplaceClick = 'materialReplaceClick',
 
     ActivateDrawStairsTool = 'activateDrawStairsTool',

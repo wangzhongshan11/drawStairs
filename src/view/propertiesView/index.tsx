@@ -1,6 +1,6 @@
 import * as React from 'react'
 import "./index.css";
-import { ColumnType, ComponentParam, ComponentParamType, MaterialAssignType, RailType, StairParam, getComponentTitle } from '../../main/tools/DrawStairsTool/types';
+import { ColumnType, ComponentParam, ComponentParamType, ComponentType, MaterialAssignType, RailType, StairParam, getComponentTitle } from '../../main/tools/DrawStairsTool/types';
 import { ImmutableMap } from './ImmutableMap';
 import { Tabs } from 'antd';
 import PropertyContent from './PropertyContent';
@@ -39,23 +39,12 @@ export default class PropertiesView extends React.Component<{}, State> {
             const newComponentParam = componentParam ? newComponentParams.get(componentParam.index) : componentParam;
             this.setState({ stairParam: messageData.stairParam, componentParams: newComponentParams, componentParam: newComponentParam });
         } else if (messageData.type === MessageType.ParamChangedByDraw) {
-            // if (messageData.newStair) {
-            //     const a = new ImmutableMap(new Map([[messageData.componentParam.index, messageData.componentParam]]));
-            //     this.setState({
-            //         componentParams: a,
-            //         componentParam: messageData.componentParam,
-            //         activeKey: messageData.componentParam.index.toString(),
-            //         propertiesVisible: true,
-            //     });
-            //     console.log('newStair');
-            // } else {
             const newComponentParams = componentParams.set(messageData.componentParam.index, messageData.componentParam);
             this.setState({
                 componentParams: newComponentParams,
                 componentParam: componentParam ? (messageData.componentParam.index === componentParam.index ? messageData.componentParam : componentParam) : messageData.componentParam,
                 stairParam: messageData.stairParam || stairParam,
             });
-            // }
         } else if (messageData.type === MessageType.ComponentAdded) {
             const newComponentParams = componentParams.set(messageData.componentParam.index, messageData.componentParam);
             this.setState({
@@ -72,30 +61,36 @@ export default class PropertiesView extends React.Component<{}, State> {
                 }
 
                 const theComponentParams = new ImmutableMap(componentParamMap);
-                const componentParam = [...componentParamMap.values()][0];
+                const activeKey = messageData.focusedComponentIndex || messageData.componentParams[0].index;
+                const componentParam = theComponentParams.get(activeKey) || messageData.componentParams[0];
                 this.setState({
                     componentParams: theComponentParams,
                     componentParam,
                     stairParam: messageData.stairParam,
-                    activeKey: componentParam.index.toString(),
+                    activeKey: activeKey.toString(),
                     propertiesVisible: true,
                     isDrawing: !!messageData.isDrawing,
                     materialAssignType: undefined,
                 });
             } else {
-                this.setState({ 
-                    componentParams: new ImmutableMap(), 
-                    componentParam: undefined, 
-                    activeKey: '0', 
-                    propertiesVisible: true, 
+                this.setState({
+                    componentParams: new ImmutableMap(),
+                    componentParam: undefined,
+                    activeKey: '0',
+                    propertiesVisible: true,
                     isDrawing: !!messageData.isDrawing,
                     materialAssignType: undefined,
-                 });
+                });
             }
         } else if (messageData?.type === MessageType.PropertiesVisible) {
             this.setState({ propertiesVisible: messageData.propertiesVisible, materialAssignType: undefined });
         } else if (messageData?.type === MessageType.LeaveDrawStairsTool) {
             this.setState({ componentParams: new ImmutableMap(), componentParam: undefined, activeKey: '0', materialAssignType: undefined });
+        } else if (messageData?.type === MessageType.FocusComponentIndexByDraw) {
+            this.setState({
+                componentParam: componentParams.get(messageData.focusedComponentIndex),
+                activeKey: messageData.focusedComponentIndex.toString(),
+            });
         }
     }
 
@@ -111,20 +106,165 @@ export default class PropertiesView extends React.Component<{}, State> {
     private onTabsEdit = (e: React.MouseEvent | React.KeyboardEvent | string, action: 'add' | 'remove') => {
         if (action === 'remove' && typeof e === 'string') {
             const index = parseInt(e);
-            const { componentParams, componentParam, activeKey } = this.state;
+            const { componentParams } = this.state;
             const theParam = componentParams.get(index);
-            if (!theParam?.modelEditing) {
+            const oldComponentParams = [...componentParams.values()];
+            const theInd = oldComponentParams.findIndex(param => param.index === index);
+            if (!theParam?.modelEditing || theInd < 0) {
                 return;
             }
             // const index = parseInt(activeKey);
             const newComponentParams = componentParams.delete(index);
             window.parent.postMessage({ type: MessageType.RemoveComponent, componentIndex: index }, '*');
             const newParams = [...newComponentParams.values()];
+            const newComponentParam = theInd >= newParams.length ? (newParams.length ? newParams[0] : undefined) : newParams[theInd];
+            const newActiveKey = (newComponentParam?.index || 0).toString();
             this.setState({
                 componentParams: newComponentParams,
-                activeKey: newComponentParams.size ? (activeKey === e ? newParams[newParams.length - 1].index.toString() : activeKey) : '0',
-                componentParam: newComponentParams.size ? (activeKey === e ? newParams[newParams.length - 1] : componentParam) : undefined,
+                activeKey: newActiveKey,
+                componentParam: newComponentParam,
             });
+        }
+    }
+
+    private getOnChange = (componentParamType: ComponentParamType) => {
+        return (value: number | string) => {
+            const { componentParam, componentParams } = this.state;
+            if (componentParam) {
+                const newComponentParam = { ...componentParam };
+                if (newComponentParam.type === ComponentType.Platform && componentParamType === ComponentParamType.StartWidth) {
+                    const { startWidth, offsetWidth } = newComponentParam;
+                    const newWidth = value as number;
+                    if (newWidth === (startWidth + Math.abs(offsetWidth))) {
+                        return;
+                    }
+                    const delta = newWidth - startWidth;
+                    if (delta <= 0 || offsetWidth === 0) {
+                        newComponentParam.startWidth += delta;
+                        newComponentParam.endWidth += delta;
+                        newComponentParam.offsetWidth = 0;
+                    } else {
+                        newComponentParam.offsetWidth = offsetWidth > 0 ? delta : -delta;
+                    }
+                } else {
+                    if (value === (newComponentParam as any)[componentParamType]) {
+                        return;
+                    }
+                    if (componentParamType === ComponentParamType.PlatformLength) {
+                        newComponentParam.platformLengthLocked = true;
+                    } else if (componentParamType === ComponentParamType.Type) {
+                        if (value === ComponentType.Platform) {
+                            if (newComponentParam.type !== ComponentType.Platform) {
+                                newComponentParam.startWidth = 4 * newComponentParam.startWidth;
+                                newComponentParam.endWidth = newComponentParam.startWidth;
+                            }
+                        } else {
+                            if (newComponentParam.type === ComponentType.Platform) {
+                                newComponentParam.startWidth = newComponentParam.startWidth / 4;
+                                newComponentParam.endWidth = newComponentParam.startWidth;
+                            }
+                        }
+                    }
+
+                    if (value !== undefined) {
+                        (newComponentParam as any)[componentParamType] = value;
+                    }
+                }
+                window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam: newComponentParam, changeParams: [componentParamType] }, '*');
+                const newComponentParams = componentParams.set(newComponentParam.index, newComponentParam);
+                this.setState({ componentParam: newComponentParam, componentParams: newComponentParams });
+            }
+        }
+    }
+
+
+    private getOnLockChange = (componentParamType: ComponentParamType) => {
+        return () => {
+            const { componentParam, componentParams } = this.state;
+            if (componentParam) {
+                const newComponentParam = { ...componentParam };
+                if (componentParamType === ComponentParamType.PlatformLengthLocked) {
+                    newComponentParam.platformLengthLocked = !newComponentParam.platformLengthLocked;
+                } else if (componentParamType === ComponentParamType.WidthProportional) {
+                    newComponentParam.widthProportional = !newComponentParam.widthProportional;
+                } else if (componentParamType === ComponentParamType.StepProportional) {
+                    newComponentParam.stepProportional = !newComponentParam.stepProportional;
+                }
+                window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam: newComponentParam, changeParams: [componentParamType] }, '*');
+                const newComponentParams = componentParams.set(newComponentParam.index, newComponentParam);
+                this.setState({ componentParam: newComponentParam, componentParams: newComponentParams });
+            }
+        }
+    }
+
+    private getOnArrayChange = (componentParamTypes: ComponentParamType[]) => {
+        return (values: number[]) => {
+            const { componentParam, componentParams } = this.state;
+            if (componentParam) {
+                const newComponentParam = { ...componentParam };
+                let changed = false;
+                for (let i = 0; i < componentParamTypes.length; i++) {
+                    const componentParamType = componentParamTypes[i];
+                    if (values[i] !== (newComponentParam as any)[componentParamType]) {
+                        (newComponentParam as any)[componentParamType] = values[i];
+                        changed = true;
+                    }
+                }
+                if (changed) {
+                    window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam: newComponentParam, changeParams: componentParamTypes }, '*');
+                    const newComponentParams = componentParams.set(newComponentParam.index, newComponentParam);
+                    this.setState({ componentParam: newComponentParam, componentParams: newComponentParams });                }
+            }
+        }
+    }
+
+    private getOnChangeOverall = (componentParamType: ComponentParamType) => {
+        return (value: number | string) => {
+            const { stairParam } = this.state;
+            if (stairParam) {
+                if (value === (stairParam as any)[componentParamType]) {
+                    return;
+                }
+                (stairParam as any)[componentParamType] = value;
+                window.parent.postMessage({ type: MessageType.StairParamChangedByInput, stairParam, changeParams: [componentParamType] }, '*');
+                this.setState({ stairParam: { ...stairParam } });
+            }
+        }
+    }
+
+
+    private getOnLockChangeOverall = (componentParamType: ComponentParamType) => {
+        return () => {
+            const { stairParam } = this.state;
+            if (stairParam) {
+                if (componentParamType === ComponentParamType.StepProportional) {
+                    stairParam.stepProportional = !stairParam.stepProportional;
+                } if (componentParamType === ComponentParamType.WidthProportional) {
+                    stairParam.widthProportional = !stairParam.widthProportional;
+                }
+                window.parent.postMessage({ type: MessageType.StairParamChangedByInput, stairParam, changeParams: [componentParamType] }, '*');
+                this.setState({ stairParam: { ...stairParam } });
+            }
+        }
+    }
+
+    private getOnArrayChangeOverall = (componentParamTypes: ComponentParamType[]) => {
+        return (values: number[]) => {
+            const { stairParam } = this.state;
+            if (stairParam) {
+                let changed = false;
+                for (let i = 0; i < componentParamTypes.length; i++) {
+                    const componentParamType = componentParamTypes[i];
+                    if (values[i] !== (stairParam as any)[componentParamType]) {
+                        (stairParam as any)[componentParamType] = values[i];
+                        changed = true;
+                    }
+                }
+                if (changed) {
+                    window.parent.postMessage({ type: MessageType.StairParamChangedByInput, stairParam, changeParams: componentParamTypes }, '*');
+                    this.setState({ stairParam: { ...stairParam } });
+                }
+            }
         }
     }
 
@@ -186,7 +326,6 @@ export default class PropertiesView extends React.Component<{}, State> {
             }
         }
     }
-
 
     private getOnMaterialReplaceClick = (componentParamType: ComponentParamType, index?: number) => {
         return () => {
@@ -274,6 +413,12 @@ export default class PropertiesView extends React.Component<{}, State> {
                         stairParam={stairParam}
                         isDrawing={isDrawing}
                         materialAssignType={materialAssignType}
+                        getOnChange={this.getOnChange}
+                        getOnArrayChange={this.getOnArrayChange}
+                        getOnLockChange={this.getOnLockChange}
+                        getOnChangeOverall={this.getOnChangeOverall}
+                        getOnLockChangeOverall={this.getOnLockChangeOverall}
+                        getOnArrayChangeOverall={this.getOnArrayChangeOverall}
                         getOnMaterialReplaceClick={this.getOnMaterialReplaceClick}
                         getOnMaterialDeleteClick={this.getOnMaterialDeleteClick}
                     />

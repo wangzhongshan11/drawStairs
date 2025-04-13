@@ -1,6 +1,6 @@
 import { drawStairsTool } from "./index";
 import { DirectionX, DirectionY, DirectionZ } from "./consts";
-import { ColumnType, ComponentParam, CoordDelimiter, DefaultComponentParam, Delimiter, EditModel, getDefaultStairParam, MaterialType, RailType, Segment, StairParam } from "./types";
+import { ColumnType, ComponentParam, CoordDelimiter, DefaultComponentParam, DefaultStairParam, Delimiter, EditModel, getDefaultStairParam, MaterialType, RailType, Segment, StairParam } from "./types";
 
 export function isKArchFace(entity: KEntity | KArchFace | undefined | null): entity is KArchFace {
     return !!entity && (entity.getType() === KArchFaceType.NonPlanar || entity.getType() === KArchFaceType.Planar);
@@ -138,8 +138,8 @@ export function parseStairParam(value: string) {
             }
         }
     }
-    param.stepProportional = true;
-    param.widthProportional = true;
+    param.stepProportional = DefaultStairParam.stepProportional;
+    param.widthProportional = DefaultStairParam.widthProportional;
     return param;
 }
 
@@ -178,10 +178,11 @@ export function parseComponentParam(value: string) {
             }
         }
     }
-    param.stepProportional = true;
-    param.widthProportional = true;
+    param.stepProportional = DefaultComponentParam.stepProportional;
+    param.widthProportional = DefaultComponentParam.widthProportional;
     param.platformLengthLocked = true;
     param.modelEditing = true;
+    param.withOffset = !isEqual(param.offsetWidth, 0);
     return param;
 }
 
