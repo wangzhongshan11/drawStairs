@@ -32,8 +32,8 @@ export const CacheSettings = {
 }
 
 export function getNewComponentParam(type: ComponentType, baseSegment?: Segment, upward?: boolean): ComponentParam {
-    let startWidth = DefaultStairParam.startWidth * (type === ComponentType.Platform ? 4 : 1);
-    let endWidth = DefaultStairParam.endWidth * (type === ComponentType.Platform ? 4 : 1);
+    let startWidth = DefaultStairParam.startWidth * (type === ComponentType.Platform ? 3 : 1);
+    let endWidth = DefaultStairParam.endWidth * (type === ComponentType.Platform ? 3 : 1);
     if (baseSegment) {
         const { param: { endWidth: baseSegmentEndWidth, type: baseSegmentType } } = baseSegment;
         if (type === ComponentType.Platform) {
@@ -41,8 +41,8 @@ export function getNewComponentParam(type: ComponentType, baseSegment?: Segment,
                 startWidth = baseSegmentEndWidth;
                 endWidth = baseSegmentEndWidth;
             } else {
-                startWidth = 4 * baseSegmentEndWidth;
-                endWidth = 4 * baseSegmentEndWidth;
+                startWidth = 3 * baseSegmentEndWidth;
+                endWidth = 3 * baseSegmentEndWidth;
             }
         } else {
             if (baseSegmentType !== ComponentType.Platform) {

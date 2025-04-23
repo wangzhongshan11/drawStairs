@@ -42,10 +42,11 @@ const tools: ToolItem[] = [
 
 interface State {
     activeToolKey?: string;
+    propertiesVisible: boolean;
 }
 
 export default class ToolView extends React.Component<{}, State> {
-    state: Readonly<State> = { activeToolKey: undefined };
+    state: Readonly<State> = { activeToolKey: undefined, propertiesVisible: false };
 
     componentDidMount(): void {
         window.addEventListener("message", this.onMessage);
@@ -59,6 +60,8 @@ export default class ToolView extends React.Component<{}, State> {
         const messageData = event.data;
         if (messageData?.type === MessageType.LeaveDrawStairsTool || (messageData?.type === MessageType.DrawStairModelSettled && !messageData.newStair)) {
             this.setState({ activeToolKey: undefined });
+        } else if (messageData?.type === MessageType.PropertiesVisible) {
+            this.setState({ propertiesVisible: messageData.propertiesVisible });
         }
     }
 
@@ -74,7 +77,7 @@ export default class ToolView extends React.Component<{}, State> {
     }
 
     render() {
-        const { activeToolKey } = this.state;
+        const { activeToolKey, propertiesVisible } = this.state;
         return <>
             <div className='tools-wrapper'>
                 {tools.map((toolItem, index) => {
@@ -87,14 +90,14 @@ export default class ToolView extends React.Component<{}, State> {
                             >
                                 <svg className={`svg-icon`} >
                                     <use xlinkHref={`#${toolItem.icon}`} />
-                                </svg>
+                                </svg>                                
                             </button>
                         </Tooltip>
 
                     </div>
                 })}
             </div>
-            <Divider style={{ borderColor: 'black', margin: '6px 0' }}>{activeToolKey ? "阶梯参数" : "使用教程"}</Divider>
+            <Divider style={{ borderColor: 'black', margin: '6px 0' }}>{activeToolKey || propertiesVisible ? "阶梯参数" : "使用教程"}</Divider>
         </>
     }
 }

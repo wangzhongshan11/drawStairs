@@ -198,7 +198,6 @@ export default class HandrailProperty extends React.Component<Props, State> {
                             min={ComponentParamSettings[ComponentParamType.Handrail].column.step.min}
                             max={ComponentParamSettings[ComponentParamType.Handrail].column.step.max}
                             step={ComponentParamSettings[ComponentParamType.Handrail].column.step.step}
-
                             // disabled={disabled}
                             onChange={this.getOnChange(ComponentParamType.HandrailColumnStep)?.bind(this)}
                         />

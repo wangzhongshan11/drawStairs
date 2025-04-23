@@ -291,6 +291,7 @@ export function commitOperation() {
 }
 
 export function abortOperation() {
+    debugger
     app.getActiveDesign().abortOperation();
     isInOperation = false;
 }
