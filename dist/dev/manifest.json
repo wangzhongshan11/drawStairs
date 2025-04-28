@@ -1,6 +1,6 @@
 {
-    "name": "drawStairs",
-    "id": "QyJDUjPlZWSNIBm",
+    "name": "阶梯绘制工具",
+    "id": "pzqVymiWapJcgJt",
     "version": "1.0.0",
     "view": "http://localhost:8082/ui.html",
     "main": "./src/main.js",
