@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Tooltip } from 'antd';
 import "./index.css";
 import "../assets/drawStairs.svg";
-import { ComponentType } from '../../main/tools/DrawStairsTool/types';
+import { ComponentType } from '../../main/tools/drawStairsTool/types';
 import { Divider } from 'antd';
 import { MessageType } from '../../main/types';
 
@@ -97,7 +97,7 @@ export default class ToolView extends React.Component<{}, State> {
                     </div>
                 })}
             </div>
-            <Divider style={{ borderColor: 'black', margin: '6px 0' }}>{activeToolKey || propertiesVisible ? "阶梯参数" : "使用教程"}</Divider>
+            <Divider style={{ borderColor: 'black', margin: '6px 0' }}>{activeToolKey || propertiesVisible ? "参数样式" : "使用教程"}</Divider>
         </>
     }
 }

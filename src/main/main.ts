@@ -1,5 +1,5 @@
-import { drawStairsTool } from "./tools/DrawStairsTool/index";
-import { isKGroupInstance, isPartOfEditModel, onModelChanged } from "./tools/DrawStairsTool/utils";
+import { drawStairsTool } from "./tools/drawStairsTool/index";
+import { isKGroupInstance, isPartOfEditModel, onModelChanged } from "./tools/drawStairsTool/utils";
 import { MessageType } from "./types";
 
 const pluginUI = app.getPluginUI();
@@ -40,6 +40,7 @@ async function onUIMessage(data: any) {
             // }
         } else if (data.type === MessageType.MaterialReplaceClick) {
             // if (activatedCustomTool === drawStairsTool) {
+            console.log('onMaterialReplaceClick')
             drawStairsTool.onMaterialReplaceClick(data.changeParam, data.index);
             // }
         }

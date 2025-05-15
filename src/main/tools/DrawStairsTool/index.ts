@@ -13,8 +13,8 @@ import {
     startOperation, abortOperation, commitOperation, isPartOfEditModel
 } from "./utils";
 import { CacheSettings, getNewComponentParam, getNewSegment, TempLineColors, TempLinePatterns } from "./consts";
-import { deActivateDrawStairsTool } from "../../../main/main";
-import { MessageType } from "../../../main/types";
+import { deActivateDrawStairsTool } from "../../main";
+import { MessageType } from "../../types";
 
 const design = app.getActiveDesign();
 const selection = app.getSelection();
@@ -66,7 +66,7 @@ export class DrawStairsTool implements KTool {
         // console.log('onMouseMove');
         if (inferenceResult) {
             // const { startWidth, endWidth, platformThickness } = this.componentParam;
-            const position = GeomLib.createPoint3d(inferenceResult.position.x ,inferenceResult.position.y, 0);
+            const position = GeomLib.createPoint3d(inferenceResult.position.x, inferenceResult.position.y, 0);
             if (this.segments.length) {
                 const lastSegment = this.segments[this.segments.length - 1];
                 // console.log('lastSegment.startLocked', lastSegment.startLocked);
@@ -524,179 +524,193 @@ export class DrawStairsTool implements KTool {
     }
 
     onMaterialReplaceClick(changeParamType: ComponentParamType, index?: number) {
-        app.getApplicationUI().toggleMaterialReplacePanel(true, this.onMaterialReplaceItemClick(changeParamType, index));
+        console.log('onMaterialReplaceClick1111')
+        const func = this.onMaterialReplaceItemClick(changeParamType, index);
+        console.log(func);
+        app.getApplicationUI().showRealTimeMaterialEditor('5ce2a6d7dcc7dc7dc8ee0fb0', () => {});
+        // app.getApplicationUI().toggleMaterialReplacePanel(true);
     }
 
     onMaterialReplaceItemClick = (changeParamType: ComponentParamType, index?: number, isDelete?: boolean) => {
+        return (materialId: string, bgid: string) => {
+        console.log('onMaterialReplaceItemClick')
+
+            // this.onMaterialReplaceItemClickImpl(changeParamType, index, isDelete, materialId, bgid);
+        }
+    }
+
+    onMaterialReplaceItemClickImpl = async (changeParamType: ComponentParamType, index?: number, isDelete?: boolean, materialId: string = '', bgid: string = '') => {
         const that = this;
-        return async (materialId: string = '', bgid: string = '') => {
+        if (materialId) {
             const loadMaterialRes = await design.loadMaterial(materialId);
             if (!loadMaterialRes.isSuccess) {
                 return;
             }
-            const materialString = isDelete ? '' : stringifyMaterial({ materialId, bgid });
-            const materialObject = isDelete ? undefined : { materialId, bgid };
-            let parentDef;
-            const instancePath = that.editModel ? design.getEditPathsToGroupInstance(that.editModel.parent.instance) : [];
-            if (changeParamType === ComponentParamType.ComponentMaterial) {
-                const theSegment = getSegmentByIndex(that.segments, index);
-                if (theSegment && index !== undefined) {
-                    let stairParamShouldChangeKey: 'platformMaterial' | 'stairMaterial' | '' = '';
-                    if (theSegment.param.type === ComponentType.Platform) {
-                        const platformSegments = this.segments.filter(seg => seg.param.type === ComponentType.Platform);
-                        if (platformSegments.length === 1) {
-                            stairParamShouldChangeKey = 'platformMaterial';
-                        }
-                    } else {
-                        const stairSegments = this.segments.filter(seg => seg.param.type !== ComponentType.Platform);
-                        if (stairSegments.length === 1) {
-                            stairParamShouldChangeKey = 'stairMaterial';
-                        }
+        } else if (!isDelete) {
+            return;
+        }
+        const materialString = isDelete ? '' : stringifyMaterial({ materialId, bgid });
+        const materialObject = isDelete ? undefined : { materialId, bgid };
+        let parentDef;
+        const instancePath = that.editModel ? design.getEditPathsToGroupInstance(that.editModel.parent.instance) : [];
+        if (changeParamType === ComponentParamType.ComponentMaterial) {
+            const theSegment = getSegmentByIndex(that.segments, index);
+            if (theSegment && index !== undefined) {
+                let stairParamShouldChangeKey: 'platformMaterial' | 'stairMaterial' | '' = '';
+                if (theSegment.param.type === ComponentType.Platform) {
+                    const platformSegments = this.segments.filter(seg => seg.param.type === ComponentType.Platform);
+                    if (platformSegments.length === 1) {
+                        stairParamShouldChangeKey = 'platformMaterial';
                     }
-                    if (that.drawing) {
-                        theSegment.param.material = materialObject;
-                        if (stairParamShouldChangeKey) {
-                            this.stairParam[stairParamShouldChangeKey] = materialObject;
-                        }
-                        pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...theSegment.param }, stairParam: stairParamShouldChangeKey ? this.stairParam : undefined }, '*');
-                    } else if (that.editModel) {
-                        parentDef = that.editModel.parent.instance.getGroupDefinition();
-                        if (!parentDef) {
-                            return;
-                        }
-                        const theInstance = that.editModel.stairs.get(index) || that.editModel.platforms.get(index);
-                        if (theInstance && instancePath) {
-                            startOperation();
-                            let operationSuccess = true;
-                            operationSuccess = operationSuccess && (await design.activateEditPath([...instancePath[0], that.editModel.parent.instance])).isSuccess;
-                            if (isDelete) {
-                                operationSuccess = operationSuccess && design.clearMaterial([theInstance.instance]);
-                            } else {
-                                operationSuccess = operationSuccess && design.assignMaterialForEntities([theInstance.instance], materialId, bgid);
-                            }
-                            const instanceDef = theInstance.instance.getGroupDefinition();
-                            if (instanceDef) {
-                                operationSuccess = operationSuccess && instanceDef.setCustomProperty(ComponentMaterialKey, materialString).isSuccess;
-                            }
-                            operationSuccess = operationSuccess && (await design.activateEditPath(instancePath[0])).isSuccess;
-                            if (stairParamShouldChangeKey) {
-                                operationSuccess = operationSuccess && parentDef.setCustomProperty(theSegment.param.type === ComponentType.Platform ? PlatformMaterialKey : StairMaterialKey, materialString).isSuccess;
-                            }
-                            if (operationSuccess) {
-                                commitOperation();
-                                theSegment.param.material = materialObject;
-                                if (stairParamShouldChangeKey) {
-                                    this.stairParam[stairParamShouldChangeKey] = materialObject;
-                                }
-                                pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...theSegment.param }, stairParam: stairParamShouldChangeKey ? this.stairParam : undefined }, '*');
-                            } else {
-                                abortOperation();
-                            }
-                        }
+                } else {
+                    const stairSegments = this.segments.filter(seg => seg.param.type !== ComponentType.Platform);
+                    if (stairSegments.length === 1) {
+                        stairParamShouldChangeKey = 'stairMaterial';
                     }
                 }
-            } else if (changeParamType === ComponentParamType.StairMaterial || changeParamType === ComponentParamType.PlatformMaterial) {
-                if (!that.editModel) {
-                    if (changeParamType === ComponentParamType.StairMaterial) {
-                        that.stairParam.stairMaterial = materialObject;
-                        for (const segment of this.segments) {
-                            if (segment.param.type !== ComponentType.Platform) {
-                                segment.param.material = materialObject;
-                            }
-                        }
-                    } else {
-                        that.stairParam.platformMaterial = { materialId, bgid };
-                        for (const segment of this.segments) {
-                            if (segment.param.type === ComponentType.Platform) {
-                                segment.param.material = materialObject;
-                            }
-                        }
+                if (that.drawing) {
+                    theSegment.param.material = materialObject;
+                    if (stairParamShouldChangeKey) {
+                        this.stairParam[stairParamShouldChangeKey] = materialObject;
                     }
-                    pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: that.stairParam, componentParams: this.segments.map(seg => ({ ...seg.param })) }, '*');
-                } else if (instancePath) {
+                    pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...theSegment.param }, stairParam: stairParamShouldChangeKey ? this.stairParam : undefined }, '*');
+                } else if (that.editModel) {
                     parentDef = that.editModel.parent.instance.getGroupDefinition();
                     if (!parentDef) {
                         return;
                     }
-                    startOperation();
-                    let operationSuccess = true;
-                    operationSuccess = operationSuccess && (await design.activateEditPath([...instancePath[0], that.editModel.parent.instance])).isSuccess;
-                    const components = changeParamType === ComponentParamType.StairMaterial ? that.editModel.stairs : that.editModel.platforms;
-                    const theSegments: Segment[] = [];
-                    const componentInstances: KGroupInstance[] = [];
-                    for (const [ind, instanceData] of components) {
-                        const theSegment = getSegmentByIndex(that.segments, ind);
-                        if (theSegment) {
-                            componentInstances.push(instanceData.instance);
-                            theSegments.push(theSegment);
-                        }
-                    }
-                    if (isDelete) {
-                        operationSuccess = operationSuccess && design.clearMaterial(componentInstances);
-                    } else {
-                        operationSuccess = operationSuccess && design.assignMaterialForEntities(componentInstances, materialId, bgid);
-                    }
-                    for (const componentInstance of componentInstances) {
-                        const componentDef = componentInstance.getGroupDefinition();
-                        if (componentDef) {
-                            operationSuccess = operationSuccess && componentDef.setCustomProperty(ComponentMaterialKey, materialString).isSuccess;
-                        }
-                    }
-                    operationSuccess = operationSuccess && (await design.activateEditPath(instancePath[0])).isSuccess;
-                    operationSuccess = operationSuccess && parentDef.setCustomProperty(changeParamType === ComponentParamType.StairMaterial ? StairMaterialKey : PlatformMaterialKey, materialString).isSuccess;
-                    if (operationSuccess) {
-                        commitOperation();
-                        if (changeParamType === ComponentParamType.StairMaterial) {
-                            that.stairParam.stairMaterial = materialObject;
-                            for (const segment of theSegments) {
-                                segment.param.material = materialObject;
-                            }
+                    const theInstance = that.editModel.stairs.get(index) || that.editModel.platforms.get(index);
+                    if (theInstance && instancePath) {
+                        startOperation();
+                        let operationSuccess = true;
+                        operationSuccess = operationSuccess && (await design.activateEditPath([...instancePath[0], that.editModel.parent.instance])).isSuccess;
+                        if (isDelete) {
+                            operationSuccess = operationSuccess && design.clearMaterial([theInstance.instance]);
                         } else {
-                            that.stairParam.platformMaterial = materialObject;
-                            for (const segment of theSegments) {
-                                segment.param.material = materialObject;
-                            }
+                            operationSuccess = operationSuccess && design.assignMaterialForEntities([theInstance.instance], materialId, bgid);
                         }
-                        pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: that.stairParam, componentParams: this.segments.map(seg => ({ ...seg.param })) }, '*');
-                    } else {
-                        abortOperation();
+                        const instanceDef = theInstance.instance.getGroupDefinition();
+                        if (instanceDef) {
+                            operationSuccess = operationSuccess && instanceDef.setCustomProperty(ComponentMaterialKey, materialString).isSuccess;
+                        }
+                        operationSuccess = operationSuccess && (await design.activateEditPath(instancePath[0])).isSuccess;
+                        if (stairParamShouldChangeKey) {
+                            operationSuccess = operationSuccess && parentDef.setCustomProperty(theSegment.param.type === ComponentType.Platform ? PlatformMaterialKey : StairMaterialKey, materialString).isSuccess;
+                        }
+                        if (operationSuccess) {
+                            commitOperation();
+                            theSegment.param.material = materialObject;
+                            if (stairParamShouldChangeKey) {
+                                this.stairParam[stairParamShouldChangeKey] = materialObject;
+                            }
+                            pluginUI.postMessage({ type: MessageType.ParamChangedByDraw, componentParam: { ...theSegment.param }, stairParam: stairParamShouldChangeKey ? this.stairParam : undefined }, '*');
+                        } else {
+                            abortOperation();
+                        }
                     }
                 }
-            } else if (changeParamType === ComponentParamType.HandrailRailMaterial || changeParamType === ComponentParamType.HandrailColumnMaterial) {
-                if (!that.editModel) {
+            }
+        } else if (changeParamType === ComponentParamType.StairMaterial || changeParamType === ComponentParamType.PlatformMaterial) {
+            if (!that.editModel) {
+                if (changeParamType === ComponentParamType.StairMaterial) {
+                    that.stairParam.stairMaterial = materialObject;
+                    for (const segment of this.segments) {
+                        if (segment.param.type !== ComponentType.Platform) {
+                            segment.param.material = materialObject;
+                        }
+                    }
+                } else {
+                    that.stairParam.platformMaterial = { materialId, bgid };
+                    for (const segment of this.segments) {
+                        if (segment.param.type === ComponentType.Platform) {
+                            segment.param.material = materialObject;
+                        }
+                    }
+                }
+                pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: that.stairParam, componentParams: this.segments.map(seg => ({ ...seg.param })) }, '*');
+            } else if (instancePath) {
+                parentDef = that.editModel.parent.instance.getGroupDefinition();
+                if (!parentDef) {
+                    return;
+                }
+                startOperation();
+                let operationSuccess = true;
+                operationSuccess = operationSuccess && (await design.activateEditPath([...instancePath[0], that.editModel.parent.instance])).isSuccess;
+                const components = changeParamType === ComponentParamType.StairMaterial ? that.editModel.stairs : that.editModel.platforms;
+                const theSegments: Segment[] = [];
+                const componentInstances: KGroupInstance[] = [];
+                for (const [ind, instanceData] of components) {
+                    const theSegment = getSegmentByIndex(that.segments, ind);
+                    if (theSegment) {
+                        componentInstances.push(instanceData.instance);
+                        theSegments.push(theSegment);
+                    }
+                }
+                if (isDelete) {
+                    operationSuccess = operationSuccess && design.clearMaterial(componentInstances);
+                } else {
+                    operationSuccess = operationSuccess && design.assignMaterialForEntities(componentInstances, materialId, bgid);
+                }
+                for (const componentInstance of componentInstances) {
+                    const componentDef = componentInstance.getGroupDefinition();
+                    if (componentDef) {
+                        operationSuccess = operationSuccess && componentDef.setCustomProperty(ComponentMaterialKey, materialString).isSuccess;
+                    }
+                }
+                operationSuccess = operationSuccess && (await design.activateEditPath(instancePath[0])).isSuccess;
+                operationSuccess = operationSuccess && parentDef.setCustomProperty(changeParamType === ComponentParamType.StairMaterial ? StairMaterialKey : PlatformMaterialKey, materialString).isSuccess;
+                if (operationSuccess) {
+                    commitOperation();
+                    if (changeParamType === ComponentParamType.StairMaterial) {
+                        that.stairParam.stairMaterial = materialObject;
+                        for (const segment of theSegments) {
+                            segment.param.material = materialObject;
+                        }
+                    } else {
+                        that.stairParam.platformMaterial = materialObject;
+                        for (const segment of theSegments) {
+                            segment.param.material = materialObject;
+                        }
+                    }
+                    pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: that.stairParam, componentParams: this.segments.map(seg => ({ ...seg.param })) }, '*');
+                } else {
+                    abortOperation();
+                }
+            }
+        } else if (changeParamType === ComponentParamType.HandrailRailMaterial || changeParamType === ComponentParamType.HandrailColumnMaterial) {
+            if (!that.editModel) {
+                if (changeParamType === ComponentParamType.HandrailRailMaterial) {
+                    that.stairParam.handrail.rail.material = materialObject;
+                } else {
+                    that.stairParam.handrail.column.material = materialObject;
+                }
+                pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: that.stairParam }, '*');
+            } else if (instancePath && that.editModel.handrail) {
+                parentDef = that.editModel.parent.instance.getGroupDefinition();
+                if (!parentDef) {
+                    return;
+                }
+                startOperation();
+                let operationSuccess = true;
+                operationSuccess = operationSuccess && (await design.activateEditPath([...instancePath[0], that.editModel.parent.instance, that.editModel.handrail.handrailInstance.instance])).isSuccess;
+                const components = changeParamType === ComponentParamType.HandrailRailMaterial ? that.editModel.handrail.railInstances : that.editModel.handrail.columnInstances;
+                if (isDelete) {
+                    operationSuccess = operationSuccess && design.clearMaterial([...components.values()].map(c => c.instance));
+                } else {
+                    operationSuccess = operationSuccess && design.assignMaterialForEntities([...components.values()].map(c => c.instance), materialId, bgid);
+                }
+                operationSuccess = operationSuccess && (await design.activateEditPath(instancePath[0])).isSuccess;
+                operationSuccess = operationSuccess && parentDef.setCustomProperty(changeParamType === ComponentParamType.HandrailRailMaterial ? RailMaterialKey : ColumnMaterialKey, materialString).isSuccess;
+                if (operationSuccess) {
+                    commitOperation();
                     if (changeParamType === ComponentParamType.HandrailRailMaterial) {
                         that.stairParam.handrail.rail.material = materialObject;
                     } else {
                         that.stairParam.handrail.column.material = materialObject;
                     }
                     pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: that.stairParam }, '*');
-                } else if (instancePath && that.editModel.handrail) {
-                    parentDef = that.editModel.parent.instance.getGroupDefinition();
-                    if (!parentDef) {
-                        return;
-                    }
-                    startOperation();
-                    let operationSuccess = true;
-                    operationSuccess = operationSuccess && (await design.activateEditPath([...instancePath[0], that.editModel.parent.instance, that.editModel.handrail.handrailInstance.instance])).isSuccess;
-                    const components = changeParamType === ComponentParamType.HandrailRailMaterial ? that.editModel.handrail.railInstances : that.editModel.handrail.columnInstances;
-                    if (isDelete) {
-                        operationSuccess = operationSuccess && design.clearMaterial([...components.values()].map(c => c.instance));
-                    } else {
-                        operationSuccess = operationSuccess && design.assignMaterialForEntities([...components.values()].map(c => c.instance), materialId, bgid);
-                    }
-                    operationSuccess = operationSuccess && (await design.activateEditPath(instancePath[0])).isSuccess;
-                    operationSuccess = operationSuccess && parentDef.setCustomProperty(changeParamType === ComponentParamType.HandrailRailMaterial ? RailMaterialKey : ColumnMaterialKey, materialString).isSuccess;
-                    if (operationSuccess) {
-                        commitOperation();
-                        if (changeParamType === ComponentParamType.HandrailRailMaterial) {
-                            that.stairParam.handrail.rail.material = materialObject;
-                        } else {
-                            that.stairParam.handrail.column.material = materialObject;
-                        }
-                        pluginUI.postMessage({ type: MessageType.StairParamChangedByDraw, stairParam: that.stairParam }, '*');
-                    } else {
-                        abortOperation();
-                    }
+                } else {
+                    abortOperation();
                 }
             }
         }
@@ -884,14 +898,14 @@ export class DrawStairsTool implements KTool {
                 }
                 selection.add([parentInstance]);
             }
-        } else if (!stairParam.stairMaterial && changeParamTypes.length === 0 && changeParamTypes[0] === ComponentParamType.StairMaterial) {
-            await this.onMaterialReplaceItemClick(changeParamTypes[0], undefined, true)();
-        } else if (!stairParam.platformMaterial && changeParamTypes.length === 0 && changeParamTypes[0] === ComponentParamType.PlatformLength) {
-            await this.onMaterialReplaceItemClick(changeParamTypes[0], undefined, true)();
-        } else if (!stairParam.handrail.rail.material && changeParamTypes.length === 0 && changeParamTypes[0] === ComponentParamType.HandrailRailMaterial) {
-            await this.onMaterialReplaceItemClick(changeParamTypes[0], undefined, true)();
-        } else if (!stairParam.handrail.column.material && changeParamTypes.length === 0 && changeParamTypes[0] === ComponentParamType.HandrailColumnMaterial) {
-            await this.onMaterialReplaceItemClick(changeParamTypes[0], undefined, true)();
+        } else if (!stairParam.stairMaterial && changeParamTypes.length === 1 && changeParamTypes[0] === ComponentParamType.StairMaterial) {
+            await this.onMaterialReplaceItemClick(changeParamTypes[0], undefined, true)('', '');
+        } else if (!stairParam.platformMaterial && changeParamTypes.length === 1 && changeParamTypes[0] === ComponentParamType.PlatformLength) {
+            await this.onMaterialReplaceItemClick(changeParamTypes[0], undefined, true)('', '');
+        } else if (!stairParam.handrail.rail.material && changeParamTypes.length === 1 && changeParamTypes[0] === ComponentParamType.HandrailRailMaterial) {
+            await this.onMaterialReplaceItemClick(changeParamTypes[0], undefined, true)('', '');
+        } else if (!stairParam.handrail.column.material && changeParamTypes.length === 1 && changeParamTypes[0] === ComponentParamType.HandrailColumnMaterial) {
+            await this.onMaterialReplaceItemClick(changeParamTypes[0], undefined, true)('', '');
         }
     }
 
@@ -906,8 +920,8 @@ export class DrawStairsTool implements KTool {
             if (!isCircularStair(theSegment)) {
                 theSegment.circleTangent = undefined;
             }
-            if (changeParamTypes.length === 0 && changeParamTypes[0] === ComponentParamType.ComponentMaterial && !componentParam.material) {
-                this.onMaterialReplaceItemClick(changeParamTypes[0], componentParam.index, true);
+            if (changeParamTypes.length === 1 && changeParamTypes[0] === ComponentParamType.ComponentMaterial && !componentParam.material) {
+                this.onMaterialReplaceItemClick(changeParamTypes[0], componentParam.index, true)('', '');
             } else if (changeParamTypes.length === 1 && (changeParamTypes[0] === ComponentParamType.StepProportional ||
                 changeParamTypes[0] === ComponentParamType.WidthProportional
             )) {

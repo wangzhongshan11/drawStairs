@@ -7,7 +7,6 @@ import { MessageType } from '../../src/main/types';
 class App extends React.Component {
     componentDidMount(): void {
         window.parent.postMessage({ type: MessageType.DrawStairViewMounted }, '*');
-        
     }
     render() {
         return (<div>

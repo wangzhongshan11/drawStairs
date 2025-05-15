@@ -1,0 +1,15 @@
+.switch-property-wrapper {
+    width: 100%;
+    height: 26px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    /* margin-bottom: 10px; */
+    /* font-size: 16px; */
+
+    .title {
+        min-width: 20px;
+        font-size: 13px;
+        margin-right: 10px;
+    }
+}

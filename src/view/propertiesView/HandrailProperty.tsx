@@ -1,9 +1,9 @@
 import * as React from 'react'
 import "./index.css";
-import { ColumnType, ComponentParamSettings, ComponentParamType, DefaultStairParam, MaterialAssignType, RailType, StairParam } from '../../main/tools/DrawStairsTool/types';
-import InputNumberProperty from './components/InputNumberProperty';
-import SelectProperty from './components/SelectProperty';
-import SwitchProperty from './components/SwitchProperty';
+import { ColumnType, ComponentParamSettings, ComponentParamType, DefaultStairParam, MaterialAssignType, RailType, StairParam } from '../../main/tools/drawStairsTool/types';
+import InputNumberProperty from '../components/InputNumberProperty';
+import SelectProperty from '../components/SelectProperty';
+import SwitchProperty from '../components/SwitchProperty';
 import { Button } from 'antd';
 import { DeleteOutlined, PlusOutlined, UndoOutlined } from '@ant-design/icons';
 
