@@ -25,17 +25,15 @@ export const CoordDelimiter = ',';
 export const BaseLine3dDelimiter = '_';
 
 const ProdMaterials = {
-    Stair: { bgId: '3FO4LHERBPPY', materialId: '5972e993aa01f3585f51decb' },
+    Stair: { bgId: '3FO4LHEUE413', materialId: '5ce2a6d7dcc7dc7dc8ee0fb0' },
     // Stair: { bgId: '3FO4ATKECLKI', materialId: '6168f454cdd25e00017d75d0' },
-    Platform: { bgId: '3FO44T7MYFA5', materialId: '64562afd6fbc3b0001a3251c' },
+    Platform: { bgId: '3FO4LHEU9IIP', materialId: '5ce2a7a3b5cb6951becb5a4a' },
     Handrail: {
-        rail: { bgId: '3FO4LHERE7NP', materialId: '5972e8d7aa01f3585f51de97' },
-        column: { bgId: '3FO4LHERE7NP', materialId: '5972e8d7aa01f3585f51de97' },
+        rail: { bgId: '3FO4LHERH2YK', materialId: '5817337f3415f86f6b9372ea' },
+        column: { bgId: '3FO4LHERH2YK', materialId: '5817337f3415f86f6b9372ea' },
     },
 }
 export const PresetMaterials = ProdMaterials;
-
-
 // const DevMaterials = {
 //     Stair: { bgId: '3FO4H2D73JFO', materialId: '58af961b4a4d2c4f8aa2b1da' },
 //     // Stair: { bgId: '3FO4ATKECLKI', materialId: '6168f454cdd25e00017d75d0' },
@@ -268,13 +266,13 @@ export const DefaultStairParam: StairParam = {
         height: 400,
         rail: {
             type: RailType.Circle,
-            param: { radius: 16, width: 40, height: 30, },
+            param: { radius: 12, width: 20, height: 12, },
             material: PresetMaterials.Handrail.rail,
         },
         column: {
             type: ColumnType.Circle,
-            step: 500,
-            param: { radius: 8, width: 12, height: 12, },
+            step: 400,
+            param: { radius: 4, width: 8, height: 8, },
             material: PresetMaterials.Handrail.column,
         },
     },
@@ -285,26 +283,26 @@ export const DefaultStairParam: StairParam = {
 
 export function getDefaultStairParam(): StairParam {
     return {
-        horizontalStep: 250,
-        verticalStep: 250,
+        horizontalStep: 200,
+        verticalStep: 100,
         startWidth: 1000,
         endWidth: 1000,
         upward: true,
-        platformThickness: 200,
+        platformThickness: 100,
         stairMaterial: PresetMaterials.Stair,
         platformMaterial: PresetMaterials.Platform,
         handrail: {
             support: true,
-            height: 500,
+            height: 400,
             rail: {
                 type: RailType.Circle,
-                param: { radius: 20, width: 60, height: 30, },
+                param: { radius: 12, width: 20, height: 12, },
                 material: PresetMaterials.Handrail.rail,
             },
             column: {
                 type: ColumnType.Circle,
-                step: 500,
-                param: { radius: 8, width: 16, height: 16, },
+                step: 400,
+                param: { radius: 4, width: 8, height: 8, },
                 material: PresetMaterials.Handrail.column,
             },
         },

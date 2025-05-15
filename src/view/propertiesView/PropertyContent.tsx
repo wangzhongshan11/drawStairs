@@ -1,9 +1,9 @@
 import * as React from 'react'
 import "./index.css";
-import InputNumberPropertyArray from './components/InputNumberPropertyArray';
-import { ComponentParam, ComponentParamSettings, ComponentParamType, ComponentType, DefaultComponentParam, DefaultStairParam, MaterialAssignType, StairParam } from '../../main/tools/DrawStairsTool/types';
-import RadioProperty from './components/RadioProperty';
-import InputNumberProperty from './components/InputNumberProperty';
+import InputNumberPropertyArray from '../components/InputNumberPropertyArray';
+import { ComponentParam, ComponentParamSettings, ComponentParamType, ComponentType, DefaultComponentParam, DefaultStairParam, MaterialAssignType, StairParam } from '../../main/tools/drawStairsTool/types';
+import RadioProperty from '../components/RadioProperty';
+import InputNumberProperty from '../components/InputNumberProperty';
 import { DeleteOutlined, LockOutlined, PlusOutlined, UndoOutlined, UnlockOutlined } from '@ant-design/icons';
 import { Button, Divider } from 'antd';
 

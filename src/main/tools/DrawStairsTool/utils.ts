@@ -297,22 +297,35 @@ export function abortOperation() {
 }
 
 export function onModelChanged(changes: { isUndoRedo: boolean, modified?: KGroupDefinition[], added?: KGroupDefinition[], deleted?: KGroupDefinition[] }) {
+    const modified = changes.modified;
     const deleted = changes.deleted;
     const added = changes.added;
-    // const editModel = drawStairsTool.getEditModel();
-    if (!isInOperation && (deleted?.length || added?.length)) {
+    const editModel = drawStairsTool.getEditModel();
+    if (!isInOperation && (deleted?.length || added?.length || (editModel && modified?.some(group => {
+        return isGroupDefPartOfEditModel(editModel, group);
+    })))) {
         // if (deleted.some(deleteGroup => editModel.parent.definitionKey === deleteGroup.getKey())) {
-            drawStairsTool.clearEditModel();
+        drawStairsTool.clearEditModel();
         // }
     }
 }
 
 export function isPartOfEditModel(editModel: EditModel, groupInstance: KGroupInstance) {
     const groupInstanceKey = groupInstance.getKey();
-    return editModel.parent.instanceKey === groupInstanceKey || 
-    [...editModel.stairs.values()].some(instanceData => instanceData.instanceKey === groupInstanceKey) ||
-    [...editModel.platforms.values()].some(instanceData => instanceData.instanceKey === groupInstanceKey) ||
-    editModel.handrail?.handrailInstance.instanceKey === groupInstanceKey || 
-    [...(editModel.handrail?.railInstances || []).values()].some(instanceData => instanceData.instanceKey === groupInstanceKey) ||
-    [...(editModel.handrail?.columnInstances || []).values()].some(instanceData => instanceData.instanceKey === groupInstanceKey)
+    return editModel.parent.instanceKey === groupInstanceKey ||
+        [...editModel.stairs.values()].some(instanceData => instanceData.instanceKey === groupInstanceKey) ||
+        [...editModel.platforms.values()].some(instanceData => instanceData.instanceKey === groupInstanceKey) ||
+        editModel.handrail?.handrailInstance.instanceKey === groupInstanceKey ||
+        [...(editModel.handrail?.railInstances || []).values()].some(instanceData => instanceData.instanceKey === groupInstanceKey) ||
+        [...(editModel.handrail?.columnInstances || []).values()].some(instanceData => instanceData.instanceKey === groupInstanceKey)
+}
+
+export function isGroupDefPartOfEditModel(editModel: EditModel, groupDefinition: KGroupDefinition) {
+    const groupDefinitionKey = groupDefinition.getKey();
+    return editModel.parent.definitionKey === groupDefinitionKey ||
+        [...editModel.stairs.values()].some(instanceData => instanceData.definitionKey === groupDefinitionKey) ||
+        [...editModel.platforms.values()].some(instanceData => instanceData.definitionKey === groupDefinitionKey) ||
+        editModel.handrail?.handrailInstance.definitionKey === groupDefinitionKey ||
+        [...(editModel.handrail?.railInstances || []).values()].some(instanceData => instanceData.definitionKey === groupDefinitionKey) ||
+        [...(editModel.handrail?.columnInstances || []).values()].some(instanceData => instanceData.definitionKey === groupDefinitionKey)
 }

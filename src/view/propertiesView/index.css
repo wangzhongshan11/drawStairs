@@ -221,4 +221,16 @@
             }
         }
     }
+
+    .guide-wrapper {
+        width: 100%;
+        height: 100%;
+
+        .guide-gif {
+            width: 80%;
+            height: 200px;
+            padding: 0 10%;
+            margin: 20px 0;
+        }
+    }
 }

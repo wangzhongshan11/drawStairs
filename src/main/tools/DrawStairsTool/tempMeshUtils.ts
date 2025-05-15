@@ -984,7 +984,7 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                             const curVerStepDistance = (tempStepCount + (upward ? 1 : 0)) * stepHeight;
                             let curColumnActualHeight = columnActualHeight;
                             if (upward) {
-                                curColumnActualHeight = (curHorStepDistance - lastFrontOffsetLength) / (prevTotalStepLength - lastFrontOffsetLength) * prevTotalVerStepLength - curVerStepDistance + stepHeight + height;
+                                curColumnActualHeight = (curHorStepDistance - startFrontOffsetLength) / (prevTotalStepLength - startFrontOffsetLength) * prevTotalVerStepLength - curVerStepDistance + stepHeight + height;
                             } else {
                                 curColumnActualHeight = (1 - (curHorStepDistance - horizontalStep) / (totalLength - horizontalStep - lastFrontOffsetLength)) * -prevTotalVerStepLength + (stepCount - 1 - tempStepCount) * stepHeight + height;
                             }
@@ -1151,7 +1151,9 @@ export function generateHandrailShape(stairParam: StairParam, segments: Segment[
                             const { line3dInd: stairNextLine3dInd, endOnBaseLineWithOffset } = getSegmentStartAndBaseLine3d(stairNextSegment, segments, currentSegment, offsetLength).startLine;
                             ep = endOnBaseLineWithOffset;
                             spToEpDir = ep.subtracted(sp).normalized();
-                            if (spToEpDir.dot(line3dDir) >= 0) {
+                            const tailTempLine = moldTempLines[moldTempLines.length - 1];
+                            const tailLine3dDir = moldVertices[tailTempLine[1]].subtracted(moldVertices[tailTempLine[0]]).normalized();
+                            if (spToEpDir.dot(tailLine3dDir) >= 0) {
                                 nextStartPoint = sp;
                             } else {
                                 pushEnd = true;

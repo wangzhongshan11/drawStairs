@@ -1,7 +1,7 @@
 import * as React from 'react'
 import "./index.css";
-import { ColumnType, ComponentParam, ComponentParamType, ComponentType, MaterialAssignType, RailType, StairParam, getComponentTitle } from '../../main/tools/DrawStairsTool/types';
-import { ImmutableMap } from './ImmutableMap';
+import { ColumnType, ComponentParam, ComponentParamType, ComponentType, MaterialAssignType, RailType, StairParam, getComponentTitle } from '../../main/tools/drawStairsTool/types';
+import { ImmutableMap } from '../utils/ImmutableMap';
 import { Tabs } from 'antd';
 import PropertyContent from './PropertyContent';
 import { MessageType } from '../../main/types';
@@ -9,6 +9,7 @@ import { DeleteOutlined } from '@ant-design/icons';
 import { Collapse } from "antd";
 import HandrailProperty from './HandrailProperty';
 import { ItemType } from 'rc-collapse/es/interface';
+import ToolGuide from './ToolGuide';
 
 interface State {
     componentParams: ImmutableMap<number, ComponentParam>;
@@ -21,7 +22,7 @@ interface State {
 }
 
 export default class PropertiesView extends React.Component<{}, State> {
-    state: Readonly<State> = { componentParams: new ImmutableMap(), activeKey: '0', propertiesVisible: true };
+    state: Readonly<State> = { componentParams: new ImmutableMap(), activeKey: '0', propertiesVisible: false };
 
     componentDidMount(): void {
         window.addEventListener("message", this.onMessage);
@@ -213,7 +214,8 @@ export default class PropertiesView extends React.Component<{}, State> {
                 if (changed) {
                     window.parent.postMessage({ type: MessageType.ParamChangedByInput, componentParam: newComponentParam, changeParams: componentParamTypes }, '*');
                     const newComponentParams = componentParams.set(newComponentParam.index, newComponentParam);
-                    this.setState({ componentParam: newComponentParam, componentParams: newComponentParams });                }
+                    this.setState({ componentParam: newComponentParam, componentParams: newComponentParams });
+                }
             }
         }
     }
@@ -378,9 +380,9 @@ export default class PropertiesView extends React.Component<{}, State> {
 
     render() {
         const { componentParams, componentParam, stairParam, activeKey, propertiesVisible, isDrawing, materialAssignType } = this.state;
-        if (!componentParams.size || !propertiesVisible || !stairParam) {
-            return null;
-        }
+        // if (!componentParams.size || !propertiesVisible || !stairParam) {
+        //     return null;
+        // }
         // const disabled = !this.state.componentParam;
         const items: ItemType[] = [
             {
@@ -440,7 +442,10 @@ export default class PropertiesView extends React.Component<{}, State> {
         ];
         return (
             <div className='property-wrapper'>
-                <Collapse items={items} defaultActiveKey={['stairs-property', 'handrail-property']} />
+                {propertiesVisible ?
+                    <Collapse items={items} defaultActiveKey={['stairs-property', 'handrail-property']} /> :
+                    <ToolGuide />
+                }
             </div>
         )
     }
